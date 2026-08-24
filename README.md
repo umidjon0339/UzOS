@@ -1,6 +1,6 @@
-# MyOS
+# UzOS
 
-MyOS is a simple educational operating system developed from scratch to learn about low-level systems engineering.
+UzOS is a simple educational operating system developed from scratch to learn about low-level systems engineering.
 
 ## Current version
 
@@ -53,7 +53,7 @@ gdb
 
 ## Architecture
 
-MyOS follows a minimalistic architecture to transition from the bootloader to a high-level C environment.
+UzOS follows a minimalistic architecture to transition from the bootloader to a high-level C environment.
 
 ```text
 QEMU (Multiboot Loader)
