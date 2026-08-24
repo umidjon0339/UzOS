@@ -1,4 +1,4 @@
-; boot64.S
+; boot64.asm
 ; This file contains the 64-bit entry point that is called immediately after 
 ; our 32-bit code switches the CPU into Long Mode.
 

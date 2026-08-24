@@ -9,7 +9,7 @@ v0.1
 ## Current features
 
 - x86_64 kernel
-- Bootable in QEMU (using GRUB/Multiboot2)
+- Bootable in QEMU (Multiboot)
 - Kernel entry point
 - Basic terminal output (VGA Text Mode)
 - Safe CPU halt loop
@@ -18,12 +18,12 @@ v0.1
 
 ## Build
 
-To compile the operating system and generate the bootable ISO file (`build/myos.iso`), run:
+To compile the operating system, run:
 
 ```bash
 make
 ```
-*(Note: requires `gcc`, `nasm`, `make`, `xorriso`, and `mtools`)*
+*(Note: requires `gcc`, `nasm`, `make`, `ld`, and `objcopy`)*
 
 ## Run
 
@@ -56,36 +56,36 @@ gdb
 MyOS follows a minimalistic architecture to transition from the bootloader to a high-level C environment.
 
 ```text
-Bootloader (GRUB)
+QEMU (Multiboot Loader)
     ↓
-Kernel (boot.S: 32-bit to 64-bit transition)
+Kernel (boot.asm: 32-bit to 64-bit transition)
     ↓
-Kernel (boot64.S: 64-bit entry point)
+Kernel (boot64.asm: 64-bit entry point)
     ↓
 Kernel (kernel.c: C environment)
     ↓
 Terminal (terminal.c: VGA Output)
     ↓
-CPU halt (boot64.S: Safe infinite loop)
+CPU halt (boot64.asm: Safe infinite loop)
 ```
 
 ## Educational Documentation
 
 ### 1. The Boot Process
-1. **Power on / VM starts**: QEMU begins execution, running its virtual firmware (SeaBIOS).
-2. **Bootloader**: The firmware finds the GRUB bootloader on our ISO image and executes it. GRUB reads `grub.cfg`, finds our Multiboot2 kernel, and loads it into memory at physical address `1MB`.
-3. **Kernel loaded**: GRUB transfers control to the `start` label in `boot.S`. At this point, the CPU is in 32-bit Protected Mode.
-4. **Kernel entry point**: `boot.S` sets up 4-level paging (identity mapping the first 2MB), enables PAE, enables Long Mode in the EFER MSR, and enables Paging. It loads a 64-bit GDT and does a far jump to `long_mode_start` in `boot64.S`.
-5. **kernel_main()**: `boot64.S` sets up the C stack pointer and calls `kernel_main` in `kernel.c`.
+1. **Power on / VM starts**: QEMU begins execution with Multiboot support (`-kernel build/myos.bin`).
+2. **Bootloader**: QEMU's Multiboot loader loads our kernel into memory at physical address `1MB`.
+3. **Kernel entry point**: Control is transferred to the `start` label in `boot.asm`. At this point, the CPU is in 32-bit Protected Mode.
+4. **Transition to Long Mode**: `boot.asm` sets up 4-level paging (identity mapping the first 2MB), enables PAE, enables Long Mode in the EFER MSR, and enables Paging. It loads a 64-bit GDT and does a far jump to `long_mode_start` in `boot64.asm`.
+5. **kernel_main()**: `boot64.asm` sets up the C stack pointer and calls `kernel_main` in `kernel.c`.
 6. **Terminal initialization**: `kernel_main` calls `terminal_initialize()`, which clears the VGA text buffer located at physical address `0xB8000`.
 7. **Print message**: The kernel writes characters and color bytes directly to `0xB8000`. The video card hardware automatically renders this memory to the screen.
-8. **CPU halt loop**: After `kernel_main` returns, `boot64.S` enters an infinite loop using the `hlt` instruction, putting the CPU in a low-power state until an interrupt occurs (which we have disabled via `cli`).
+8. **CPU halt loop**: After `kernel_main` returns, `boot64.asm` enters an infinite loop using the `hlt` instruction, putting the CPU in a low-power state until an interrupt occurs (which we have disabled via `cli`).
 
 ### 2. Files Created
 
-- **`Makefile`**: Automates the build process. Compiles C and assembly files, links them into an ELF binary, creates the GRUB config, and packages everything into an ISO.
+- **`Makefile`**: Automates the build process. Compiles C and NASM assembly files, links them into an ELF binary, and generates the runnable image.
 - **`linker.ld`**: Tells the linker how to arrange the sections (like `.text` and `.data`) in the final binary, ensuring the Multiboot header comes first and the kernel is loaded at `1MB`.
-- **`boot.S`**: The 32-bit assembly entry point. Contains the Multiboot2 header and the crucial code to transition the CPU from 32-bit to 64-bit mode by setting up page tables and the GDT.
-- **`boot64.S`**: The 64-bit assembly entry point. Sets up the stack for C code, calls `kernel_main`, and handles the final infinite halt loop.
-- **`terminal.c` / `terminal.h`**: A basic VGA text mode driver. Provides an abstraction to print strings to the screen without cluttering the main kernel logic.
-- **`kernel.c`**: The main C entry point. Orchestrates the initialization and prints the welcome message.
+- **`boot/boot.asm`**: The 32-bit NASM assembly entry point. Contains the Multiboot header and the code to transition the CPU from 32-bit to 64-bit mode by setting up page tables and the GDT.
+- **`boot/boot64.asm`**: The 64-bit NASM assembly entry point. Sets up the stack for C code, calls `kernel_main`, and handles the final infinite halt loop.
+- **`kernel/terminal.c` / `include/terminal.h`**: A basic VGA text mode driver. Provides an abstraction to print strings to the screen without cluttering the main kernel logic.
+- **`kernel/kernel.c`**: The main C entry point. Orchestrates the initialization and prints the welcome message.

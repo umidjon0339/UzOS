@@ -1,6 +1,6 @@
-; boot.S
+; boot.asm
 ; This file contains the Multiboot1 header and the 32-bit entry point for our kernel.
-; GRUB loads the kernel in 32-bit protected mode. We must set up page tables, 
+; GRUB/QEMU loads the kernel in 32-bit protected mode. We must set up page tables, 
 ; enable PAE, enable Long Mode, and load a 64-bit GDT before we can execute 64-bit C code.
 
 section .multiboot_header
@@ -20,7 +20,7 @@ pd_table:
     resb 4096
 
 section .text
-; Tell NASM to generate 32-bit instructions (since GRUB drops us in 32-bit mode)
+; Tell NASM to generate 32-bit instructions (since GRUB/QEMU drops us in 32-bit mode)
 bits 32
 global start
 extern long_mode_start
