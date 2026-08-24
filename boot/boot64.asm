@@ -6,6 +6,7 @@ section .text
 bits 64
 global long_mode_start
 extern kernel_main
+extern multiboot_info_ptr
 
 long_mode_start:
     ; 1. Load null into data segment registers. 
@@ -22,10 +23,14 @@ long_mode_start:
     ; C code requires a valid stack to function properly.
     mov rsp, stack_top
 
-    ; 3. Call the main C kernel function
+    ; 3. Pass the Multiboot info struct pointer as the first argument (RDI) to kernel_main.
+    ;    The pointer was saved as a 32-bit address in boot.asm; zero-extend it to 64-bit.
+    mov edi, [multiboot_info_ptr]
+
+    ; 4. Call the main C kernel function
     call kernel_main
 
-    ; 4. In case kernel_main ever returns, enter an infinite safe halt loop
+    ; 5. In case kernel_main ever returns, enter an infinite safe halt loop
 .halt:
     cli       ; Clear Interrupts (prevent interrupts from waking the CPU)
     hlt       ; Halt the CPU until the next interrupt (which will never come)
@@ -36,3 +41,4 @@ align 16
 stack_bottom:
     resb 16384 ; Reserve 16 KB for the kernel stack
 stack_top:
+
