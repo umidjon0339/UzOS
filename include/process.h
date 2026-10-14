@@ -40,9 +40,13 @@ typedef struct process {
 } process_t;
 
 void process_init(void);
-int process_create(const char *name, void (*entry_point)(void));
+
+/* uid is set by the kernel at spawn time, never by the caller later.
+ * 0 = root, anything else = unprivileged. */
+int process_create(const char *name, void (*entry_point)(void), uint32_t uid);
 int process_fork(void); // Implements fork with security limits
-void process_kill(uint32_t pid);
+/* Returns 1 if the kill was accepted, 0 if a security guard refused it. */
+int process_kill(uint32_t pid);
 process_t *process_get_by_pid(uint32_t pid);
 process_t *process_get_table(void);
 void process_exit(void);

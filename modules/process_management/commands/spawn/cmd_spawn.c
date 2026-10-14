@@ -23,7 +23,7 @@ static void dummy_worker(void) {
 
 void cmd_spawn(const char *args) {
     (void)args;
-    int pid = process_create("worker", dummy_worker);
+    int pid = process_create("worker", dummy_worker, 0);
     if (pid > 0) {
         vga_print_str("Spawned background worker with PID: ");
         vga_print_int(pid);

@@ -20,6 +20,7 @@
 #include "ramdisk.h"
 #include "fs_commands.h"
 #include "gui_commands.h"
+#include "proc_security.h"
 
 extern void init_syscalls(void);
 
@@ -97,6 +98,15 @@ void kernel_main(uint32_t multiboot_magic, multiboot_info_t *mb_info) {
     vga_set_color(VGA_COLOR_LIGHT_GREEN, VGA_COLOR_BLACK);
     vga_print_str("[SUCCESS]\n");
 
+    // 7.5 Bring up the Process Security Lab (attacks + defences).
+    // Everything in modules/process_management/security/ is registered
+    // here, so the shell can list and verify it.
+    vga_set_color(VGA_COLOR_LIGHT_CYAN, VGA_COLOR_BLACK);
+    vga_print_str("Initializing Process Security Lab... ");
+    proc_security_init();
+    vga_set_color(VGA_COLOR_LIGHT_GREEN, VGA_COLOR_BLACK);
+    vga_print_str("[SUCCESS]\n");
+
     // 8. Initialize Shell & Register Commands from Each Module
     vga_set_color(VGA_COLOR_LIGHT_CYAN, VGA_COLOR_BLACK);
     vga_print_str("Initializing Shell... ");
@@ -125,7 +135,7 @@ void kernel_main(uint32_t multiboot_magic, multiboot_info_t *mb_info) {
     // Create an "idle" or "main" process representing the current execution thread.
     // We don't need a real entry point for it since it's already running.
     // But we need a slot so the scheduler has something to switch FROM.
-    int main_pid = process_create("kernel_main", NULL);
+    int main_pid = process_create("kernel_main", NULL, 0);
     process_t *main_proc = process_get_by_pid(main_pid);
     if (main_proc) {
         main_proc->state = PROCESS_STATE_RUNNING;

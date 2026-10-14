@@ -3,12 +3,18 @@
 #include "io.h"
 #include "vga.h"
 #include "scheduler.h"
+#include "proc_security.h"
 
 volatile uint32_t timer_ticks = 0;
 
 static void timer_callback(registers_t *regs) {
     (void)regs;
     timer_ticks++;
+
+    /* Let the security lab's watchdog notice an attack that overran
+     * its time budget. */
+    sec_watchdog_tick();
+
     scheduler_tick();
 }
 

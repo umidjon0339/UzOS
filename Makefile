@@ -18,7 +18,9 @@ C_SOURCES = $(wildcard modules/*/core/*.c) \
             $(wildcard modules/*/security/*/*.c) \
             $(wildcard modules/*/*/commands/*/*.c) \
             $(wildcard modules/*/*/system_calls/*/*.c) \
-            $(wildcard modules/*/*/security/*/*.c)
+            $(wildcard modules/*/*/security/*/*.c) \
+            $(wildcard modules/*/*/security/*/*/*.c) \
+            $(wildcard modules/*/security/*/*/*.c)
 
 
 # We will also include arch/x86/ C files

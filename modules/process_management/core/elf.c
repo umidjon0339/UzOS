@@ -5,6 +5,7 @@
 #include "vga.h"
 #include "string.h"
 #include "process.h"
+#include "proc_security.h"
 
 int elf_load_and_run(const char *filename) {
     vfs_node_t *node = vfs_finddir(fs_root, filename);
@@ -38,6 +39,14 @@ int elf_load_and_run(const char *filename) {
         return -1;
     }
 
+    /* DEFENCE elf_validate: never trust the sizes and addresses found
+     * in a file. A malformed header could map over the kernel or wrap
+     * around the address space. */
+    if (!def_elf_validate(&ehdr, phdrs, ehdr.e_phnum)) {
+        vga_print_str("ELF Loader: Rejected unsafe program headers.\n");
+        return -1;
+    }
+
     // Load Segments
     for (int i = 0; i < ehdr.e_phnum; i++) {
         if (phdrs[i].p_type == PT_LOAD) {
@@ -68,7 +77,7 @@ int elf_load_and_run(const char *filename) {
 
     vga_print_str("ELF loaded successfully. Starting process...\n");
 
-    // Start process (running in Ring 0 for now)
-    int pid = process_create(filename, (void (*)(void))ehdr.e_entry);
+    // Start process (running in Ring 0 for now, as an unprivileged user)
+    int pid = process_create(filename, (void (*)(void))ehdr.e_entry, 1);
     return pid;
 }

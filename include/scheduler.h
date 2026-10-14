@@ -9,6 +9,7 @@ void scheduler_tick(void); // Called from the PIT timer interrupt
 void scheduler_yield(void);
 void scheduler_set_current_process(uint32_t pid);
 process_t *scheduler_get_current_process(void);
+int scheduler_is_switching(void); // 1 while a context switch is in progress
 
 extern void switch_task(uint32_t *old_esp, uint32_t new_esp);
 

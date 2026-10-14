@@ -13,12 +13,13 @@ void cmd_kill(const char *args) {
         vga_print_str("Invalid PID.\n");
         return;
     }
-    
-    if (pid == 1) { // Assuming PID 1 is the shell/idle process
-        vga_print_str("Cannot kill the idle/shell process.\n");
-        return;
+
+    /* The real protection (reserved PIDs, ownership) lives in the
+     * kernel's kill guard, not here. A check written in the shell would
+     * be bypassed by any other caller. */
+    if (process_kill(pid)) {
+        vga_print_str("Process killed.\n");
+    } else {
+        vga_print_str("Kill refused by the security guard.\n");
     }
-    
-    process_kill(pid);
-    vga_print_str("Process killed.\n");
 }

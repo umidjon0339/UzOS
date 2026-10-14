@@ -7,6 +7,7 @@ void cmd_sleep(const char *args);
 void cmd_top(const char *args);
 void cmd_exec(const char *args);
 void cmd_testuser(const char *args);
+void cmd_seclab(const char *args);
 
 int simple_atoi(const char *str);
 
