@@ -3,7 +3,7 @@
 ```text
 device_management/
 ├── keyboard/core/       # PS/2 keyboard driver
-├── mouse/core/          # PS/2 mouse driver
+├── mouse/core/          # PS/2 mouse input and wheel scrollback
 ├── timer/
 │   ├── core/            # PIT timer driver
 │   └── commands/        # uptime
@@ -41,3 +41,7 @@ seclab verify mouse_bounds
 The live timer probe submits only an invalid frequency; the defence refuses
 it before touching PIT ports. Mouse probes test policy values without
 changing live pointer state.
+
+On wheel-capable PS/2 mice, rotate the wheel over the text terminal to browse
+scrollback. The mouse driver requests IntelliMouse wheel mode and retains
+three-byte packet support when the device does not report wheel capability.

@@ -1,7 +1,6 @@
 #include "gui_commands.h"
 #include "shell.h"
 #include "gui.h"
-#include "mouse.h"
 #include "keyboard.h"
 #include "vga.h"
 #include "bga.h"
@@ -12,7 +11,6 @@ static void cmd_startx(const char *args) {
     vga_print_str("Starting X11-like GUI... Press ESC to exit (if supported) or Reboot.\n");
     
     gui_init();
-    init_mouse();
     wm_init();
     
     // Clear keyboard buffer

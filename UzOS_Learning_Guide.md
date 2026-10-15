@@ -78,7 +78,7 @@ modules/filesystem_management/
 ### A. Device Management (`modules/device_management/`)
 Device drivers are part of this subsystem. Each driver keeps its implementation in its own `core/`, with commands where applicable.
 * `vga_display`: Text-mode VGA output.
-* `keyboard` & `mouse`: PS/2 input.
+* `keyboard` & `mouse`: PS/2 input; wheel-capable mice scroll terminal history.
 * `timer`: PIT clock and uptime command.
 * `pic`: Programmable Interrupt Controller.
 * `gui`: BGA display, window manager, and `startx` command.

@@ -27,9 +27,9 @@ enum vga_color {
 void vga_init(void);
 void vga_set_color(enum vga_color fg, enum vga_color bg);
 void vga_put_char(char c);
+void vga_scroll_view(int lines);
 void vga_print_str(const char* str);
 void vga_print_int(int num);
 void vga_print_hex(uint32_t val);
 
 #endif
-

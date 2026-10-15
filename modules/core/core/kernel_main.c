@@ -5,6 +5,7 @@
 #include "pic.h"
 #include "timer.h"
 #include "keyboard.h"
+#include "mouse.h"
 #include "multiboot.h"
 #include "pmm.h"
 #include "vmm.h"
@@ -64,6 +65,16 @@ void kernel_main(uint32_t multiboot_magic, multiboot_info_t *mb_info) {
     init_keyboard();
     vga_set_color(VGA_COLOR_LIGHT_GREEN, VGA_COLOR_BLACK);
     vga_print_str("[SUCCESS]\n");
+
+    vga_set_color(VGA_COLOR_LIGHT_CYAN, VGA_COLOR_BLACK);
+    vga_print_str("Initializing PS/2 Mouse Driver... ");
+    if (init_mouse()) {
+        vga_set_color(VGA_COLOR_LIGHT_GREEN, VGA_COLOR_BLACK);
+        vga_print_str("[SUCCESS]\n");
+    } else {
+        vga_set_color(VGA_COLOR_LIGHT_BROWN, VGA_COLOR_BLACK);
+        vga_print_str("[UNAVAILABLE]\n");
+    }
 
     // 5. Initialize Memory Management Subsystem
     vga_set_color(VGA_COLOR_LIGHT_CYAN, VGA_COLOR_BLACK);

@@ -9,6 +9,6 @@ extern int mouse_b_left;
 extern int mouse_b_right;
 extern int mouse_b_middle;
 
-void init_mouse(void);
+int init_mouse(void);
 
 #endif
