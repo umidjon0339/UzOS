@@ -1,11 +1,12 @@
 #include "../fs_syscalls_internal.h"
 #include "fs_syscalls.h"
+#include "fs_security.h"
 #include "vfs.h"
 #include "scheduler.h"
 
 int sys_open(const char *path) {
     process_t *current = scheduler_get_current_process();
-    if (!current) return -1;
+    if (!current || !fs_security_check_path(path)) return -1;
     
     // For now, our paths are extremely simple. We just look in root (fs_root).
     // In a real OS we would parse the path like "/dir/file".

@@ -7,6 +7,7 @@
 
 #define PMM_BLOCK_SIZE          4096 // 4 KiB
 #define PMM_BLOCKS_PER_BYTE     8
+#define PMM_MAX_BLOCKS           1048576
 
 void pmm_init(multiboot_info_t *mb_info);
 

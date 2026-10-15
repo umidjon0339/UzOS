@@ -1,18 +1,18 @@
 #include "ramdisk.h"
+#include "fs_security.h"
 #include "kheap.h"
 #include "string.h"
 #include "hello_elf.h"
 
 // Read data from a ramdisk file
 static uint32_t ramdisk_read(vfs_node_t *node, uint32_t offset, uint32_t size, uint8_t *buffer) {
-    if (node->flags != FS_FILE) return 0;
-    
+    if (node->flags != FS_FILE || !buffer) return 0;
     if (offset >= node->size) return 0;
-    
-    if (offset + size > node->size) {
-        size = node->size - offset; // Adjust size to end of file
-    }
-    
+
+    uint32_t remaining = node->size - offset;
+    if (size > remaining) size = remaining;
+    if (!fs_security_file_range_valid(offset, size, node->size)) return 0;
+
     uint8_t *file_data = (uint8_t *)node->ptr;
     if (!file_data) return 0;
     
@@ -22,22 +22,24 @@ static uint32_t ramdisk_read(vfs_node_t *node, uint32_t offset, uint32_t size, u
 
 // Write data to a ramdisk file
 static uint32_t ramdisk_write(vfs_node_t *node, uint32_t offset, uint32_t size, uint8_t *buffer) {
-    if (node->flags != FS_FILE) return 0;
+    if (node->flags != FS_FILE || !buffer) return 0;
     
     // For simplicity, we allocate a fixed 16KB buffer for each file initially or 
     // reallocate if needed. Let's do simple fixed 16KB for our educational OS.
     #define RAMDISK_MAX_FILE_SIZE 16384
     
-    if (offset + size > RAMDISK_MAX_FILE_SIZE) {
-        size = RAMDISK_MAX_FILE_SIZE - offset;
-    }
-    
+    if (offset >= RAMDISK_MAX_FILE_SIZE) return 0;
+    uint32_t remaining = RAMDISK_MAX_FILE_SIZE - offset;
+    if (size > remaining) size = remaining;
+
     if (size == 0) return 0;
+    if (!fs_security_file_range_valid(offset, size, RAMDISK_MAX_FILE_SIZE)) return 0;
     
     uint8_t *file_data = (uint8_t *)node->ptr;
     if (!file_data) {
         // Allocate file data on first write
         file_data = kmalloc(RAMDISK_MAX_FILE_SIZE);
+        if (!file_data) return 0;
         memset(file_data, 0, RAMDISK_MAX_FILE_SIZE);
         node->ptr = (vfs_node_t *)file_data;
     }
@@ -70,15 +72,17 @@ static vfs_node_t *ramdisk_finddir(vfs_node_t *node, const char *name) {
 }
 
 vfs_node_t *ramdisk_create_file(vfs_node_t *dir, const char *name) {
-    if (!dir || dir->flags != FS_DIRECTORY || dir->num_children >= 64) return 0;
+    if (!dir || dir->flags != FS_DIRECTORY || dir->num_children >= 64 ||
+        !fs_security_check_path(name)) return 0;
     
     // Check if it already exists
     if (ramdisk_finddir(dir, name) != 0) return 0;
     
     vfs_node_t *new_file = kmalloc(sizeof(vfs_node_t));
+    if (!new_file) return 0;
     memset(new_file, 0, sizeof(vfs_node_t));
     
-    strncpy(new_file->name, name, 127);
+    strncpy(new_file->name, name, FS_NAME_MAX);
     new_file->flags = FS_FILE;
     new_file->read = ramdisk_read;
     new_file->write = ramdisk_write;
@@ -89,15 +93,17 @@ vfs_node_t *ramdisk_create_file(vfs_node_t *dir, const char *name) {
 }
 
 vfs_node_t *ramdisk_create_dir(vfs_node_t *dir, const char *name) {
-    if (!dir || dir->flags != FS_DIRECTORY || dir->num_children >= 64) return 0;
+    if (!dir || dir->flags != FS_DIRECTORY || dir->num_children >= 64 ||
+        !fs_security_check_path(name)) return 0;
     
     // Check if it already exists
     if (ramdisk_finddir(dir, name) != 0) return 0;
     
     vfs_node_t *new_dir = kmalloc(sizeof(vfs_node_t));
+    if (!new_dir) return 0;
     memset(new_dir, 0, sizeof(vfs_node_t));
     
-    strncpy(new_dir->name, name, 127);
+    strncpy(new_dir->name, name, FS_NAME_MAX);
     new_dir->flags = FS_DIRECTORY;
     new_dir->readdir = ramdisk_readdir;
     new_dir->finddir = ramdisk_finddir;
@@ -108,7 +114,8 @@ vfs_node_t *ramdisk_create_dir(vfs_node_t *dir, const char *name) {
 }
 
 int ramdisk_delete(vfs_node_t *dir, const char *name) {
-    if (!dir || dir->flags != FS_DIRECTORY) return -1;
+    if (!dir || dir->flags != FS_DIRECTORY ||
+        !fs_security_check_path(name)) return -1;
     
     for (int i = 0; i < dir->num_children; i++) {
         if (strcmp(dir->children[i]->name, name) == 0) {

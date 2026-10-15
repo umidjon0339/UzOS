@@ -1,24 +1,40 @@
-# Memory Management Module
+# Memory Management
 
-## Subdirectory Architecture
+## Layout
 
-```
-modules/memory_management/
-├── core/                  # Core PMM, VMM Paging & Kernel Heap Engines
-│   ├── pmm.c              # Physical Memory Manager (Bitmap Page Frame Allocator)
-│   ├── vmm.c              # Virtual Memory Manager (2-Level Paging, CR3/CR0)
-│   └── kheap.c            # Kernel Heap Allocator (kmalloc, kfree)
-├── system_calls/          # Memory System Calls for User Space
-│   └── mem_syscalls.c     # sys_sbrk(), sys_mmap(), sys_munmap()
-├── commands/              # Inspection & Debug Commands
-│   └── mem_commands.c     # cmd_meminfo(), cmd_heapinfo()
-├── security/              # Pointer Validation & Privilege Boundary Checks
-│   └── mem_security.c     # mem_validate_user_ptr(), mem_is_kernel_address()
-└── README.md
+```text
+memory_management/
+├── core/                 # PMM, VMM, and kernel heap
+├── commands/             # Memory inspection commands
+├── system_calls/         # mmap, munmap, and sbrk
+└── security/
+    ├── attack/           # Safe security demonstrations
+    └── defence/          # Policies used by the kernel and their selftests
 ```
 
-## Subsystem Highlights
-- **core/**: Implements physical page frame tracking (`pmm.c`), virtual page table mappings (`vmm.c`), and dynamic kernel heap allocation (`kheap.c`).
-- **system_calls/**: Provides system call handlers (`sys_mmap`, `sys_sbrk`) to allow user programs to request dynamic memory from the kernel.
-- **commands/**: Shell commands to monitor RAM status (`cmd_meminfo`) and heap status (`cmd_heapinfo`).
-- **security/**: Memory validation routines to prevent user space programs from passing invalid or malicious kernel addresses into system calls.
+## Security pairs
+
+| Attack | Defence | Purpose |
+|---|---|---|
+| `user_ptr_wrap` | `user_ptr_bounds` | Keep user buffers below the kernel boundary, including at integer limits. |
+| `mmap_length_wrap` | `mmap_page_count` | Round mapping lengths to pages without overflowing. |
+| `pmm_free_oob` | `pmm_free_bounds` | Reject unaligned or out-of-range frame releases before touching the bitmap. |
+
+The demonstrations are registered in the `seclab` command alongside
+the process-management pairs. `simulate` only probes policies; `live`
+uses the same checks that protect real memory operations.
+
+```text
+seclab list
+seclab attack user_ptr_wrap
+seclab attack mmap_length_wrap live
+seclab attack pmm_free_oob live
+seclab verify-all
+```
+
+## Core components
+
+- `core/pmm.c` tracks physical page frames with a bitmap.
+- `core/vmm.c` manages virtual-memory page tables.
+- `core/kheap.c` provides kernel heap allocation.
+- `system_calls/` exposes memory allocation operations to user space.

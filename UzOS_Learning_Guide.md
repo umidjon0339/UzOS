@@ -61,38 +61,40 @@ modules/filesystem_management/
 │   ├── read/sys_read.c
 │   └── handler/syscall_handler.c
 └── security/
-    └── check_path/fs_security_check_path.c (Security validations)
+    ├── attack/          (Safe security demonstrations)
+    └── defence/         (Policies used by the kernel and their selftests)
 ```
 
 ### Breakdown of Module Folders:
 1. **`core/`**: The pure logic of the subsystem. For memory, this is the PMM and VMM. For processes, this is the Scheduler and ELF loader.
 2. **`commands/`**: User-facing shell commands. Each command lives in its own folder and file (e.g., `cmd_kill.c`). This makes it incredibly easy to add new commands without cluttering a single massive file.
 3. **`system_calls/`**: Interfaces for user-space applications. Like commands, each syscall (e.g., `sys_read`, `sys_mmap`) gets its own file.
-4. **`security/`**: Validation checks. Before a system call does anything dangerous, it routes through these security files to ensure pointers are valid and permissions are met.
+4. **`security/`**: Safe attack demonstrations and paired defences. The `seclab` command lists attacks and runs defence selftests across the subsystems.
 
 ---
 
 ## 4. Deep Dive into Major Modules
 
-### A. Device Drivers (`modules/device_drivers/`)
-Contains code to talk to specific hardware.
-* `vga_display`: Text mode printing.
-* `keyboard` & `mouse`: PS/2 input drivers.
-* `timer`: The PIT (Programmable Interval Timer) that fires an interrupt 100 times a second to drive the scheduler.
+### A. Device Management (`modules/device_management/`)
+Device drivers are part of this subsystem. Each driver keeps its implementation in its own `core/`, with commands where applicable.
+* `vga_display`: Text-mode VGA output.
+* `keyboard` & `mouse`: PS/2 input.
+* `timer`: PIT clock and uptime command.
 * `pic`: Programmable Interrupt Controller.
-* `gui`: A basic graphical user interface using BGA (Bochs Graphics Adapter) and a Window Manager.
+* `gui`: BGA display, window manager, and `startx` command.
+* **Security policies**: Validate PIT frequencies before hardware I/O and keep mouse coordinates inside the display. Explore safe attack/defence pairs with `seclab`.
 
 ### B. Memory Management (`modules/memory_management/`)
 * **PMM (`pmm.c`)**: Manages physical RAM. It uses a bitmap to track which 4KB frames of RAM are free or used.
 * **VMM (`vmm.c`)**: Manages Paging. It maps Virtual Addresses to Physical Addresses so processes can have isolated memory spaces.
 * **KHEAP (`kheap.c`)**: Implements `kmalloc()` and `kfree()` so the kernel can allocate memory dynamically.
 
-### C. Process Management (`modules/process_management/`)
+### D. Process Management (`modules/process_management/`)
 * **Process (`process.c`)**: Manages the Process Control Block (PCB) state (PID, registers, memory space).
 * **Scheduler (`scheduler.c`)**: Uses Round-Robin scheduling. Every time the hardware timer fires, the scheduler saves the state of the current process and loads the state of the next ready process (Context Switching).
 * **ELF Loader (`elf.c`)**: Reads an Executable and Linkable Format file from the filesystem, maps it into memory, and creates a process for it.
 
-### D. Filesystem Management (`modules/filesystem_management/`)
+### E. Filesystem Management (`modules/filesystem_management/`)
 * **VFS (`vfs.c`)**: An abstraction layer. It defines what a "file" or "directory" is, regardless of the underlying disk.
 * **RAMDisk (`ramdisk.c`)**: An in-memory filesystem. Since we don't have hard drive drivers yet, files are created and stored directly in RAM.
 

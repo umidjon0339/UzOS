@@ -5,9 +5,9 @@
 #include "process.h"
 
 /* ===================================================================
- * UzOS Process Security Lab
+ * UzOS Security Lab
  * ===================================================================
- * An ATTACK shows one way process management can be broken.
+ * An ATTACK shows one way a subsystem guarantee can be broken.
  * A DEFENCE is the countermeasure, called by the kernel at the exact
  * place where the attack would strike.
  *
@@ -29,7 +29,7 @@
 /* How damaging is the attack if it succeeds? */
 typedef enum { SEV_INFO, SEV_LOW, SEV_MEDIUM, SEV_HIGH, SEV_CRITICAL } sev_t;
 
-/* Which guarantee of process management does the attack break? */
+/* Which subsystem guarantee does the attack break? */
 typedef enum {
     INV_RESOURCE,    /* finite PIDs, slots and stacks           */
     INV_IDENTITY,    /* a PID always names exactly one process  */

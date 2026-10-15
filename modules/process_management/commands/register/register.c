@@ -10,5 +10,5 @@ void register_proc_commands(void) {
     shell_register_command("sleep", "Sleep for N seconds", cmd_sleep);
     shell_register_command("exec", "Execute an ELF binary from the filesystem", cmd_exec);
     shell_register_command("testuser", "Test Ring 3 Switch & Syscall (WARNING: Hangs thread)", cmd_testuser);
-    shell_register_command("seclab", "Process security lab: attacks and defences", cmd_seclab);
+    shell_register_command("seclab", "System security lab: attacks and defences", cmd_seclab);
 }

@@ -98,11 +98,9 @@ void kernel_main(uint32_t multiboot_magic, multiboot_info_t *mb_info) {
     vga_set_color(VGA_COLOR_LIGHT_GREEN, VGA_COLOR_BLACK);
     vga_print_str("[SUCCESS]\n");
 
-    // 7.5 Bring up the Process Security Lab (attacks + defences).
-    // Everything in modules/process_management/security/ is registered
-    // here, so the shell can list and verify it.
+    // Register security demonstrations across the kernel subsystems.
     vga_set_color(VGA_COLOR_LIGHT_CYAN, VGA_COLOR_BLACK);
-    vga_print_str("Initializing Process Security Lab... ");
+    vga_print_str("Initializing System Security Lab... ");
     proc_security_init();
     vga_set_color(VGA_COLOR_LIGHT_GREEN, VGA_COLOR_BLACK);
     vga_print_str("[SUCCESS]\n");
@@ -113,10 +111,10 @@ void kernel_main(uint32_t multiboot_magic, multiboot_info_t *mb_info) {
     shell_init();
     register_shell_commands();   // shell/commands/ -> help, clear, echo
     register_mem_commands();     // memory_management/commands/ -> meminfo, heapinfo
-    register_timer_commands();   // device_drivers/timer/commands/ -> uptime
+    register_timer_commands();   // device_management/timer/commands/ -> uptime
     register_proc_commands();    // process_management/commands/ -> ps, kill, spawn
     register_fs_commands();      // filesystem_management/commands/ -> ls, mkdir, touch, cat, write, rm
-    register_gui_commands();     // device_drivers/gui/commands/ -> startx
+    register_gui_commands();     // device_management/gui/commands/ -> startx
     vga_set_color(VGA_COLOR_LIGHT_GREEN, VGA_COLOR_BLACK);
     vga_print_str("[SUCCESS]\n");
     

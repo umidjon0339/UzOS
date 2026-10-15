@@ -1,10 +1,10 @@
 #include "pmm.h"
+#include "mem_security.h"
 #include "vga.h"
 
 extern uint32_t _kernel_start;
 extern uint32_t _kernel_end;
 
-#define PMM_MAX_BLOCKS 1048576
 #define PMM_BITMAP_SIZE (PMM_MAX_BLOCKS / PMM_BLOCKS_PER_BYTE)
 
 static uint8_t  pmm_bitmap[PMM_BITMAP_SIZE];
@@ -76,13 +76,17 @@ void pmm_init(multiboot_info_t *mb_info) {
     //    (use raw bitmap ops here to avoid broken counter math)
     while ((uint32_t)mmap < mmap_end) {
         if (mmap->type == MULTIBOOT_MEMORY_AVAILABLE) {
-            uint32_t base   = (uint32_t)mmap->addr;
-            uint32_t length = (uint32_t)mmap->len;
-            uint32_t align_base = base / PMM_BLOCK_SIZE;
-            uint32_t blocks = (length + PMM_BLOCK_SIZE - 1) / PMM_BLOCK_SIZE;
+            uint64_t base = mmap->addr;
+            uint64_t length = mmap->len;
+            uint64_t align_base = base / PMM_BLOCK_SIZE;
+            uint64_t blocks = length / PMM_BLOCK_SIZE;
+            if (length % PMM_BLOCK_SIZE) blocks++;
 
-            for (uint32_t b = 0; b < blocks; b++) {
-                mmap_unset(align_base + b);
+            if (align_base < PMM_MAX_BLOCKS) {
+                uint64_t available = PMM_MAX_BLOCKS - align_base;
+                if (blocks > available) blocks = available;
+                for (uint32_t b = 0; b < (uint32_t)blocks; b++)
+                    mmap_unset((uint32_t)align_base + b);
             }
 
             if (mmap->addr + mmap->len > highest_address) {
@@ -92,7 +96,10 @@ void pmm_init(multiboot_info_t *mb_info) {
         mmap = (multiboot_memory_map_t *)((uint32_t)mmap + mmap->size + sizeof(mmap->size));
     }
 
-    pmm_total_blocks = (uint32_t)(highest_address / PMM_BLOCK_SIZE);
+    uint64_t total_blocks = highest_address / PMM_BLOCK_SIZE;
+    pmm_total_blocks = total_blocks > PMM_MAX_BLOCKS
+        ? PMM_MAX_BLOCKS
+        : (uint32_t)total_blocks;
 
     // 3. Mark lower 1 MB as USED (BIOS IVT, VGA at 0xA0000, etc.)
     {
@@ -140,6 +147,8 @@ void *pmm_alloc_block(void) {
 }
 
 void pmm_free_block(void *p) {
+    if (!mem_pmm_range_valid(p, 1)) return;
+
     uint32_t frame = (uint32_t)p / PMM_BLOCK_SIZE;
 
     if (mmap_test(frame)) {
@@ -166,6 +175,8 @@ void *pmm_alloc_blocks(size_t count) {
 }
 
 void pmm_free_blocks(void *p, size_t count) {
+    if (!mem_pmm_range_valid(p, count)) return;
+
     uint32_t frame = (uint32_t)p / PMM_BLOCK_SIZE;
 
     for (size_t i = 0; i < count; i++) {

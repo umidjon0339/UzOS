@@ -61,7 +61,7 @@ static void do_list(void) {
     int n = proc_security_attack_count();
 
     vga_set_color(VGA_COLOR_LIGHT_CYAN, VGA_COLOR_BLACK);
-    vga_print_str("\nProcess Security Lab - ");
+    vga_print_str("\nSystem Security Lab - ");
     vga_print_int(n);
     vga_print_str(" attacks, ");
     vga_print_int(proc_security_defence_count());
@@ -306,7 +306,7 @@ static void do_log(void) {
 
 static void do_status(void) {
     vga_set_color(VGA_COLOR_LIGHT_CYAN, VGA_COLOR_BLACK);
-    vga_print_str("\nProcess Security Lab status\n");
+    vga_print_str("\nSystem Security Lab status\n");
     vga_set_color(VGA_COLOR_WHITE, VGA_COLOR_BLACK);
 
     vga_print_str("  attacks registered : ");
@@ -377,6 +377,7 @@ void cmd_seclab(const char *args) {
         else                 do_verify(id);
         return;
     }
+    if (same(sub, "verify-all")) { do_verify_all(); return; }
 
     if (same(sub, "info")) {
         next_word(rest, id, sizeof(id));
@@ -398,6 +399,6 @@ void cmd_seclab(const char *args) {
     }
 
     vga_print_str("Usage: seclab list | info <id> | attack <id> [live]\n");
-    vga_print_str("       seclab defence <id> | verify <id|all>\n");
+    vga_print_str("       seclab defence <id> | verify <id|all> | verify-all\n");
     vga_print_str("       seclab log | status | repair\n");
 }

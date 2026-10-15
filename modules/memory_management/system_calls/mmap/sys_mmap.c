@@ -1,5 +1,5 @@
 #include "mem_syscalls.h"
-#include "vmm.h"
+#include "mem_security.h"
 #include "pmm.h"
 
 // System Call: sys_mmap
@@ -9,9 +9,9 @@ void *sys_mmap(void *addr, size_t length, int prot, int flags) {
     (void)prot;
     (void)flags;
 
-    if (length == 0) return NULL;
+    size_t pages;
+    if (!mem_mmap_page_count(length, &pages)) return NULL;
 
-    size_t pages = (length + PAGE_SIZE - 1) / PAGE_SIZE;
     void *phys = pmm_alloc_blocks(pages);
     if (!phys) return NULL;
 

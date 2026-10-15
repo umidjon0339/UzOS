@@ -144,7 +144,7 @@ const char *inv_name(invariant_t i) {
     return "?";
 }
 
-// Bring up the Process Security Lab with the 6 core pairs
+// Register security demonstrations across kernel subsystems.
 void proc_security_init(void) {
     atk_fork_bomb_register();
     atk_kill_init_register();
@@ -159,6 +159,24 @@ void proc_security_init(void) {
     def_reaper_register();
     def_pid_bounds_register();
     def_pcb_wipe_register();
+
+    atk_user_ptr_wrap_register();
+    atk_mmap_length_wrap_register();
+    atk_pmm_free_oob_register();
+
+    def_user_ptr_bounds_register();
+    def_mmap_page_count_register();
+    def_pmm_free_bounds_register();
+
+    atk_path_traversal_register();
+    atk_file_offset_wrap_register();
+    def_path_component_register();
+    def_file_range_register();
+
+    atk_timer_divide_by_zero_register();
+    atk_mouse_coordinate_escape_register();
+    def_timer_frequency_register();
+    def_mouse_bounds_register();
 }
 
 int def_elf_validate(const void *ehdr, const void *phdrs, int count) {
@@ -174,4 +192,3 @@ int def_user_stack_ok(uint32_t esp) {
 void def_child_release(process_t *parent) {
     (void)parent;
 }
-

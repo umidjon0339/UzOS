@@ -1,10 +1,13 @@
 #include "../fs_syscalls_internal.h"
 #include "fs_syscalls.h"
+#include "fs_security.h"
 #include "vfs.h"
 #include "scheduler.h"
 #include "ramdisk.h"
 
 int sys_mkdir(const char *path) {
+    if (!fs_security_check_path(path)) return -1;
+
     if (path[0] == '/') path++;
     if (path[0] == '\0') return -1;
     

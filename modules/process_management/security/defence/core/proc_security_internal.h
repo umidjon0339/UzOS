@@ -17,4 +17,22 @@ void def_reaper_register(void);
 void def_pid_bounds_register(void);
 void def_pcb_wipe_register(void);
 
+void atk_user_ptr_wrap_register(void);
+void atk_mmap_length_wrap_register(void);
+void atk_pmm_free_oob_register(void);
+
+void def_user_ptr_bounds_register(void);
+void def_mmap_page_count_register(void);
+void def_pmm_free_bounds_register(void);
+
+void atk_path_traversal_register(void);
+void atk_file_offset_wrap_register(void);
+void def_path_component_register(void);
+void def_file_range_register(void);
+
+void atk_timer_divide_by_zero_register(void);
+void atk_mouse_coordinate_escape_register(void);
+void def_timer_frequency_register(void);
+void def_mouse_bounds_register(void);
+
 #endif
