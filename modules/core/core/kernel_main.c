@@ -20,6 +20,7 @@
 #include "proc_commands.h"
 #include "ramdisk.h"
 #include "fs_commands.h"
+#include "io_commands.h"
 #include "gui_commands.h"
 #include "proc_security.h"
 
@@ -125,6 +126,7 @@ void kernel_main(uint32_t multiboot_magic, multiboot_info_t *mb_info) {
     register_timer_commands();   // device_management/timer/commands/ -> uptime
     register_proc_commands();    // process_management/commands/ -> ps, kill, spawn
     register_fs_commands();      // filesystem_management/commands/ -> ls, mkdir, touch, cat, write, rm
+    register_io_commands();      // io_management/commands/ -> ioinfo
     register_gui_commands();     // device_management/gui/commands/ -> startx
     vga_set_color(VGA_COLOR_LIGHT_GREEN, VGA_COLOR_BLACK);
     vga_print_str("[SUCCESS]\n");

@@ -20,6 +20,7 @@ The shell does NOT contain commands from other modules. Instead, each module reg
 - `modules/shell/commands/` → `help`, `clear`, `echo`
 - `modules/memory_management/commands/` → `meminfo`, `heapinfo`
 - `modules/device_management/timer/commands/` → `uptime`
+- `modules/io_management/commands/` → `ioinfo`
 
 This keeps each module self-contained and educational.
 

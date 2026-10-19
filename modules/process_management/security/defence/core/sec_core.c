@@ -177,6 +177,11 @@ void proc_security_init(void) {
     atk_mouse_coordinate_escape_register();
     def_timer_frequency_register();
     def_mouse_bounds_register();
+
+    atk_invalid_descriptor_register();
+    def_descriptor_bounds_register();
+    atk_oversized_transfer_register();
+    def_transfer_bounds_register();
 }
 
 int def_elf_validate(const void *ehdr, const void *phdrs, int count) {

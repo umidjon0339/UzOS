@@ -49,20 +49,8 @@ To make the OS highly educational, every major subsystem in `modules/` is heavil
 Let's look at the standard architecture of a complex module (like `memory_management`, `filesystem_management`, or `process_management`):
 
 ```text
-modules/filesystem_management/
-├── core/
-│   └── vfs.c          (The core logic of the module)
-├── commands/
-│   ├── ls/cmd_ls.c    (A specific CLI command)
-│   ├── cat/cmd_cat.c
-│   └── register/register.c (Registers all commands to the shell)
-├── system_calls/
-│   ├── open/sys_open.c (A specific system call exposed to Userland)
-│   ├── read/sys_read.c
-│   └── handler/syscall_handler.c
-└── security/
-    ├── attack/          (Safe security demonstrations)
-    └── defence/         (Policies used by the kernel and their selftests)
+modules/filesystem_management/  VFS, RAM-disk, paths, and file commands
+modules/io_management/          descriptors, standard streams, read/write
 ```
 
 ### Breakdown of Module Folders:
@@ -84,7 +72,11 @@ Device drivers are part of this subsystem. Each driver keeps its implementation 
 * `gui`: BGA display, window manager, and `startx` command.
 * **Security policies**: Validate PIT frequencies before hardware I/O and keep mouse coordinates inside the display. Explore safe attack/defence pairs with `seclab`.
 
-### B. Memory Management (`modules/memory_management/`)
+### B. I/O Management (`modules/io_management/`)
+* **Descriptors**: Route stdin to keyboard input, stdout/stderr to the VGA terminal, and file descriptors to the VFS.
+* **Commands and security**: `ioinfo` lists active streams/files; `seclab` tests descriptor and transfer bounds.
+
+### C. Memory Management (`modules/memory_management/`)
 * **PMM (`pmm.c`)**: Manages physical RAM. It uses a bitmap to track which 4KB frames of RAM are free or used.
 * **VMM (`vmm.c`)**: Manages Paging. It maps Virtual Addresses to Physical Addresses so processes can have isolated memory spaces.
 * **KHEAP (`kheap.c`)**: Implements `kmalloc()` and `kfree()` so the kernel can allocate memory dynamically.

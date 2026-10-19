@@ -35,4 +35,9 @@ void atk_mouse_coordinate_escape_register(void);
 void def_timer_frequency_register(void);
 void def_mouse_bounds_register(void);
 
+void atk_invalid_descriptor_register(void);
+void def_descriptor_bounds_register(void);
+void atk_oversized_transfer_register(void);
+void def_transfer_bounds_register(void);
+
 #endif

@@ -25,3 +25,7 @@ seclab verify file_range
 The filesystem supports root-level or current-directory names, not
 nested path traversal. `cd ..` remains available for moving to a parent
 directory; file creation and access paths are validated separately.
+
+Open/read/write/close and the process descriptor table are owned by
+[I/O Management](../io_management/README.md); this module owns VFS paths,
+directories, and file storage.
