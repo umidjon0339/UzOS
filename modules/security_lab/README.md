@@ -39,13 +39,16 @@ made-up data. A defence that nothing calls is not a defence.
 seclab list                  every attack -> its defence
 seclab info <attack>         what it does, what stops it
 seclab attack <id>           simulate (read-only)
-seclab attack <id> live      run it for real; counts refusals
+seclab attack <id> live      run it for real; counts refusals (root only)
 seclab defence <id>          show a defence
 seclab verify <id> | all     run selftests
 seclab log                   newest refusals first
 seclab status                counters, watchdog, free process slots
-seclab repair                every attack undoes itself
+seclab repair                every attack undoes itself (root only)
 ```
+
+Live runs and `repair` start and kill processes of every user, so they
+need root (`su` first). Everything else only reads and is open to all.
 
 A live run is **BLOCKED** if any defence refused something during it.
 Some defences never need to refuse (the reaper cleans up, the null page

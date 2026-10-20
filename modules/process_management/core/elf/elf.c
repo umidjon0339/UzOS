@@ -6,17 +6,21 @@
  *   3. for each PT_LOAD segment: map pages, zero them, copy the bytes
  *   4. start a process at e_entry
  *
- * Uses: vfs_lookup/vfs_read (filesystem_management), pmm_alloc_block +
+ * Running a program needs read permission on its file (perm_check).
+ *
+ * Uses: vfs_lookup/vfs_read (filesystem_management), perm_check
+ *       (user_management), pmm_alloc_block +
  *       vmm_map_page (memory_management), process_create (core/process),
  *       ui_error (ui module) to say why a program was refused.
  *
- * Limits for now: all processes share one address space, and the program
- * runs in ring 0 (it just has uid 1). Running the same program twice maps
- * fresh pages over the first copy.
+ * The program belongs to the user who started it. Limits for now: all
+ * processes share one address space, and the program runs in ring 0.
+ * Running the same program twice maps fresh pages over the first copy.
  */
 
 #include "elf.h"
 #include "vfs.h"
+#include "perm.h"
 #include "pmm.h"
 #include "vmm.h"
 #include "ui.h"
@@ -24,7 +28,6 @@
 #include "process.h"
 #include "def_elf_validate.h"
 
-#define USER_UID 1
 
 static int fail(const char *reason) {
     ui_error("elf", reason);
@@ -54,6 +57,8 @@ int elf_load_and_run(const char *filename) {
     vfs_node_t *file = vfs_lookup(vfs_cwd(), filename);
     if (!file || !(file->flags & FS_FILE))
         return fail("file not found");
+    if (!perm_check(file, PERM_READ))
+        return fail("permission denied");
 
     Elf32_Ehdr ehdr;
     if (vfs_read(file, 0, sizeof(ehdr), (uint8_t *)&ehdr) != sizeof(ehdr))
@@ -77,5 +82,5 @@ int elf_load_and_run(const char *filename) {
             return fail("out of memory or short read while loading");
     }
 
-    return process_create(filename, (void (*)(void))ehdr.e_entry, USER_UID);
+    return process_create(filename, (void (*)(void))ehdr.e_entry, process_caller_uid());
 }

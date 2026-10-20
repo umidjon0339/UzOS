@@ -1,9 +1,14 @@
 /*
  * vfs.c - Node operations, open counts, and walking paths.
  *
+ * Walking a path needs read permission on every directory passed
+ * through: without it, a private directory's files could still be
+ * reached by their full name.
+ *
  * Uses: the driver's function pointers (core/ramdisk), the current
  *       process (process_management) for its working directory,
- *       cpu_irq_save (arch/x86/cpu), and the defence filename_check for
+ *       cpu_irq_save (arch/x86/cpu), perm_check (user_management) for
+ *       each directory on the way, and the defence filename_check for
  *       every path component.
  */
 
@@ -12,6 +17,7 @@
 #include "string.h"
 #include "cpu.h"
 #include "def_filename_check.h"
+#include "perm.h"
 
 vfs_node_t *fs_root;
 
@@ -101,6 +107,8 @@ vfs_node_t *vfs_lookup(vfs_node_t *start, const char *path) {
     while ((len = next_component(&path, name)) > 0) {
         if (!(node->flags & FS_DIRECTORY))
             return 0;                       // "file/x": a file has no children
+        if (!perm_check(node, PERM_READ))
+            return 0;                       // may not look inside this directory
         node = step(node, name);
         if (!node)
             return 0;

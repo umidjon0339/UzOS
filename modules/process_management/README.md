@@ -12,6 +12,7 @@ process_management/
 │   ├── scheduler/  scheduler.h/.c     hand the CPU over (policy: cpu_management)
 │   │               switch_task.s      swap the CPU between two processes
 │   ├── elf/        elf.h/.c           load an ELF program file and start it
+│   ├── signal/     signal.h/.c        pending signals (SIGINT = Ctrl+C)
 │   └── usertask/   usertask.h/.c      run a small .s program in ring 3 (testuser, attacks)
 ├── commands/                     shell commands, one folder each
 │   ├── proc_commands.h/.c             the command table
@@ -39,11 +40,33 @@ process_management/
     +---------------- reaper (next timer tick) <------ ZOMBIE <---+
 ```
 
+- Every process belongs to a user (`process_t.uid`). A new one gets the
+  uid of whoever created it (`process_caller_uid()`); the shell's uid is
+  the logged-in user (user_management). `ps` and `top` show the name.
 - `scheduler_init()` creates two **system** processes: `idle` (PID 1),
   which runs when nobody else can, and `kernel_main` (PID 2), the code
   that was already running, which is the shell. Neither can be killed.
 - A process never frees its own stack, because it is standing on it. It
   becomes a `ZOMBIE`, and the reaper frees it on a later timer tick.
+
+## Signals
+
+A **signal** is a one-bit message to a process (`process_t.signals`).
+Sending one changes nothing by itself; the process checks it when it
+chooses. UzOS has one so far: `SIGINT` (2), sent by Ctrl+C.
+
+| Sleep | Ends when |
+|---|---|
+| `sys_sleep(ms)` | the time is up, always (uninterruptible) |
+| `sys_sleep_interruptible(ms)` | the time is up, or a signal arrives (returns 0) |
+
+`signal_send()` runs in the keyboard interrupt. It sets the bit and
+wakes the process if it is in an interruptible sleep. Both happen with
+interrupts off, and the sleep checks for a signal and goes to sleep with
+interrupts off too, so a Ctrl+C can never fall into the gap between them.
+
+Short internal waits (usertask, the security lab's attacks) use the
+uninterruptible sleep, so a Ctrl+C cannot cut them off halfway.
 
 ## How a task switch works
 
@@ -96,6 +119,7 @@ table routes them all:
 | 14–18 | `open`, `read`, `write`, `close`, `seek`: [io_management](../io_management/syscalls/) |
 | 19 | `time`: [device_management](../device_management/syscalls/) |
 | 20–22 | `cputime`, `setpriority`, `getpriority`: [cpu_management](../cpu_management/syscalls/) |
+| 23–24 | `getuid`, `setuid`: [user_management](../user_management/syscalls/) |
 
 For calls from ring 3, every pointer argument (buffer or path) is
 checked first by `user_ptr_bounds`: it must be the program's own mapped
@@ -109,8 +133,8 @@ memory, so a bad pointer fails only that call.
 | `top` | full-screen live view: processes, memory and CPU load, every second; `q` quits and the old screen comes back | `vga_fullscreen`, `sys_sleep`, keyboard, `safe_text` |
 | `kill <pid>` | stop a process | `process_kill` (→ kill_guard) |
 | `spawn` | start a worker that beats 3 times, then exits | `process_create`, `sys_sleep`, `sys_exit` |
-| `sleep <s>` | pause the shell | `sys_sleep` |
-| `exec <file>` | load and run an ELF program, e.g. `exec hello` | `elf_load_and_run` |
+| `sleep <s>` | pause the shell (Ctrl+C ends it) | `sys_sleep_interruptible` |
+| `exec <file> [&]` | load and run an ELF program, e.g. `exec hello`: in the foreground (Ctrl+C stops it), or with `&` in the background | `elf_load_and_run`, `sys_sleep_interruptible`, `process_kill` |
 | `testuser [null\|badptr]` | run a tiny ring 3 program: `write` (prints hello), `getpid`, `uptime`, `mmap`, `munmap`, `exit`; with `null` it writes to address 0 and only it is killed; with `badptr` it passes `write()` an unmapped buffer and only that call fails | usertask (VMM, `switch_to_user_mode`, user_stack) |
 
 ## Security: attack ↔ defence

@@ -16,7 +16,7 @@ void cmd_touch(const char *args) {
     }
     int fd = sys_open(args, O_WRITE | O_CREATE);
     if (fd < 0) {
-        ui_error("touch", "cannot create (bad name, or no such directory)");
+        ui_error("touch", "cannot create (bad name, no such directory, or permission denied)");
         return;
     }
     sys_close(fd);

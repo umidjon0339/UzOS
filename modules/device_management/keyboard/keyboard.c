@@ -4,6 +4,9 @@
  * Scancode set 1:  press = key number,  release = key number | 0x80.
  * Arrow keys and friends first send 0xE0, then their key number.
  *
+ * Ctrl is held like Shift. With Ctrl down, C becomes KEY_CTRL_C and
+ * goes to the Ctrl+C handler (the shell); other letters type nothing.
+ *
  * Uses: inb (arch/x86/io), register_interrupt_handler (arch/x86/isr),
  *       pic_unmask (pic/).
  */
@@ -46,9 +49,13 @@ static const char shift_map[128] = {
 #define LEFT_SHIFT  0x2A
 #define RIGHT_SHIFT 0x36
 #define CAPS_LOCK   0x3A
+#define CTRL        0x1D        // left Ctrl; right Ctrl is 0xE0 0x1D
+#define KEY_C       0x2E
 
 static int shift_down;          // bit 0: left shift, bit 1: right shift
 static int caps_lock;
+static int ctrl_down;           // bit 0: left ctrl, bit 1: right ctrl
+static keyboard_ctrl_c_handler_t ctrl_c_handler;
 static int extended;            // the last byte was 0xE0
 static volatile char last_key;
 
@@ -73,6 +80,15 @@ char keyboard_pop_key(void) {
     char c = queue[tail];
     tail = (tail + 1) % QUEUE_SIZE;
     return c;
+}
+
+void keyboard_on_ctrl_c(keyboard_ctrl_c_handler_t handler) {
+    ctrl_c_handler = handler;
+}
+
+static void press_ctrl_c(void) {
+    if (!ctrl_c_handler || !ctrl_c_handler())
+        enqueue((char)KEY_CTRL_C);  // nobody took it: the reader of the queue will
 }
 
 static char extended_key(uint8_t scancode) {
@@ -110,6 +126,8 @@ static void keyboard_callback(registers_t *regs) {
     }
     if (extended) {
         extended = 0;
+        if (scancode == CTRL)              { ctrl_down |= 2;  return; }
+        if (scancode == (CTRL | RELEASED)) { ctrl_down &= ~2; return; }
         if (!(scancode & RELEASED) && extended_key(scancode))
             enqueue(extended_key(scancode));
         return;
@@ -121,6 +139,14 @@ static void keyboard_callback(registers_t *regs) {
         case RIGHT_SHIFT:             shift_down |= 2;  return;
         case RIGHT_SHIFT | RELEASED:  shift_down &= ~2; return;
         case CAPS_LOCK:               caps_lock = !caps_lock; return;
+        case CTRL:                    ctrl_down |= 1;  return;
+        case CTRL | RELEASED:         ctrl_down &= ~1; return;
+    }
+
+    if (ctrl_down) {
+        if (scancode == KEY_C)
+            press_ctrl_c();
+        return;                     // Ctrl + any other key: nothing to type
     }
 
     if (!(scancode & RELEASED) && to_char(scancode))

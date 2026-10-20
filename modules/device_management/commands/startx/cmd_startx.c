@@ -1,5 +1,5 @@
 /*
- * cmd_startx.c - `startx`: a small graphical desktop. ESC goes back.
+ * cmd_startx.c - `startx`: a small graphical desktop. ESC (or Ctrl+C) goes back.
  *
  * Every frame (about 30 per second):
  *   1. read the mouse, let the window manager handle clicks and drags
@@ -9,8 +9,8 @@
  *
  * Uses: screen_* / wm_* / canvas_* (gui/), mouse_get_state (mouse/),
  *       keyboard_pop_key (keyboard/), timer_uptime_ms (timer/),
- *       pmm_* (memory_management), process_count_free_slots and
- *       sys_sleep (process_management), ui_* (ui module).
+ *       pmm_* (memory_management), process_count_free_slots, sys_sleep
+ *       and signal_interrupted (process_management), ui_* (ui module).
  */
 
 #include "device_commands.h"
@@ -22,6 +22,7 @@
 #include "pmm.h"
 #include "process.h"
 #include "sys_sleep.h"
+#include "signal.h"
 #include "ui.h"
 
 #define FRAME_MS   33           // ~30 frames per second
@@ -94,7 +95,7 @@ void cmd_startx(const char *args) {
 
     uint32_t last_refresh = 0;
     int first = 1;
-    while (!escape_pressed()) {
+    while (!escape_pressed() && !signal_interrupted()) {    // ESC or Ctrl+C
         mouse_state_t mouse;
         mouse_get_state(&mouse);
         wm_handle_mouse(&mouse);

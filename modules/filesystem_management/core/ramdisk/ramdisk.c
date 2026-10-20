@@ -1,6 +1,9 @@
 /*
  * ramdisk.c - Store files and directories in the kernel heap.
  *
+ * Every new node belongs to the user who created it (process_caller_uid)
+ * and starts with the default mode (user_management/core/perm).
+ *
  * Uses: kmalloc/kfree (memory_management), memcpy/strcmp (lib/string),
  *       and four defences:
  *         filename_check - names for new or renamed entries
@@ -13,6 +16,8 @@
 #include "kheap.h"
 #include "string.h"
 #include "hello_elf.h"
+#include "process.h"
+#include "perm.h"
 #include "def_filename_check.h"
 #include "def_file_range.h"
 #include "def_busy_check.h"
@@ -111,6 +116,8 @@ static vfs_node_t *new_node(const char *name, uint32_t type) {
     memset(node, 0, sizeof(*node));
     strcpy(node->name, name);       // length already checked by filename_check
     node->flags = type;
+    node->owner = process_caller_uid();     // whoever creates it owns it
+    node->mode  = MODE_DEFAULT;             // user_management/core/perm
 
     if (type == FS_FILE) {
         node->read  = ramdisk_read;

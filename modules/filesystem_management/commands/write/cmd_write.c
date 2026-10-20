@@ -27,7 +27,7 @@ void cmd_write(const char *args) {
     }
     int fd = sys_open(path, O_WRITE | O_CREATE | O_TRUNC);
     if (fd < 0) {
-        ui_error("write", "cannot open (bad name, or no such directory)");
+        ui_error("write", "cannot open (bad name, no such directory, or permission denied)");
         return;
     }
     if (sys_write(fd, text, strlen(text)) < 0)

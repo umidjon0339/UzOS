@@ -38,6 +38,11 @@ From ring 3 there is one more check, before all of this: the `int 0x80`
 handler makes sure `buf` is the program's own **mapped** memory
 (`user_ptr_bounds`, memory_management).
 
+Permissions are checked once, at `open()`: reading needs read
+permission on the file, writing needs write permission, creating needs
+write permission on the directory (user_management `file_access`). A
+descriptor you already hold keeps working.
+
 ## open() flags
 
 | Flag | Meaning |

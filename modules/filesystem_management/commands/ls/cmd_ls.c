@@ -1,20 +1,25 @@
 /*
  * cmd_ls.c - `ls [path]`: list a directory (or show one file).
  *
- *     ■ docs/                  -
- *     ▪ hello               1234 B   program
- *     ▪ notes.txt             42 B   (open)
+ *     ■ docs/                  -  rw/r-  guest
+ *     ▪ hello               1234 B  rw/r-  root    program
+ *     ▪ notes.txt             42 B  rw/--  guest   (open)
  *
  * Each entry gets an icon and colour: directories blue, programs (files
- * that start with the ELF signature 7F 'E' 'L' 'F') green.
+ * that start with the ELF signature 7F 'E' 'L' 'F') green. Then its
+ * mode (owner/others, see `chmod`) and its owner. Listing a directory
+ * needs read permission on it.
  *
- * Uses: vfs_lookup / vfs_readdir (core/vfs), ui_* / ui_cell (ui module).
+ * Uses: vfs_lookup / vfs_readdir (core/vfs), perm_check / perm_format and
+ *       users_name (user_management), ui_* / ui_cell (ui module).
  */
 
 #include "fs_commands.h"
 #include "vfs.h"
 #include "ui.h"
 #include "box.h"
+#include "perm.h"
+#include "users.h"
 
 #define NAME_WIDTH 24
 
@@ -47,6 +52,12 @@ static void print_entry(vfs_node_t *n) {
         ui_printf("%8s  ", "-");
     else
         ui_printf("%6u B  ", n->size);
+
+    char mode[6], owner[USER_NAME_MAX + 2];
+    perm_format(n->mode, mode);
+    users_name(n->owner, owner, sizeof(owner));
+    ui_printf("%s  ", mode);
+    ui_cell(owner, 7);
     ui_color(UI_DIM);
     if (program)
         vga_print_str(" program");
@@ -64,6 +75,10 @@ void cmd_ls(const char *args) {
 
     if (node->flags & FS_FILE) {
         print_entry(node);
+        return;
+    }
+    if (!perm_check(node, PERM_READ)) {
+        ui_error("ls", "permission denied");
         return;
     }
 

@@ -43,6 +43,9 @@ typedef struct process {
     uint32_t stack_base;            // lowest address of its stack (0 = boot stack)
     uint32_t esp;                   // saved stack pointer while not running
     uint32_t sleep_ticks;           // timer ticks left while SLEEPING
+    int      sleep_interruptible;   // 1 = a signal may end the sleep early
+
+    uint32_t signals;               // pending signals: bit n = signal n (core/signal)
 
     // Files, used by filesystem_management and io_management.
     struct vfs_node *cwd;               // current directory
@@ -75,6 +78,10 @@ int process_kill(uint32_t pid);
 
 // End the calling process. Never returns.
 void process_exit(void) __attribute__((noreturn));
+
+// The uid of whoever is running right now: the user a new process
+// should belong to. 0 (root) before the scheduler exists.
+uint32_t process_caller_uid(void);
 
 process_t *process_get_by_pid(uint32_t pid);    // NULL if no such process
 process_t *process_get_table(void);             // all MAX_PROCESSES slots

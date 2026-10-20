@@ -15,5 +15,5 @@ void cmd_rm(const char *args) {
         return;
     }
     if (sys_unlink(args) != 0)
-        ui_error("rm", "cannot delete (not found, open, not empty, or in use)");
+        ui_error("rm", "cannot delete (not found, in use, not empty, or permission denied)");
 }

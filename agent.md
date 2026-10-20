@@ -5,6 +5,9 @@ Phase 5: User Mode, System Calls, and Task Scheduling.
 Phase 5.5: Process Security Lab (attacks + defences) - **done for Tier 1**.
 Phase 6: CPU management (`modules/cpu_management/`) - **done**: info,
 fault policy, TSC, accounting, priority scheduling with aging.
+Phase 7: User management (`modules/user_management/`) - **done**: user
+table with salted SHA-256 passwords, login prompt, su/passwd, file
+owners and modes, useradd/userdel.
 
 ## Implemented Modules
 - Multiboot boot (`boot/boot.s`), linker script (`boot/linker.ld`), Makefile
@@ -27,7 +30,14 @@ fault policy, TSC, accounting, priority scheduling with aging.
   every CPU exception (`faults`), TSC clock speed, CPU time per process
   (`cpustat`, `cputime` syscall 20), priorities 1-7 with 50 ms slices and
   aging (`nice`, syscalls 21/22); `ps`/`top` show PRI and CPU%
-- Shell: history, Tab completion, `root@uzos:/path$` prompt, 48 commands
+- `modules/user_management/`: users root (0) / guest (1) / 1000+ via
+  `useradd` (uids never reused), passwords as salt + SHA-256 x1000, login
+  prompt at boot, `su`, `logout`, `passwd`, file owner + mode (`chmod`,
+  `chown`, checked in fs/io syscalls and `vfs_lookup`), syscalls 23/24
+- Shell: history, Tab completion, `guest@uzos:~$` / `root@uzos:~#` prompt, 58 commands,
+  command word coloured while typing (green / normal / red), Ctrl+C
+  (clears the line, or SIGINT to the running command: `core/signal/`,
+  `sys_sleep_interruptible`); `exec` runs in the foreground, `&` = background
 - GUI: BGA framebuffer, compositing window manager, `startx`
 
 ## Security Lab
@@ -83,6 +93,10 @@ shell pairs (2):
 
 ui pairs (1):
 1. `output_spoof` <-> `safe_text`  names in tables: no control characters, cut to fit
+
+user_management pairs (2):
+1. `setuid_escalation`      <-> `setuid_guard` only root may change its uid
+2. `file_permission_bypass` <-> `file_access`  owner + mode checked; root passes
 
 cpu_management pairs (4):
 1. `user_exception`        <-> `fault_isolation` a ring 3 fault kills only that process
@@ -215,7 +229,20 @@ Fixed in cpu_management:
 64. the ring 3 launcher lived inside `testuser`; moved to
     `process_management/core/usertask/` so attacks can share it
 
+Fixed in user_management:
+65. the shell was always root and processes got fixed uids (spawn 0,
+    exec 1): there was no way to be anyone else
+66. any process could read, change or delete any file: files had no owner
+67. `spawn` and `exec` now start processes as the user who asked
+
+Fixed in the shell step:
+68. nothing could stop a running command: `sleep 30` had to run out, a
+    program that never exits (`exec hello`) needed `kill`
+69. a password cancelled halfway (Esc) stayed on the stack
+
 Still open:
+- No groups (Linux's middle mode digit) and no execute bit: read is
+  enough to `exec` a program.
 - `userland/hello.c` (`exec hello`) runs in ring 0 and ends in a `hlt`
   loop instead of exiting: it stays at 100% CPU in `cpustat` until killed.
   It needs an exit syscall and a ring 3 ELF loader.

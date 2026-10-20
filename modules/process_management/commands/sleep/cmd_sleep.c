@@ -1,7 +1,8 @@
 /*
- * cmd_sleep.c - `sleep <seconds>`: pause the shell.
+ * cmd_sleep.c - `sleep <seconds>`: pause the shell. Ctrl+C ends it early.
  *
- * Uses: sys_sleep (syscalls/sleep), atoi (lib/stdlib), ui_* (ui module).
+ * Uses: sys_sleep_interruptible (syscalls/sleep), atoi (lib/stdlib),
+ *       ui_* (ui module).
  */
 
 #include "proc_commands.h"
@@ -16,5 +17,5 @@ void cmd_sleep(const char *args) {
         ui_usage("sleep <seconds>");
         return;
     }
-    sys_sleep(seconds * 1000);
+    sys_sleep_interruptible(seconds * 1000);   // a signal (Ctrl+C) wakes it
 }

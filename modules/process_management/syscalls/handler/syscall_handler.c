@@ -52,6 +52,9 @@
 #include "sys_cputime.h"
 #include "sys_setpriority.h"
 #include "sys_getpriority.h"
+// user_management
+#include "sys_getuid.h"
+#include "sys_setuid.h"
 
 #define SYSCALL_ERROR ((uint32_t)-1)
 
@@ -128,6 +131,9 @@ static uint32_t do_cputime(registers_t *r)     { return (uint32_t)sys_cputime(r-
 static uint32_t do_setpriority(registers_t *r) { return (uint32_t)sys_setpriority(r->ebx, (int32_t)r->ecx); }
 static uint32_t do_getpriority(registers_t *r) { return (uint32_t)sys_getpriority(r->ebx); }
 
+static uint32_t do_getuid(registers_t *r) { (void)r; return sys_getuid(); }
+static uint32_t do_setuid(registers_t *r) { return (uint32_t)sys_setuid(r->ebx); }
+
 /* ---------- The table ---------- */
 
 static const struct {
@@ -157,6 +163,8 @@ static const struct {
     { SYS_CPUTIME,     "cputime",     do_cputime     },
     { SYS_SETPRIORITY, "setpriority", do_setpriority },
     { SYS_GETPRIORITY, "getpriority", do_getpriority },
+    { SYS_GETUID,      "getuid",      do_getuid      },
+    { SYS_SETUID,      "setuid",      do_setuid      },
 };
 #define TABLE_SIZE (sizeof(table) / sizeof(table[0]))
 

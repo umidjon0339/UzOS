@@ -111,6 +111,11 @@ void process_exit(void) {
         scheduler_yield();
 }
 
+uint32_t process_caller_uid(void) {
+    process_t *self = scheduler_get_current_process();
+    return self ? self->uid : 0;
+}
+
 process_t *process_get_by_pid(uint32_t pid) {
     for (int i = 0; i < MAX_PROCESSES; i++)
         if (table[i].state != PROCESS_STATE_FREE && table[i].pid == pid)

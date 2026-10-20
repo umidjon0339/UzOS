@@ -4,16 +4,17 @@
  *   seclab list                  every attack and its defence
  *   seclab info <attack>         what it does and what stops it
  *   seclab attack <id>           simulate: read-only, always safe
- *   seclab attack <id> live      really run it (small, bounded)
+ *   seclab attack <id> live      really run it (small, bounded; root only)
  *   seclab defence <id>          show a defence (by its id or its attack's)
  *   seclab verify <id> | all     run defence selftests
  *   seclab log                   newest refusals first
  *   seclab status                counters, watchdog, free process slots
- *   seclab repair                let every attack undo itself
+ *   seclab repair                let every attack undo itself (root only)
  *
  * Uses: the lab registry and log (security_lab/core), the process table
- *       for `status`, the reaper for `repair` (process_management),
- *       arg_next (lib/args), ui_* (ui module).
+ *       for `status`, the reaper for `repair` and process_caller_uid
+ *       (process_management), UID_ROOT (user_management), arg_next
+ *       (lib/args), ui_* (ui module).
  */
 
 #include "security_lab_commands.h"
@@ -24,6 +25,7 @@
 #include "ui.h"
 #include "process.h"
 #include "def_reaper.h"
+#include "users.h"
 
 // Time budget for a live attack: 200 ticks at 100 Hz = 2 seconds.
 #define LIVE_BUDGET_TICKS 200
@@ -303,6 +305,17 @@ static void print_usage(void) {
     vga_print_str("       seclab log | status | repair\n");
 }
 
+// Live attacks and repair start and kill processes of every user, so
+// they are root's job. Everything else only reads and is open to all.
+static int need_root(const char *what) {
+    if (process_caller_uid() == UID_ROOT)
+        return 1;
+    ui_start(UI_ERROR, "seclab");
+    ui_printf("%s needs root: type 'su' first", what);
+    ui_end();
+    return 0;
+}
+
 /* ---------- Entry point ---------- */
 
 static void cmd_seclab(const char *args) {
@@ -314,13 +327,19 @@ static void cmd_seclab(const char *args) {
 
     if (sub[0] == '\0' || strcmp(sub, "list") == 0) do_list();
     else if (strcmp(sub, "info") == 0)              do_info(id);
-    else if (strcmp(sub, "attack") == 0)            do_attack(id, mode);
+    else if (strcmp(sub, "attack") == 0) {
+        if (strcmp(mode, "live") != 0 || need_root("a live attack"))
+            do_attack(id, mode);
+    }
     else if (strcmp(sub, "defence") == 0)           do_defence(id);
     else if (strcmp(sub, "verify") == 0)            do_verify(id);
     else if (strcmp(sub, "verify-all") == 0)        do_verify("all");
     else if (strcmp(sub, "log") == 0)               do_log();
     else if (strcmp(sub, "status") == 0)            do_status();
-    else if (strcmp(sub, "repair") == 0)            do_repair();
+    else if (strcmp(sub, "repair") == 0) {
+        if (need_root("repair"))
+            do_repair();
+    }
     else                                            print_usage();
 }
 

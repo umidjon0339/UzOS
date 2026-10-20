@@ -4,25 +4,27 @@
  *   UzOS top   up 0:05:12   5 processes                       q = quit
  *   Memory ████░░░░░░░░░░░░░░░░   9 / 127 MB  (7%)
  *   CPU    █░░░░░░░░░░░░░░░░░░░   4% busy  (ring 3 0%, ring 0 4%)
- *     PID  STATE     PRI  CPU%  UID  NAME
- *       2  RUNNING     4    3%    0  kernel_main          system
+ *     PID  STATE     PRI  CPU%  USER   NAME
+ *       2  RUNNING     4    3%  root   kernel_main          system
  *
- * It refreshes every second until 'q'. While top runs the shell is not
+ * It refreshes every second until 'q' (or Ctrl+C). While top runs the shell is not
  * reading the keyboard (it is busy running us), so top reads the keys
  * itself. It borrows the whole screen (vga_fullscreen); when it quits
  * the old screen comes back.
  *
  * Uses: the process table (core/process), pmm_* (memory_management),
- *       cpu_load (cpu_management/core/accounting),
+ *       cpu_load (cpu_management/core/accounting), users_name
+ *       (user_management),
  *       timer_uptime_ms, vga_fullscreen / vga_write_at, keyboard_pop_key
- *       (device_management), sys_sleep (syscalls/sleep) so waiting costs
- *       no CPU, def_safe_text (ui defence safe_text) for the names.
+ *       (device_management), sys_sleep_interruptible (syscalls/sleep) so
+ *       waiting costs no CPU and Ctrl+C ends it, def_safe_text (ui defence safe_text) for the names.
  */
 
 #include "proc_commands.h"
 #include "process.h"
 #include "pmm.h"
 #include "cpu_account.h"
+#include "users.h"
 #include "timer.h"
 #include "sys_sleep.h"
 #include "keyboard.h"
@@ -106,7 +108,7 @@ static void draw_header(int processes) {
            load->busy, load->user, load->kernel);
     row_text(8 + BAR_WIDTH, 2, text, VGA_COLOR_WHITE, VGA_COLOR_BLACK);
 
-    row_text(0, 3, "   PID  STATE     PRI  CPU%  UID  NAME", VGA_COLOR_BLACK, VGA_COLOR_LIGHT_CYAN);
+    row_text(0, 3, "   PID  STATE     PRI  CPU%  USER   NAME", VGA_COLOR_BLACK, VGA_COLOR_LIGHT_CYAN);
 }
 
 static void draw(void) {
@@ -126,11 +128,13 @@ static void draw(void) {
         format(text, sizeof(text), "  %4u", p->pid);
         row_text(0, y, text, VGA_COLOR_WHITE, VGA_COLOR_BLACK);
         vga_write_at(8, y, state_name(p->state), state_color(p->state), VGA_COLOR_BLACK);
-        format(text, sizeof(text), "%3d  %3u%%  %3u  %s",
-               p->priority, p->cpu_percent, p->uid, name);
+        char user[7];                           // the first 6 letters fit the column
+        users_name(p->uid, user, sizeof(user));
+        format(text, sizeof(text), "%3d  %3u%%  %-6s %s",
+               p->priority, p->cpu_percent, user, name);
         row_text(18, y, text, VGA_COLOR_WHITE, VGA_COLOR_BLACK);
         if (p->is_system)
-            vga_write_at(34 + NAME_WIDTH + 1, y, "system", VGA_COLOR_DARK_GREY, VGA_COLOR_BLACK);
+            vga_write_at(36 + NAME_WIDTH + 1, y, "system", VGA_COLOR_DARK_GREY, VGA_COLOR_BLACK);
         y++;
     }
     for (; y < vga_rows(); y++)                 // rows of processes that are gone
@@ -147,8 +151,8 @@ void cmd_top(const char *args) {
     while (!quit) {
         draw();
         for (int waited = 0; waited < REFRESH_MS && !quit; waited += POLL_MS) {
-            sys_sleep(POLL_MS);
-            quit = quit_pressed();
+            int interrupted = !sys_sleep_interruptible(POLL_MS);
+            quit = interrupted || quit_pressed();
         }
     }
     vga_fullscreen(0);                          // the old screen comes back

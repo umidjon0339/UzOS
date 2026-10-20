@@ -24,7 +24,10 @@ filesystem_management/
 
 ```
 /                      every node: name, flags (file/dir), size,
-├── hello              parent, children, open_count
+├── hello              parent, children, open_count, owner, mode
+├── home
+│   ├── root           private to root (mode 60)
+│   └── guest          guest's home (mode 64)
 └── docs
     ├── a.txt          "/docs/a.txt"   absolute: starts at /
     └── old            "old/../a.txt"  relative: starts at the current directory
@@ -37,6 +40,23 @@ the directory. Each process has its own current directory
 
 `vfs_lookup_parent()` is for create/delete/rename: it finds the directory
 that should hold the **last** name and hands back that name.
+
+## Owners and permissions
+
+Every node has an **owner** (a uid) and a **mode** (`64` = owner may
+read and write, others may read). The rules live in
+[user_management/core/perm](../user_management/core/perm/); this module
+asks them before it touches anything:
+
+| Where | Needs |
+|---|---|
+| `vfs_lookup`, every directory passed | read |
+| `sys_chdir`, `ls` | read on the directory |
+| `sys_mkdir`, creating with `open` | write on the parent directory |
+| `sys_unlink`, `sys_rename` | write on the directory and owning the entry |
+
+A new entry belongs to whoever created it. `ls` shows mode and owner;
+`chmod` and `chown` change them. Root passes every check.
 
 ## The RAM disk
 

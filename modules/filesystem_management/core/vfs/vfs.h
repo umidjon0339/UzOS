@@ -36,6 +36,10 @@ typedef struct vfs_node {
     uint32_t size;              // bytes of data (files)
     uint32_t open_count;        // descriptors pointing here (see busy_check)
 
+    // Who may use it, checked by user_management/core/perm.
+    uint32_t owner;             // uid of the user it belongs to
+    uint32_t mode;              // e.g. 064: owner may read+write, others read
+
     // Filled in by the driver.
     vfs_read_t    read;
     vfs_write_t   write;

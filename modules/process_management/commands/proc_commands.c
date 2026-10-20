@@ -17,7 +17,7 @@ static const struct {
     { "kill",     "Kill a process by PID",                  cmd_kill     },
     { "spawn",    "Start a background worker process",      cmd_spawn    },
     { "sleep",    "Sleep for N seconds",                    cmd_sleep    },
-    { "exec",     "Run an ELF program from the filesystem", cmd_exec     },
+    { "exec",     "Run an ELF program: exec <file> [&]",    cmd_exec     },
     { "testuser", "Ring 3 program: testuser [null|badptr]", cmd_testuser },
 };
 

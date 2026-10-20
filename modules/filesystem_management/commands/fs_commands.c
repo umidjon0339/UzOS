@@ -13,7 +13,7 @@ static const struct {
     void (*handler)(const char *args);
 } commands[] = {
     { "ls",      "List a directory: ls [path]",               cmd_ls      },
-    { "cd",      "Change directory: cd [path]",               cmd_cd      },
+    { "cd",      "Change directory: cd [path] (none = home)", cmd_cd      },
     { "pwd",     "Print the current directory",               cmd_pwd     },
     { "mkdir",   "Create a directory: mkdir <path>",          cmd_mkdir   },
     { "touch",   "Create an empty file: touch <path>",        cmd_touch   },

@@ -18,6 +18,7 @@ void *memcpy(void *dest, const void *src, size_t n);        // copy n bytes (no 
 // Strings (NUL-terminated)
 size_t strlen(const char *s);                               // length without the NUL
 int    strcmp(const char *a, const char *b);                // <0, 0, >0 like the C library
+int    strncmp(const char *a, const char *b, size_t n);     // the same, first n bytes only
 char  *strcpy(char *dest, const char *src);                 // copy including the NUL
 char  *strncpy(char *dest, const char *src, size_t n);      // copy at most n, pad with NUL
 char  *strrchr(const char *s, int c);                       // last c in s, or NULL

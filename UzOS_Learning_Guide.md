@@ -26,12 +26,13 @@ This is the heart of the initialization phase. If you want to see how the OS is 
    * **KHEAP**: Sets up `kmalloc` for dynamic memory allocation.
 7. **Security lab**: registers every module's attack/defence pairs.
 8. **Shell**: Starts the CLI and registers commands.
-9. **Filesystem**: Initializes the Virtual File System (VFS) and the initial RAMDisk.
+9. **Filesystem**: Initializes the Virtual File System (VFS) and the initial RAMDisk. Then **Users**: root and guest, each with a home directory under `/home`.
 10. **Process Management**: Turns on the scheduler to allow multitasking.
 11. **System Calls**: Registers the `int 0x80` handler for user-space to kernel-space communication.
 12. **Enable Interrupts (`sti`)**: allows the CPU to receive hardware interrupts.
 13. **CPU clock**: counts CPU cycles over 10 timer ticks to learn the clock speed, then makes `rdtsc` kernel-only.
-14. **Status bar**: starts `statusd`, a daemon that keeps the top row up to date. Then the shell takes over.
+14. **Status bar**: starts `statusd`, a daemon that keeps the top row up to date.
+15. **Login**: `uzos login:` asks for a name and password (root / uzos or guest / guest). Then the shell takes over, running as that user.
 
 ---
 
@@ -119,19 +120,30 @@ See [modules/cpu_management/README.md](modules/cpu_management/README.md) for the
 * **Syscalls**: `cputime`, `setpriority`, `getpriority`.
 * **Commands**: `cpuinfo [flags]`, `faults [list]`, `cpustat`, `nice [pid [level]]`. `ps` and `top` show PRI and CPU%.
 
-### F. Filesystem Management (`modules/filesystem_management/`)
+### F. User Management (`modules/user_management/`)
+See [modules/user_management/README.md](modules/user_management/README.md) for the full map.
+* **Users (`core/users/`)**: the user table: uid, name, home directory, and the password as a salt + SHA-256 hash (never the password itself). uid 0 is root; uids are never reused.
+* **Hash (`core/hash/`)**: SHA-256, written out step by step.
+* **Session (`core/session/`)**: the login prompt and switching users. Logging in sets the shell process's uid; every check in the kernel then sees that user.
+* **Permissions (`core/perm/`)**: each file has an owner and a mode like `64` (`rw/r-`: owner reads and writes, others read). The filesystem syscalls ask before every open, create, delete, rename and `cd`.
+* **Syscalls**: `getuid`, `setuid` (only root may change its uid).
+* **Commands**: `whoami`, `id`, `users`, `su`, `logout`, `passwd`, `chmod`, `chown`, `useradd`, `userdel`. `ls` shows owners and modes; the prompt ends in `#` for root.
+
+### G. Filesystem Management (`modules/filesystem_management/`)
 See [modules/filesystem_management/README.md](modules/filesystem_management/README.md).
 * **VFS (`core/vfs/`)**: the tree of files and directories, path lookup (`/a/b`, `../x`), and open counts.
 * **RAMDisk (`core/ramdisk/`)**: the driver that keeps every file's bytes in the kernel heap.
-* **Commands**: `ls cd pwd mkdir touch rm cat write cp mv wc grep hexdump`, all with full paths.
+* **Commands**: `ls cd pwd mkdir touch rm cat write cp mv wc grep hexdump`, all with full paths. Every file has an owner and a mode (see User Management).
 
-### G. Shell (`modules/shell/`)
+### H. Shell (`modules/shell/`)
 See [modules/shell/README.md](modules/shell/README.md).
 * **Core**: the command registry, the line being typed (`line/`), history (Up/Down) and Tab completion for commands and paths.
 * **Commands**: `help` (built from the registry), `clear`, `echo`, `color`, `calc` (a recursive-descent parser), `history`, `snake`.
-* **Prompt**: `root@uzos:/docs$`, like a Linux shell.
+* **Prompt**: `guest@uzos:~/docs$`, like a Linux shell; `#` instead of `$` for root.
+* **Colours while you type (`core/highlight/`)**: the command word turns green when it is a real command, red when no command starts like it.
+* **Ctrl+C**: at the prompt it clears the line; while a command runs it sends the signal `SIGINT` (`process_management/core/signal/`), and `sleep`, `top`, `exec`, `snake`, `startx` stop early. `exec hello` runs in the foreground; `exec hello &` in the background.
 
-### H. UI (`modules/ui/`)
+### I. UI (`modules/ui/`)
 See [modules/ui/README.md](modules/ui/README.md).
 * **Style (`core/style/`)**: one look for every message: `ui_error`, `ui_ok`, `ui_warn`, `ui_usage`; colours by meaning, not by number.
 * **Frames and bars (`core/box/`)**: `┌─ Title ─┐` panels, table cells that cannot be broken by a strange name, `███░░` bars. `meminfo`, `heapinfo`, `ps`, `devices` and `ioinfo` use them.

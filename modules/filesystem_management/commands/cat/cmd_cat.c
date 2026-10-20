@@ -25,7 +25,7 @@ void cmd_cat(const char *args) {
     }
     int fd = sys_open(args, O_READ);
     if (fd < 0) {
-        ui_error("cat", "cannot open (no such file?)");
+        ui_error("cat", "cannot open (no such file, or permission denied)");
         return;
     }
 

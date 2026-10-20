@@ -53,6 +53,10 @@ void atk_tsc_timing_register(void);             void def_tsc_restrict_register(v
 void atk_priority_out_of_range_register(void);  void def_priority_bounds_register(void);
 void atk_cpu_hog_register(void);                void def_aging_register(void);
 
+/* ---------- user_management ---------- */
+void atk_setuid_escalation_register(void);      void def_setuid_guard_register(void);
+void atk_file_permission_bypass_register(void); void def_file_access_register(void);
+
 /* ---------- shell ---------- */
 void atk_calc_overflow_register(void);          void def_safe_arith_register(void);
 void atk_line_overflow_register(void);          void def_input_bound_register(void);
@@ -105,6 +109,10 @@ void proc_security_init(void) {
     atk_tsc_timing_register();              def_tsc_restrict_register();
     atk_priority_out_of_range_register();   def_priority_bounds_register();
     atk_cpu_hog_register();                 def_aging_register();
+
+    // user_management
+    atk_setuid_escalation_register();       def_setuid_guard_register();
+    atk_file_permission_bypass_register();  def_file_access_register();
 
     // shell
     atk_calc_overflow_register();           def_safe_arith_register();

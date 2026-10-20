@@ -19,5 +19,5 @@ void cmd_mv(const char *args) {
         return;
     }
     if (sys_rename(from, to) != 0)
-        ui_error("mv", "refused (not found, name taken, bad name, or a loop)");
+        ui_error("mv", "refused (not found, name taken, bad name, a loop, or permission denied)");
 }

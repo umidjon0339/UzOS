@@ -4,7 +4,7 @@
  * Like "neofetch" on Linux. Each info line is built into text first,
  * then the picture row and the info row are printed side by side:
  *
- *     [flag row 0]   root@uzos
+ *     [flag row 0]   guest@uzos
  *     [flag row 1]   ─────────
  *     [flag row 2]   OS      UzOS 1.0 i386
  *     ...
@@ -12,7 +12,7 @@
  * Uses: logo_print_flag_row (core/logo), ui_bar (core/box), cpuid
  *       (arch/x86), and information from every module: pmm, the
  *       process table, the shell registry, the VFS, the security lab,
- *       the display, palette, font, rtc and timer.
+ *       the logged-in user, the display, palette, font, rtc and timer.
  */
 
 #include "ui_commands.h"
@@ -31,6 +31,7 @@
 #include "rtc.h"
 #include "timer.h"
 #include "string.h"
+#include "session.h"
 
 #define GAP          "   "
 #define LABEL_WIDTH  10
@@ -87,7 +88,7 @@ static void gather(void) {
     uint32_t s = timer_uptime_ms() / 1000;
 
     line_count = 0;
-    add(0);                                                 // root@uzos
+    add(0);                                                 // guest@uzos
     add(0);                                                 // underline
     format(add("OS"), TEXT_MAX, "UzOS 1.0 (i386, 32-bit)");
     format(add("Kernel"), TEXT_MAX, "multiboot, protected mode, paging");
@@ -118,8 +119,9 @@ static void print_info(int i) {
     info_t *line = &lines[i];
 
     if (i == 0) {
+        const user_t *me = session_user();          // who is logged in
         ui_color(UI_GOOD);
-        vga_print_str("root");
+        vga_print_str(me ? me->name : "?");
         ui_reset();
         vga_print_str("@");
         ui_color(UI_TITLE);

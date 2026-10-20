@@ -10,7 +10,8 @@ shell/
 │   ├── shell/     shell.h/.c       command registry, prompt, keys, run a line
 │   ├── line/      line.h/.c        the line being typed (a safe fixed buffer)
 │   ├── history/   history.h/.c     the last 16 commands, for Up / Down
-│   └── complete/  complete.h/.c    Tab: command names and paths
+│   ├── complete/  complete.h/.c    Tab: command names and paths
+│   └── highlight/ highlight.h/.c   colour the command word while you type
 ├── commands/      shell_commands.h/.c + one folder per command:
 │                  help clear echo color calc history snake
 └── security/      attack/<id>/  defence/<id>/   (2 pairs, each with a README)
@@ -24,27 +25,65 @@ an ordinary user program; in UzOS it still runs inside the kernel.
 
 ```
 key pressed -> keyboard queue -> kernel_main loop -> shell_handle_key(c)
-   letter       line_insert (input_bound checks room), echo it
-   Backspace    line_backspace
+   letter       line_insert (input_bound checks room), then redraw()
+   Backspace    line_backspace, then redraw()
    Tab          complete_line: finish the word, or list the choices
    Up / Down    history_older / history_newer
+   Ctrl+C       forget the typed line, print "^C", a new prompt
    Enter        history_add, then run():
                   "  cat   notes  "  ->  name "cat", args "notes"
                   shell_find("cat") -> cmd_cat("notes")
                 ui_reset(): back to the normal text colour
-                then the prompt "root@uzos:/path$ " again
+                then the prompt "guest@uzos:~/path$ " again
 ```
+
+## Colours while you type
+
+After every key the line is drawn again in place (`redraw()`: one
+backspace per character on the screen, then `highlight_print()`). Only
+the command word gets a colour:
+
+| You typed | Colour | Meaning |
+|---|---|---|
+| `ls` | green | a real command: Enter will run it |
+| `l` | normal | not a command yet, but `ls` starts like this |
+| `lx` | red | no command starts like this: a typo |
+
+## Ctrl+C
+
+Ctrl+C has to work even while a command runs and nobody reads the
+keyboard queue. So the keyboard driver calls the shell's handler straight
+from the interrupt:
+
+```
+Ctrl+C -> keyboard interrupt -> ctrl_c_pressed()
+   a command is running  -> signal_send(shell, SIGINT)      (process_management)
+                            commands that wait use sys_sleep_interruptible():
+                            sleep, top, exec, snake, startx, password questions
+                            stop early; afterwards run() prints "^C"
+   at the prompt         -> KEY_CTRL_C goes to the queue: the line is cleared
+```
+
+`exec hello` runs in the **foreground**: the shell waits, and Ctrl+C
+ends the program (through `process_kill`, so `kill_guard` still
+decides). `exec hello &` runs it in the background, as before.
 
 ## The prompt
 
 ```
-root@uzos:/docs$
+guest@uzos:~/docs$          a normal user, in /home/guest/docs
+root@uzos:/home#            root: the prompt ends in '#'
 ```
 
-Like a Linux shell: **who** (UzOS has no user accounts yet, so the
-shell is always root, UID 0), **which computer**, **where** (the
-current directory, from `sys_getcwd`). If the last output did not end
-with a newline, the prompt starts on a fresh line.
+Like a Linux shell: **who** (the logged-in user, from
+`session_user()` in user_management), **which computer**, **where**
+(the current directory, from `sys_getcwd`; your home directory is
+shown as `~`). Root's prompt ends in `#` instead of `$`, so you always
+see when you have every right. If the last output did not end with a
+newline, the prompt starts on a fresh line.
+
+Before the shell takes keys, `kernel_main` runs the login prompt
+(user_management/core/session); `logout` brings it back.
 
 ## Registering a command
 

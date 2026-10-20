@@ -32,7 +32,7 @@ static void worker(void) {
 
 void cmd_spawn(const char *args) {
     (void)args;
-    int pid = process_create("worker", worker, 0);
+    int pid = process_create("worker", worker, process_caller_uid());   // yours
 
     if (pid < 0) {
         ui_error("spawn", "no free process slot (or refused, see `seclab log`)");

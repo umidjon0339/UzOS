@@ -9,7 +9,7 @@ driver's handler.
 device_management/
 ├── pic/       pic.h/.c            interrupt controller: IRQ -> vector, masks, EOI
 ├── timer/     timer.h/.c          PIT, IRQ 0: ticks, uptime, CPU accounting, drives the scheduler
-├── keyboard/  keyboard.h/.c       PS/2 keyboard, IRQ 1: scancodes -> key queue
+├── keyboard/  keyboard.h/.c       PS/2 keyboard, IRQ 1: scancodes -> key queue, Ctrl+C
 ├── mouse/     mouse.h/.c          PS/2 mouse, IRQ 12: packets -> pointer + buttons
 ├── rtc/       rtc.h/.c            real-time clock (CMOS): date and time
 ├── speaker/   speaker.h/.c        PC speaker: tones through PIT channel 2
@@ -41,6 +41,13 @@ key pressed -> keyboard raises IRQ 1 -> PIC -> vector 33
   -> read scancode from port 0x60 -> character -> key queue
 kernel_main loop: keyboard_pop_key() -> shell_handle_key()
 ```
+
+Shift, Caps Lock and Ctrl are held keys: the driver remembers them.
+With Ctrl down, C does not type `c`: the driver calls the handler the
+shell installed (`keyboard_on_ctrl_c`), because Ctrl+C must work even
+while nobody reads the queue. If the handler does not take it, it is
+queued as `KEY_CTRL_C` (ASCII 3, as on every terminal). Other Ctrl
+combinations type nothing.
 
 ## IRQ lines
 

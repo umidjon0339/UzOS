@@ -43,6 +43,9 @@
 
 #include "ramdisk.h"        // filesystem
 
+#include "users.h"          // users
+#include "session.h"
+
 #include "ui.h"             // look and feel
 #include "bootlog.h"
 #include "logo.h"
@@ -56,6 +59,7 @@
 #include "fs_commands.h"
 #include "io_commands.h"
 #include "cpu_commands.h"
+#include "user_commands.h"
 #include "device_commands.h"
 #include "ui_commands.h"
 #include "security_lab_commands.h"
@@ -172,6 +176,7 @@ static void setup_shell(void) {
     register_fs_commands();         // ls, cd, cat, mkdir, ...
     register_io_commands();         // ioinfo
     register_cpu_commands();        // cpuinfo, faults, cpustat, nice
+    register_user_commands();       // whoami, id, users, ...
     register_device_commands();     // uptime, date, devices, theme, mode, ...
     register_ui_commands();         // uzfetch, statusbar
     register_security_lab_commands(); // seclab
@@ -185,6 +190,13 @@ static void setup_filesystem(void) {
     boot_begin("RAM disk");
     ramdisk_init();                 // in-memory disk with the root "/"
     boot_ok("mounted at /");
+
+    // Needs the filesystem: every user gets a home directory.
+    boot_begin("Users");
+    users_init();
+    format(detail, sizeof(detail), "%d accounts, passwords as salted SHA-256",
+           users_count());
+    boot_ok(detail);
 }
 
 /* ---------- 7. Processes ---------- */
@@ -194,6 +206,8 @@ static void setup_processes(void) {
     scheduler_init();               // idle task; kernel_main becomes a process too
     scheduler_start();              // the timer now drives task switches
     boot_ok("priorities 1-7, 50 ms turns, aging");
+
+    session_init();                 // kernel_main is the shell: its uid is "who you are"
 }
 
 /* ---------- 8. System calls ---------- */
@@ -240,7 +254,8 @@ void kernel_main(uint32_t multiboot_magic, multiboot_info_t *mb_info) {
     boot_ok("statusd updates it twice a second");
 
     vga_print_str("\n");
-    ui_info(0, "UzOS is ready. Type 'help' for the commands, or 'uzfetch'.");
+    ui_info(0, "UzOS is ready. Log in, then type 'help' for the commands.");
+    session_login_prompt();         // nobody uses the shell without a password
     shell_print_prompt();
 
     // From now on kernel_main is the shell: wait for a key, handle it.

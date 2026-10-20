@@ -53,13 +53,13 @@ void cmd_cp(const char *args) {
 
     int in = sys_open(from, O_READ);
     if (in < 0) {
-        ui_error("cp", "cannot open the source");
+        ui_error("cp", "cannot open the source (missing, or permission denied)");
         return;
     }
     int out = sys_open(to, O_WRITE | O_CREATE | O_TRUNC);
     if (out < 0) {
         sys_close(in);
-        ui_error("cp", "cannot create the destination");
+        ui_error("cp", "cannot create the destination (permission denied?)");
         return;
     }
 

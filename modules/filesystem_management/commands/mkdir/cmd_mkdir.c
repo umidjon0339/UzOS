@@ -14,5 +14,5 @@ void cmd_mkdir(const char *args) {
         return;
     }
     if (sys_mkdir(args) != 0)
-        ui_error("mkdir", "cannot create (exists, bad name, or no such parent)");
+        ui_error("mkdir", "cannot create (exists, bad name, no such parent, or permission denied)");
 }

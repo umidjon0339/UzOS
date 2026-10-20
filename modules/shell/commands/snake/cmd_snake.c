@@ -6,13 +6,14 @@
  * cell; the tail follows unless the snake just ate.
  *
  *   arrows / WASD  turn        P / Space  pause
- *   R              restart     Q          quit (the old screen comes back)
+ *   R              restart     Q / Ctrl+C quit (the old screen comes back)
  *
  * The game borrows the whole screen (vga_fullscreen) and centres the
  * board, so it works in every display mode.
  *
  * Uses: vga_fullscreen / vga_put_at / vga_write_at (device_management
- *       vga), keyboard_pop_key, speaker_beep, timer_ticks.
+ *       vga), keyboard_pop_key, speaker_beep, timer_ticks,
+ *       signal_interrupted (process_management) for Ctrl+C.
  */
 
 #include "shell_commands.h"
@@ -22,6 +23,7 @@
 #include "speaker.h"
 #include "timer.h"
 #include "string.h"
+#include "signal.h"
 
 #define WIDTH       44              // board size, walls included
 #define HEIGHT      20
@@ -258,6 +260,8 @@ void cmd_snake(const char *args) {
         char c;
         while (playing && (c = keyboard_pop_key()))
             playing = handle_key(c);
+        if (signal_interrupted())
+            playing = 0;                            // Ctrl+C: stop like Q
 
         // Faster as the score grows: 14 ticks per step, down to 4.
         int level = score / 50;
