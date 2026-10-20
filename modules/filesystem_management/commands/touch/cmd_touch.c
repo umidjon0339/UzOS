@@ -1,18 +1,23 @@
-#include "../fs_commands_internal.h"
-#include "fs_syscalls.h"
-#include "ramdisk.h"
-#include "vga.h"
+/*
+ * cmd_touch.c - `touch <path>`: create an empty file if it does not exist.
+ *
+ * Uses: sys_open with O_CREATE, sys_close (io_management), ui_* (ui module).
+ */
+
+#include "fs_commands.h"
+#include "sys_open.h"
+#include "sys_close.h"
+#include "ui.h"
 
 void cmd_touch(const char *args) {
-    if (args[0] == '\0') {
-        vga_print_str("Usage: touch <name>\n");
+    if (!args[0]) {
+        ui_usage("touch <path>");
         return;
     }
-    
-    vfs_node_t *dir = sys_getcwd_node();
-    if (ramdisk_create_file(dir, args) != 0) {
-        vga_print_str("File created.\n");
-    } else {
-        vga_print_str("Failed to create file.\n");
+    int fd = sys_open(args, O_WRITE | O_CREATE);
+    if (fd < 0) {
+        ui_error("touch", "cannot create (bad name, or no such directory)");
+        return;
     }
+    sys_close(fd);
 }

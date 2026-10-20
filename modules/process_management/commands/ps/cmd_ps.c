@@ -1,42 +1,66 @@
-#include "cmd_ps.h"        // modules/process_management/commands/ps/cmd_ps.h
-#include "process.h"     // include/process.h
-#include "shell.h"     // include/shell.h
-#include "vga.h"         // include/vga.h
+/*
+ * cmd_ps.c - `ps`: list every process, in a frame.
+ *
+ * Walks the process table and prints one row per used slot. Names go
+ * through ui_cell(), so a name can never break the table (safe_text).
+ * PRI is the priority level and CPU% the share of the last second, both
+ * kept by cpu_management (`nice` and `cpustat` show more).
+ *
+ * Uses: process_get_table (core/process), box_* / ui_cell (ui module).
+ */
 
-// Convert process state enum to string
-static const char *ps_state_to_str(process_state_t state) {
+#include "proc_commands.h"
+#include "process.h"
+#include "ui.h"
+#include "box.h"
+
+#define WIDTH       62
+#define NAME_WIDTH  20
+
+static const char *state_name(process_state_t state) {
     switch (state) {
-        case PROCESS_STATE_READY:    return "READY   ";
-        case PROCESS_STATE_RUNNING:  return "RUNNING ";
+        case PROCESS_STATE_READY:    return "READY";
+        case PROCESS_STATE_RUNNING:  return "RUNNING";
         case PROCESS_STATE_SLEEPING: return "SLEEPING";
-        case PROCESS_STATE_ZOMBIE:   return "ZOMBIE  ";
-        default:                     return "UNKNOWN ";
+        case PROCESS_STATE_ZOMBIE:   return "ZOMBIE";
+        default:                     return "?";
     }
 }
 
-// Command handler: list active processes
+static enum vga_color state_color(process_state_t state) {
+    switch (state) {
+        case PROCESS_STATE_RUNNING:  return UI_GOOD;
+        case PROCESS_STATE_SLEEPING: return UI_LINK;
+        case PROCESS_STATE_ZOMBIE:   return UI_BAD;
+        default:                     return ui_text_fg();
+    }
+}
+
 void cmd_ps(const char *args) {
     (void)args;
-    process_t *ptable = process_get_table();
-    if (!ptable) return;
+    process_t *table = process_get_table();
 
-    vga_set_color(VGA_COLOR_LIGHT_CYAN, VGA_COLOR_BLACK);
-    vga_print_str("PID\tSTATE\t\tNAME\n");
-    vga_set_color(VGA_COLOR_WHITE, VGA_COLOR_BLACK);
+    box_begin("Processes", WIDTH);
+    box_row();
+    ui_color(UI_TITLE);
+    ui_printf("  PID  %-9s PRI  CPU%%  UID  NAME", "STATE");
+    box_row_end();
 
     for (int i = 0; i < MAX_PROCESSES; i++) {
-        if (ptable[i].state != PROCESS_STATE_FREE) {
-            vga_print_int(ptable[i].pid);
-            vga_print_str("\t");
-            vga_print_str(ps_state_to_str(ptable[i].state));
-            vga_print_str("\t");
-            vga_print_str(ptable[i].name);
-            vga_print_str("\n");
-        }
-    }
-}
+        process_t *p = &table[i];
+        if (p->state == PROCESS_STATE_FREE)
+            continue;
 
-// Register ps command into shell
-void cmd_ps_register(void) {
-    shell_register_command(CMD_PS_NAME, CMD_PS_DESC, cmd_ps);
+        box_row();
+        ui_printf("%5u  ", p->pid);
+        ui_color(state_color(p->state));
+        ui_cell(state_name(p->state), 9);
+        ui_reset();
+        ui_printf("%3d  %3u%%  %3u  ", p->priority, p->cpu_percent, p->uid);
+        ui_cell(p->name, NAME_WIDTH);
+        ui_color(UI_DIM);
+        vga_print_str(p->is_system ? " system" : "");
+        box_row_end();
+    }
+    box_end();
 }

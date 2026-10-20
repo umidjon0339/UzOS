@@ -1,13 +1,33 @@
-# Attack: file offset wrap
+# Attack: file_offset_wrap
 
-**Breaks:** `consistency` · **Severity:** HIGH · **Paired defence:** [`file_range`](../../defence/file_range/README.md)
+| | |
+|---|---|
+| **Stopped by** | [`file_range`](../../defence/file_range/) |
+| **Breaks** | consistency: a write stays inside its own file |
+| **Severity** | high |
 
-An offset plus length can wrap around and bypass the RAM-disk file-size
-limit. The demo probes the range policy only; it does not access or
-modify file contents.
+## What it does
 
-```text
-seclab attack file_offset_wrap
+A write gives an `offset` and a `size`. The obvious check adds them:
+
+```c
+if (offset + size <= limit)       // 0xFFFFFFF0 + 0x20 = 0x10  -> passes
+    memcpy(data + offset, ...);   // data + 0xFFFFFFF0: 4 GiB away
+```
+
+## In UzOS
+
+| Mode | What happens |
+|---|---|
+| `simulate` | shows the sum the naive check computes |
+| `live` | creates a temporary file, tries the wrapping write and a write one byte past 64 KiB (both refused), a normal write (allowed), then deletes the file |
+
+## Uses
+
+`ramdisk_create()`, `ramdisk_delete()` from core/ramdisk, `vfs_write()` from core/vfs.
+
+## Try it
+
+```
 seclab attack file_offset_wrap live
-seclab verify file_range
 ```

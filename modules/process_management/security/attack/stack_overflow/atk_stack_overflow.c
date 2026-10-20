@@ -1,89 +1,98 @@
-#include "proc_security.h"
+/*
+ * atk_stack_overflow.c - ATTACK stack_overflow: recurse off the stack.
+ *
+ * Breaks:     isolation - a process must stay inside its own 4 KiB stack
+ * Stopped by: stack_guard (security/defence/stack_guard)
+ *
+ * Each process has PROCESS_STACK_SIZE bytes of stack. Deep recursion
+ * keeps pushing below the bottom and the CPU does not stop it: it
+ * silently overwrites whatever the heap placed there.
+ *
+ * simulate(): show the current stack and how much room is left.
+ * launch():   measure one stack frame with a short, safe recursion, then
+ *             ask the guard about an ESP one push below a stack's bottom.
+ *             (It never really overflows: that would corrupt the heap.)
+ *
+ * Uses: def_stack_guard_check (security/defence/stack_guard),
+ *       scheduler_get_current_process (core/scheduler), cpu_read_esp (arch/x86/cpu).
+ */
+
+#include "security_lab.h"
 #include "scheduler.h"
 #include "process.h"
 #include "vga.h"
+#include "cpu.h"
+#include "def_stack_guard.h"
 
-/* ===================================================================
- * ATTACK: stack overflow
- * ===================================================================
- * A process owns exactly PROCESS_STACK_SIZE (4 KB) of stack. Nothing
- * in the CPU stops deep recursion from pushing past the bottom into
- * whatever the heap allocated next: silent corruption of another
- * object, which is worse than a clean crash because nothing reports
- * it. launch() never overflows a real stack: it recurses SAFE_DEPTH
- * frames to measure one, then asks the guard about an ESP below it.
- * =================================================================== */
+#define SAFE_DEPTH  8           // far too shallow to reach the bottom
+#define FRAME_WORDS 8           // real local data in every frame
+#define FAKE_BASE   0x00200000  // stand-in stack for kernel_main (boot stack)
 
-#define SAFE_DEPTH  8   /* fixed depth, far too small to reach the bottom */
-#define FRAME_WORDS 8   /* real locals, so each call uses real stack      */
-
-/* Bounded recursion used only to measure one frame. volatile keeps the
- * writes real, so this call chain cannot be optimised away. */
+// Recurse 'depth' times; report the lowest stack address touched.
+// 'volatile' keeps the compiler from optimising the frames away.
 static void probe_frames(uint32_t depth, uint32_t *lowest) {
     volatile uint32_t pad[FRAME_WORDS];
-    for (int i = 0; i < FRAME_WORDS; i++) pad[i] = depth + (uint32_t)i;
-    if (depth == 0) {
-        *lowest = (uint32_t)(uintptr_t)&pad[0];  /* deepest point we touched */
-        return;
-    }
-    probe_frames(depth - 1, lowest);
+    for (int i = 0; i < FRAME_WORDS; i++)
+        pad[i] = depth;
+
+    if (depth == 0)
+        *lowest = (uint32_t)&pad[0];
+    else
+        probe_frames(depth - 1, lowest);
 }
 
-/* simulate() only reads: no process is created, killed or changed. */
-static int atk_stack_overflow_simulate(void) {
+static int simulate(void) {
     process_t *me = scheduler_get_current_process();
-    uint32_t room = (me && me->stack_base && me->esp >= me->stack_base) ? me->esp - me->stack_base : 0;
-    vga_print_str("  stack per process : ");
+    uint32_t esp = cpu_read_esp();
+
+    vga_print_str("  stack size per process : ");
     vga_print_int(PROCESS_STACK_SIZE);
-    vga_print_str(" bytes\n  base / esp        : 0x");
-    vga_print_hex(me ? me->stack_base : 0);
-    vga_print_str(" / 0x");
-    vga_print_hex(me ? me->esp : 0);
-    vga_print_str("\n  bytes below esp   : ");
-    vga_print_int((int)room);
-    vga_print_str("\n  the CPU will not stop the next push past the base\n");
+    vga_print_str(" bytes\n  this process           : ");
+    vga_print_str(me->name);
+    if (!me->stack_base) {
+        vga_print_str(" (boot stack, not guarded)\n");
+        return 1;
+    }
+    vga_print_str("\n  bytes left below ESP   : ");
+    vga_print_int(esp - me->stack_base);
+    vga_print_str("\n  nothing stops the next push past the bottom\n");
     return 1;
 }
 
-/* launch() demonstrates the detection, not the destruction. */
-static int atk_stack_overflow_launch(void) {
+static int launch(void) {
+    uint32_t top = cpu_read_esp();
+    uint32_t lowest = top;
+    probe_frames(SAFE_DEPTH, &lowest);
+
+    uint32_t frame = (top - lowest) / SAFE_DEPTH;
+    vga_print_str("  one frame ~ ");
+    vga_print_int(frame);
+    vga_print_str(" bytes -> a 4 KiB stack holds ~");
+    vga_print_int(frame ? PROCESS_STACK_SIZE / frame : 0);
+    vga_print_str(" frames\n");
+
+    // One push past the bottom is the whole attack. Ask the guard.
     process_t *me = scheduler_get_current_process();
-    uint32_t base = (me && me->stack_base) ? me->stack_base : 0x00200000u;
-    uint32_t deepest = 0;
-    process_t ghost;
-    probe_frames(SAFE_DEPTH, &deepest);
-    /* The address drop across the calls is roughly the frame cost. */
-    uint32_t top = (uint32_t)(uintptr_t)&deepest;
-    uint32_t frame = (top > deepest) ? (top - deepest) / SAFE_DEPTH : 0;
-    vga_print_str("  one frame is about ");
-    vga_print_int((int)frame);
-    vga_print_str(" bytes, so this stack is about ");
-    vga_print_int(frame ? (int)(PROCESS_STACK_SIZE / frame) : 0);
-    vga_print_str(" frames deep\n");
-    /* One push past the bottom is the whole attack. We only describe it. */
-    ghost.stack_base = base;
-    ghost.esp = base - 4;
-    int verdict = def_stack_guard_check(&ghost);
-    vga_print_str("  esp 0x");
-    vga_print_hex(ghost.esp);
-    vga_print_str(" vs base 0x");
-    vga_print_hex(ghost.stack_base);
-    vga_print_str(verdict ? " -> ALLOWED, isolation broken\n"
-                          : " -> REFUSED, stack_guard fired\n");
-    return verdict ? 0 : 1;
+    process_t victim = {0};
+    victim.stack_base = me->stack_base ? me->stack_base : FAKE_BASE;
+    uint32_t bad_esp = victim.stack_base - 4;
+
+    int allowed = def_stack_guard_check(&victim, bad_esp);
+    vga_print_str("  ESP ");
+    vga_print_hex(bad_esp);
+    vga_print_str(allowed ? " -> ALLOWED, overflow missed\n"
+                          : " -> caught by stack_guard\n");
+    return !allowed;
 }
 
-static const attack_t atk = {
+static const attack_t attack = {
     "stack_overflow",
-    "recursion walks off the bottom of a 4 KB stack into the heap",
-    INV_ISOLATION,
-    SEV_CRITICAL,
-    atk_stack_overflow_simulate,
-    atk_stack_overflow_launch,
-    0,                  /* nothing to undo: we never left our own stack */
+    "recursion runs off the bottom of a 4 KiB stack into the heap",
+    INV_ISOLATION, SEV_CRITICAL,
+    simulate, launch, 0,        // nothing to undo: no real stack was overflowed
     "stack_guard"
 };
 
 void atk_stack_overflow_register(void) {
-    proc_security_register_attack(&atk);
+    proc_security_register_attack(&attack);
 }

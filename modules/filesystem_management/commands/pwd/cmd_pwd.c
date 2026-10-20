@@ -1,14 +1,22 @@
-#include "../fs_commands_internal.h"
-#include "fs_syscalls.h"
-#include "vga.h"
+/*
+ * cmd_pwd.c - `pwd`: print the current directory.
+ *
+ * Uses: sys_getcwd (syscalls/getcwd), ui_* (ui module).
+ */
+
+#include "fs_commands.h"
+#include "sys_getcwd.h"
+#include "vfs.h"
+#include "ui.h"
 
 void cmd_pwd(const char *args) {
     (void)args;
-    char path[256];
-    if (sys_getcwd_string(path, 256) == 0) {
+    char path[FS_PATH_MAX];
+
+    if (sys_getcwd(path, sizeof(path)) == 0) {
         vga_print_str(path);
         vga_print_str("\n");
     } else {
-        vga_print_str("Error resolving path\n");
+        ui_error("pwd", "path too long");
     }
 }

@@ -1,45 +1,36 @@
-# Attack: fork bomb
+# Attack: fork_bomb
 
-**Breaks:** `resource` · **Severity:** CRITICAL · **Paired defence:** [`slot_quota`](../../defence/slot_quota/README.md)
+| | |
+|---|---|
+| **Stopped by** | [`slot_quota`](../../defence/slot_quota/) |
+| **Breaks** | resource: there are only 64 process slots |
+| **Severity** | critical |
 
-## The idea
+## What it does
 
-Process slots are a finite resource. A process that calls `fork()` in a
-loop, where every child also calls `fork()`, doubles the number of
-processes on every round. The table fills in a handful of iterations.
+A fork bomb creates processes in a loop. In a real one every child
+loops too, so the number doubles until the process table is full. Then
+nothing else can start, not even a shell to stop it.
 
-The interesting part is not the crash, it is the *recovery*: once every
-slot is taken, no new process can start - including the shell you would
-use to clean up. A fork bomb turns a temporary load spike into a
-permanent denial of service.
+## In UzOS
 
-## How it works here
+| Mode | What happens |
+|---|---|
+| `simulate` | counts the free slots a bomb would take; changes nothing |
+| `live` | as uid 1, creates up to 16 sleeping `bomb` processes |
+| `repair` | kills every `bomb` process |
 
-`process_create()` is the kernel's fork primitive. The attack calls it
-in a loop with `uid = 1`, so it is treated as an unprivileged user.
-A real bomb would recurse; we cap a live run at `ATTACK_BUDGET` (16)
-processes and never fork from a child, so the demo cannot wedge the box.
+With `slot_quota` on, the 9th creation is refused: a user may own 8.
 
-`simulate()` only counts free slots in the process table - it is
-strictly read-only. `launch()` really creates processes. `cleanup()`
-kills anything named `bomb` so the next test starts clean.
+## Uses
+
+`process_create()`, `process_kill()`, `process_count_free_slots()` from core/process.
 
 ## Try it
 
 ```
-seclab attack fork_bomb          # safe: reports what would happen
-seclab attack fork_bomb live     # real: creates processes
-seclab log                       # see the denials, if any
-seclab repair                    # clean up the leftovers
+seclab attack fork_bomb          # simulate
+seclab attack fork_bomb live
+ps
+seclab repair
 ```
-
-## What you should see
-
-A live run is stopped after 8 processes by the per-user cap, and the
-event log gains `slot_quota` entries. The system stays usable: the
-shell keeps running and root can still create processes.
-
-## Where the defence hooks in
-
-`process_create()` calls `def_slot_quota_check(uid)` before taking a
-slot. See [`def_slot_quota.c`](../../defence/slot_quota/def_slot_quota.c).

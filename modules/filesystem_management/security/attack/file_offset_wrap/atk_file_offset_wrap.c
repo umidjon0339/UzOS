@@ -1,35 +1,63 @@
-#include "fs_security.h"
-#include "proc_security.h"
+/*
+ * atk_file_offset_wrap.c - ATTACK file_offset_wrap: write past a file.
+ *
+ * Breaks:     consistency - a write stays inside its own file
+ * Stopped by: file_range (security/defence/file_range)
+ *
+ * The check "offset + size <= limit" wraps in 32 bits: 0xFFFFFFF0 + 0x20
+ * is 0x10. The copy would then land 4 GiB away from the file's buffer.
+ *
+ * simulate(): show what the naive check computes.
+ * launch():   make a temporary file, try the wrapping write and a write
+ *             one byte past the size limit, then a normal write; delete it.
+ *
+ * Uses: ramdisk_create / ramdisk_delete (core/ramdisk), vfs_write (core/vfs).
+ */
+
+#include "security_lab.h"
+#include "ramdisk.h"
 #include "vga.h"
 
-static int atk_file_offset_wrap_check(void) {
-    return !fs_security_file_range_valid(0xFFFFFFF0u, 32, 0xFFFFFFFFu) &&
-           !fs_security_file_range_valid(16384, 1, 16384) &&
-           fs_security_file_range_valid(16383, 1, 16384);
+#define TEMP_NAME "seclab_wrap"
+
+static int simulate(void) {
+    uint32_t offset = 0xFFFFFFF0, size = 0x20;
+    vga_print_str("  naive: offset 0xFFFFFFF0 + size 0x20 = ");
+    vga_print_hex(offset + size);
+    vga_print_str(" <= 64 KiB limit -> passes\n");
+    return 1;
 }
 
-static int atk_file_offset_wrap_simulate(void) {
-    vga_print_str("  checks wrapping offsets and writes beyond the RAM-disk limit\n");
-    vga_print_str("  file data is not read or modified\n");
-    return atk_file_offset_wrap_check();
+static void try_write(vfs_node_t *f, const char *what, uint32_t offset, uint32_t size) {
+    static uint8_t bytes[4] = { 'u', 'z', 'o', 's' };
+    uint32_t written = vfs_write(f, offset, size, bytes);
+    vga_print_str("  ");
+    vga_print_str(what);
+    vga_print_str(written ? " -> WRITTEN\n" : " -> refused\n");
 }
 
-static int atk_file_offset_wrap_launch(void) {
-    vga_print_str("  probing the live RAM-disk range policy\n");
-    return atk_file_offset_wrap_check();
+static int launch(void) {
+    vfs_node_t *f = ramdisk_create(fs_root, TEMP_NAME, FS_FILE);
+    if (!f)
+        return 0;
+    uint32_t denied = sec_total_denied();
+
+    try_write(f, "offset 0xFFFFFFF0, size 0x20   ", 0xFFFFFFF0, 0x20);
+    try_write(f, "offset 64 KiB - 1, size 2      ", RAMDISK_MAX_FILE_SIZE - 1, 2);
+    try_write(f, "offset 0, size 4 (normal write)", 0, 4);
+
+    ramdisk_delete(fs_root, TEMP_NAME);
+    return sec_total_denied() - denied;
 }
 
-static const attack_t atk = {
+static const attack_t attack = {
     "file_offset_wrap",
-    "overflowing file offsets can bypass the RAM-disk size limit",
-    INV_CONSISTENCY,
-    SEV_HIGH,
-    atk_file_offset_wrap_simulate,
-    atk_file_offset_wrap_launch,
-    0,
+    "a huge file offset wraps around and writes outside the file",
+    INV_CONSISTENCY, SEV_HIGH,
+    simulate, launch, 0,        // the temporary file is deleted again
     "file_range"
 };
 
 void atk_file_offset_wrap_register(void) {
-    proc_security_register_attack(&atk);
+    proc_security_register_attack(&attack);
 }

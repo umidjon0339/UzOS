@@ -1,16 +1,19 @@
-#include "../fs_commands_internal.h"
-#include "fs_syscalls.h"
-#include "vga.h"
+/*
+ * cmd_rm.c - `rm <path>`: delete a file or an empty directory.
+ *
+ * Uses: sys_unlink (syscalls/unlink), ui_* (ui module).
+ * Refusals are explained in `seclab log`.
+ */
+
+#include "fs_commands.h"
+#include "sys_unlink.h"
+#include "ui.h"
 
 void cmd_rm(const char *args) {
-    if (args[0] == '\0') {
-        vga_print_str("Usage: rm <file/dir>\n");
+    if (!args[0]) {
+        ui_usage("rm <path>");
         return;
     }
-    
-    if (sys_unlink(args) == 0) {
-        vga_print_str("Deleted successfully.\n");
-    } else {
-        vga_print_str("Failed to delete (not found).\n");
-    }
+    if (sys_unlink(args) != 0)
+        ui_error("rm", "cannot delete (not found, open, not empty, or in use)");
 }

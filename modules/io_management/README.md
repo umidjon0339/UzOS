@@ -1,55 +1,75 @@
-# I/O Management
+# io_management — file descriptors: open, read, write, close
 
-I/O Management provides the common descriptor interface between processes,
-the terminal devices, and the VFS. Device-specific input/output stays in
-Device Management; files and directories stay in Filesystem Management.
+Programs never get pointers to files or devices. They get a small
+number, a **file descriptor**, and pass it to `read` and `write`. The
+kernel looks the number up in the calling process's table:
 
-```text
+```
+process_t.fd_table          fd   points to              opened as
+                            0    keyboard  (stdin)      read
+                            1    screen    (stdout)     write
+                            2    screen    (stderr)     write
+open("notes", O_READ) ->    3    VFS node "notes"       read, offset 0
+```
+
+The same `read`/`write` works for the keyboard, the screen and files.
+That is the Unix idea "everything is a file".
+
+```
 io_management/
-├── core/                 # Descriptor and transfer validation
-├── commands/             # I/O inspection commands
-├── system_calls/         # Open, close, read, and write
-└── security/
-    ├── attack/           # Safe descriptor and buffer probes
-    └── defence/          # Checks used by I/O operations
+├── core/fd/      fd.h/.c           hand out / take back descriptor numbers
+├── syscalls/     open/ read/ write/ close/ seek/   (number + .h + .c)
+├── commands/     io_commands.h/.c + ioinfo/
+└── security/     attack/<id>/  defence/<id>/   (3 pairs, each with a README)
 ```
 
-## Descriptors
+## One read() from start to end
 
-| Descriptor | Stream |
+```
+read(3, buf, 100)
+  descriptor_bounds: is 3 a real, open descriptor opened for reading?
+  transfer_bounds:   is buf a sane buffer, 100 <= 16 KiB?
+  node = fd_table[3]
+  vfs_read(node, fd_offset[3], 100, buf)     -> filesystem_management
+  fd_offset[3] += bytes read
+```
+
+From ring 3 there is one more check, before all of this: the `int 0x80`
+handler makes sure `buf` is the program's own **mapped** memory
+(`user_ptr_bounds`, memory_management).
+
+## open() flags
+
+| Flag | Meaning |
 |---|---|
-| `0` | Standard input: queued keyboard keys, non-blocking |
-| `1` | Standard output: VGA text terminal |
-| `2` | Standard error: VGA text terminal |
-| `3`–`MAX_FDS - 1` | Open VFS files |
+| `O_READ` / `O_WRITE` | what you want to do (at least one) |
+| `O_CREATE` | create the file if it does not exist |
+| `O_TRUNC` | start from an empty file |
+| `O_APPEND` | every write goes to the end |
 
-Standard descriptors are reserved and cannot be closed. File handles are
-allocated from descriptor 3. Transfers validate their buffer range and are
-limited to 16 KiB.
+## System calls
 
-## Command
+| # | Syscall | Arguments | Result |
+|---|---|---|---|
+| 14 | `open` | EBX = path, ECX = flags | descriptor / -1 |
+| 15 | `read` | EBX = fd, ECX = buffer, EDX = count | bytes read / -1 |
+| 16 | `write` | EBX = fd, ECX = buffer, EDX = count | bytes written / -1 |
+| 17 | `close` | EBX = fd | 0 / -1 |
+| 18 | `seek` | EBX = fd, ECX = offset, EDX = SEEK_SET/CUR/END | new position / -1 |
 
-`ioinfo` displays the current process's standard streams and open file
-descriptors.
+## Commands
 
-```text
-ioinfo
-```
-
-## Security pairs
-
-| Attack | Defence | Purpose |
+| Command | What it does | Uses |
 |---|---|---|
-| `invalid_descriptor` | `descriptor_bounds` | Reject out-of-range, closed, and non-file descriptors before table access. |
-| `oversized_transfer` | `transfer_bounds` | Reject null, wrapped, or over-limit I/O buffers. |
+| `ioinfo [pid]` | a process's descriptors: mode, offset, file path | `fd_table`, `vfs_path_of` |
 
-```text
-seclab attack invalid_descriptor live
-seclab attack oversized_transfer live
-seclab verify descriptor_bounds
-seclab verify transfer_bounds
-```
+`cat`, `write`, `cp`, `wc`, `grep` and `hexdump` (filesystem_management)
+all work through these syscalls.
 
-These routines are currently callable kernel interfaces, matching the
-existing filesystem operations. Ring-3 `int 0x80` dispatch is not yet
-implemented by the generic syscall handler.
+## Security: attack ↔ defence
+
+| Attack | Breaks | Defence | Called from |
+|---|---|---|---|
+| `invalid_descriptor` | trust | `descriptor_bounds` | `sys_read`, `sys_write`, `sys_close`, `sys_seek` |
+| `oversized_transfer` | trust | `transfer_bounds` | `sys_read`, `sys_write` |
+| `fd_leak` | resource | `fd_cleanup` | the reaper, when a process ends |

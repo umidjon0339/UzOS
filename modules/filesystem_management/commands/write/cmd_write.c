@@ -1,37 +1,36 @@
-#include "../fs_commands_internal.h"
-#include "fs_syscalls.h"
+/*
+ * cmd_write.c - `write <path> <text>`: replace a file's content.
+ *
+ * O_TRUNC empties the file first, so writing "hi" over "hello" gives
+ * "hi", not "hillo". The file is created if it does not exist.
+ *
+ * Uses: sys_open / sys_write / sys_close (io_management), arg_next (lib/args),
+ *       ui_* (ui module).
+ */
+
+#include "fs_commands.h"
+#include "sys_open.h"
+#include "sys_write.h"
+#include "sys_close.h"
+#include "args.h"
 #include "string.h"
-#include "vga.h"
+#include "vfs.h"
+#include "ui.h"
 
 void cmd_write(const char *args) {
-    // Usage: write file "text"
-    char filename[64];
-    int i = 0;
-    while (args[i] && args[i] != ' ' && i < 63) {
-        filename[i] = args[i];
-        i++;
-    }
-    filename[i] = '\0';
-    
-    if (args[i] != ' ') {
-        vga_print_str("Usage: write <file> <text>\n");
+    char path[FS_PATH_MAX];
+    const char *text = arg_next(args, path, sizeof(path));
+
+    if (!path[0] || !text[0]) {
+        ui_usage("write <path> <text>");
         return;
     }
-    
-    const char *text = &args[i + 1];
-    
-    int fd = sys_open(filename);
-    if (fd == -1) {
-        vga_print_str("Failed to open file (make sure it exists with 'touch').\n");
+    int fd = sys_open(path, O_WRITE | O_CREATE | O_TRUNC);
+    if (fd < 0) {
+        ui_error("write", "cannot open (bad name, or no such directory)");
         return;
     }
-    
-    int written = sys_write(fd, text, strlen(text));
+    if (sys_write(fd, text, strlen(text)) < 0)
+        ui_error("write", "failed");
     sys_close(fd);
-    
-    if (written >= 0) {
-        vga_print_str("Wrote to file.\n");
-    } else {
-        vga_print_str("Error writing to file.\n");
-    }
 }

@@ -1,59 +1,48 @@
-#include "proc_security.h"
-
-/* ===================================================================
- * DEFENCE: PID bounds
- * ===================================================================
- * Restores INV_IDENTITY - a PID must always name exactly one process.
+/*
+ * def_pid_bounds.c - DEFENCE pid_bounds: a PID never names two processes.
  *
- * PIDs are handed out by a counter that only ever goes up. That is
- * already the right idea, but nothing stops the counter from reaching
- * the end of its 32-bit range and wrapping back to a small number that
- * is still in use. Two live processes would then share a PID, and
- * process_get_by_pid() would silently return the wrong one: "kill 7"
- * could kill a process you have never heard of.
- *
- * The guard is deliberately conservative. Running out of PIDs is a
- * clean, visible failure; a reused PID is a silent, dangerous one.
- * =================================================================== */
+ * Stops:  pid_wrap (security/attack/pid_wrap)
+ * Called: process_create() for the next PID, process_kill() for the target.
+ * Rule:   0 < pid < PID_LIMIT
+ * Why:    PIDs come from a counter that only goes up. If it wrapped past
+ *         0xFFFFFFFF back to 1, a new process could get the PID of a live
+ *         one, and `kill 7` might hit the wrong process. Running out of
+ *         PIDs is a visible error; a reused PID is a silent one.
+ */
 
-#define PID_LIMIT 0xFFFFFF00u   /* stop well before the counter wraps */
+#include "def_pid_bounds.h"
+#include "security_lab.h"
 
+// The whole rule, as a pure function so the selftest can try it.
 static int pid_in_range(uint32_t pid) {
-    if (pid == 0) return 0;         /* 0 means "no process" */
-    if (pid >= PID_LIMIT) return 0; /* wrapper would collide */
-    return 1;
+    return pid != 0 && pid < PID_LIMIT;     // 0 means "no process"
 }
 
 int def_pid_bounds_check(uint32_t pid) {
-    if (pid_in_range(pid)) return 1;
+    if (pid_in_range(pid))
+        return 1;
 
-    sec_log("pid_bounds", "PID out of range or space exhausted");
+    sec_log("pid_bounds", "PID 0, out of range, or PID space used up");
     return 0;
 }
 
-static int def_pid_bounds_selftest(void) {
-    /* normal PIDs are fine */
+static int selftest(void) {
     if (pid_in_range(1) != 1) return 0;
     if (pid_in_range(1000) != 1) return 0;
-
-    /* PID 0 is reserved */
-    if (pid_in_range(0) != 0) return 0;
-
-    /* the counter must stop before it can wrap */
-    if (pid_in_range(PID_LIMIT) != 0) return 0;
-    if (pid_in_range(PID_LIMIT - 1) != 1) return 0;
-    if (pid_in_range(0xFFFFFFFF) != 0) return 0;
-
+    if (pid_in_range(0) != 0) return 0;                 // reserved
+    if (pid_in_range(PID_LIMIT - 1) != 1) return 0;     // last allowed
+    if (pid_in_range(PID_LIMIT) != 0) return 0;         // first refused
+    if (pid_in_range(0xFFFFFFFF) != 0) return 0;        // just before the wrap
     return 1;
 }
 
-static const defence_t def = {
+static const defence_t defence = {
     "pid_bounds",
-    "stop the PID counter before it can wrap and collide",
+    "stop handing out PIDs before the counter can wrap",
     "pid_wrap",
-    def_pid_bounds_selftest
+    selftest
 };
 
 void def_pid_bounds_register(void) {
-    proc_security_register_defence(&def);
+    proc_security_register_defence(&defence);
 }

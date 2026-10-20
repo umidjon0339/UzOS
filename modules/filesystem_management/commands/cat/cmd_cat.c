@@ -1,28 +1,42 @@
-#include "../fs_commands_internal.h"
-#include "fs_syscalls.h"
-#include "vga.h"
+/*
+ * cmd_cat.c - `cat <path>`: print a whole file.
+ *
+ * The classic Unix loop: read a chunk from the file, write it to standard
+ * output (fd 1), until read() returns 0 (end of file).
+ *
+ * Uses: sys_open / sys_read / sys_write / sys_close and STDOUT (io_management),
+ *       ui_* (ui module).
+ */
+
+#include "fs_commands.h"
+#include "sys_open.h"
+#include "sys_read.h"
+#include "sys_write.h"
+#include "sys_close.h"
+#include "fd.h"
+#include "ui.h"
+
+#define CHUNK 256
 
 void cmd_cat(const char *args) {
-    if (args[0] == '\0') {
-        vga_print_str("Usage: cat <file>\n");
+    if (!args[0]) {
+        ui_usage("cat <path>");
         return;
     }
-    
-    int fd = sys_open(args);
-    if (fd == -1) {
-        vga_print_str("Failed to open file.\n");
+    int fd = sys_open(args, O_READ);
+    if (fd < 0) {
+        ui_error("cat", "cannot open (no such file?)");
         return;
     }
-    
-    char buffer[256];
-    int read = sys_read(fd, buffer, 255);
+
+    char buf[CHUNK];
+    int n, last = '\n';
+    while ((n = sys_read(fd, buf, CHUNK)) > 0) {
+        sys_write(STDOUT, buf, n);
+        last = buf[n - 1];
+    }
     sys_close(fd);
-    
-    if (read >= 0) {
-        buffer[read] = '\0';
-        vga_print_str(buffer);
-        vga_print_str("\n");
-    } else {
-        vga_print_str("Error reading file.\n");
-    }
+
+    if (last != '\n')
+        vga_print_str("\n");        // keep the prompt on its own line
 }

@@ -1,16 +1,18 @@
-#include "../fs_commands_internal.h"
-#include "fs_syscalls.h"
-#include "vga.h"
+/*
+ * cmd_mkdir.c - `mkdir <path>`: create a directory.
+ *
+ * Uses: sys_mkdir (syscalls/mkdir), ui_* (ui module).
+ */
+
+#include "fs_commands.h"
+#include "sys_mkdir.h"
+#include "ui.h"
 
 void cmd_mkdir(const char *args) {
-    if (args[0] == '\0') {
-        vga_print_str("Usage: mkdir <name>\n");
+    if (!args[0]) {
+        ui_usage("mkdir <path>");
         return;
     }
-    
-    if (sys_mkdir(args) == 0) {
-        vga_print_str("Directory created.\n");
-    } else {
-        vga_print_str("Failed to create directory.\n");
-    }
+    if (sys_mkdir(args) != 0)
+        ui_error("mkdir", "cannot create (exists, bad name, or no such parent)");
 }

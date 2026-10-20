@@ -1,73 +1,57 @@
-#include "proc_security.h"
+/*
+ * def_stack_guard.c - DEFENCE stack_guard: catch a stack that overflowed.
+ *
+ * Stops:  stack_overflow (security/attack/stack_overflow)
+ * Called: scheduler_yield() (core/scheduler), on every task switch, with
+ *         the real ESP of the running process.
+ * Rule:   stack_base <= esp <= stack_base + PROCESS_STACK_SIZE
+ * Why:    the CPU does not stop a push below the bottom of a 4 KiB stack;
+ *         it silently overwrites the heap. This check notices it at the
+ *         next switch and retires the process.
+ *         A stronger fix is a "guard page": an unmapped page below each
+ *         stack, so the very first bad push faults. That needs per-process
+ *         paging first.
+ */
 
-/* ===================================================================
- * DEFENCE: stack guard
- * ===================================================================
- * Restores INV_ISOLATION - a process must stay inside its own stack.
- *
- * Each process gets exactly PROCESS_STACK_SIZE bytes of stack. Nothing
- * in the CPU stops a deeply recursive function from walking straight
- * off the bottom of it and into whatever the heap allocated next. The
- * result is silent corruption of another object, which is far worse
- * than a crash.
- *
- * The check is placed in the scheduler, so it runs on every context
- * switch: a stack pointer outside its own range is caught before the
- * CPU is allowed to switch into it.
- *
- * The stronger fix is a guard page - unmap the page just below each
- * stack so the hardware faults immediately instead of writing. That
- * needs the per-process paging work first; this check is the cheap
- * half that works today.
- * =================================================================== */
+#include "def_stack_guard.h"
+#include "security_lab.h"
 
-/* pure policy: is this stack pointer inside the process's own stack? */
+// The whole rule, as a pure function so the selftest can try it.
 static int stack_pointer_ok(uint32_t esp, uint32_t base) {
-    if (base == 0) return 1;                                 /* unguarded    */
-    if (esp < base) return 0;                                /* past the end */
-    if (esp >= base + PROCESS_STACK_SIZE) return 0;          /* outside all  */
+    if (base == 0) return 1;                            // boot stack: not ours to check
+    if (esp < base) return 0;                           // ran off the bottom
+    if (esp > base + PROCESS_STACK_SIZE) return 0;      // not this stack at all
     return 1;
 }
 
-int def_stack_guard_check(process_t *p) {
-    if (!p) return 1;
-    if (stack_pointer_ok(p->esp, p->stack_base)) return 1;
+int def_stack_guard_check(const process_t *p, uint32_t esp) {
+    if (!p || stack_pointer_ok(esp, p->stack_base))
+        return 1;
 
     sec_log("stack_guard", "stack pointer left its own stack");
     return 0;
 }
 
-static int def_stack_guard_selftest(void) {
-    const uint32_t base = 0x00100000;   /* one page, 4096 bytes */
+static int selftest(void) {
+    const uint32_t base = 0x00200000;
+    const uint32_t top  = base + PROCESS_STACK_SIZE;
 
-    /* just above the bottom: fine */
-    if (stack_pointer_ok(base, base) != 1) return 0;
-
-    /* near the top: fine */
-    if (stack_pointer_ok(base + PROCESS_STACK_SIZE - 4, base) != 1) return 0;
-
-    /* one byte below the bottom: the overflow we are looking for */
-    if (stack_pointer_ok(base - 1, base) != 0) return 0;
-
-    /* far below, e.g. walked into the heap */
-    if (stack_pointer_ok(0x00000100, base) != 0) return 0;
-
-    /* exactly at the top: outside */
-    if (stack_pointer_ok(base + PROCESS_STACK_SIZE, base) != 0) return 0;
-
-    /* an unguarded process is never rejected */
-    if (stack_pointer_ok(0, 0) != 1) return 0;
-
+    if (stack_pointer_ok(top - 4, base) != 1) return 0;     // normal use
+    if (stack_pointer_ok(base, base) != 1) return 0;        // completely full
+    if (stack_pointer_ok(base - 4, base) != 0) return 0;    // one push too many
+    if (stack_pointer_ok(0x100, base) != 0) return 0;       // far below
+    if (stack_pointer_ok(top + 4, base) != 0) return 0;     // above the stack
+    if (stack_pointer_ok(0x1234, 0) != 1) return 0;         // unguarded boot stack
     return 1;
 }
 
-static const defence_t def = {
+static const defence_t defence = {
     "stack_guard",
-    "refuse to switch into a process whose stack pointer has escaped",
+    "retire a process whose stack pointer left its own stack",
     "stack_overflow",
-    def_stack_guard_selftest
+    selftest
 };
 
 void def_stack_guard_register(void) {
-    proc_security_register_defence(&def);
+    proc_security_register_defence(&defence);
 }

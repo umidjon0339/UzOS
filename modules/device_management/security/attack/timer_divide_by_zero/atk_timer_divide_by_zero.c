@@ -1,48 +1,64 @@
-#include <stdint.h>
-#include "device_security.h"
-#include "proc_security.h"
+/*
+ * atk_timer_divide_by_zero.c - ATTACK timer_divide_by_zero: a bad PIT rate.
+ *
+ * Breaks:     trust - a number must be checked before dividing by it
+ * Stopped by: timer_frequency (security/defence/timer_frequency)
+ *
+ * init_timer(hz) computes 1193180 / hz. hz = 0 is a division by zero,
+ * and other values give a divisor that does not fit the 16-bit counter.
+ *
+ * simulate(): show what each bad rate would do.
+ * launch():   call the real init_timer() with them; the tick rate must
+ *             stay at TIMER_HZ.
+ *
+ * Uses: init_timer / timer_frequency (timer/).
+ */
+
+#include "security_lab.h"
 #include "timer.h"
 #include "vga.h"
 
-static int atk_timer_divide_by_zero_check(void) {
-    static const uint32_t probes[] = {
-        0, PIT_MIN_FREQUENCY - 1, PIT_MIN_FREQUENCY,
-        PIT_INPUT_HZ, PIT_INPUT_HZ + 1, 0xFFFFFFFFu
-    };
-    static const int expected[] = { 0, 0, 1, 1, 0, 0 };
-    int blocked = 0;
+static const struct {
+    uint32_t hz;
+    const char *effect;
+} bad_rates[] = {
+    { 0,       "division by zero: CPU exception, kernel halts" },
+    { 10,      "divisor 119318 > 65535: cut to 16 bits, runs at 22 Hz" },
+    { 2000000, "divisor 0: the PIT counts 65536, runs at 18 Hz" },
+};
+#define BAD_COUNT (sizeof(bad_rates) / sizeof(bad_rates[0]))
 
-    for (unsigned int i = 0; i < sizeof(probes) / sizeof(probes[0]); i++)
-        if (device_timer_frequency_valid(probes[i]) == expected[i]) blocked++;
-    return blocked;
+static int simulate(void) {
+    for (unsigned i = 0; i < BAD_COUNT; i++) {
+        vga_print_str("  init_timer(");
+        vga_print_int(bad_rates[i].hz);
+        vga_print_str("): ");
+        vga_print_str(bad_rates[i].effect);
+        vga_print_str("\n");
+    }
+    return BAD_COUNT;
 }
 
-static int atk_timer_divide_by_zero_simulate(void) {
-    vga_print_str("  probes zero and frequencies outside the 16-bit PIT divisor range\n");
-    vga_print_str("  no ports are written\n");
-    return atk_timer_divide_by_zero_check();
+static int launch(void) {
+    uint32_t denied = sec_total_denied();
+
+    for (unsigned i = 0; i < BAD_COUNT; i++)
+        init_timer(bad_rates[i].hz);
+
+    vga_print_str("  tick rate after the attack: ");
+    vga_print_int(timer_frequency());
+    vga_print_str(timer_frequency() == TIMER_HZ ? " Hz (unchanged)\n" : " Hz (CHANGED)\n");
+    return sec_total_denied() - denied;
 }
 
-static int atk_timer_divide_by_zero_launch(void) {
-    uint32_t denied_before = sec_total_denied();
-
-    vga_print_str("  submitting frequency 0; guard must refuse before PIT I/O\n");
-    init_timer(0);
-    return atk_timer_divide_by_zero_check() +
-           (sec_total_denied() > denied_before);
-}
-
-static const attack_t atk = {
+static const attack_t attack = {
     "timer_divide_by_zero",
-    "a zero timer frequency causes division by zero during PIT setup",
-    INV_RESOURCE,
-    SEV_CRITICAL,
-    atk_timer_divide_by_zero_simulate,
-    atk_timer_divide_by_zero_launch,
-    0,
+    "start the timer at 0 Hz (divide by zero) or a rate the PIT cannot do",
+    INV_TRUST, SEV_CRITICAL,
+    simulate, launch, 0,        // every call was refused: nothing changed
     "timer_frequency"
 };
 
 void atk_timer_divide_by_zero_register(void) {
-    proc_security_register_attack(&atk);
+    proc_security_register_attack(&attack);
 }

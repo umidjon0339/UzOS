@@ -1,102 +1,62 @@
-#include "proc_security.h"
+/*
+ * def_slot_quota.c - DEFENCE slot_quota: one user cannot fill the table.
+ *
+ * Stops:  fork_bomb (security/attack/fork_bomb)
+ * Called: process_create() (core/process), before a slot is handed out.
+ * Rules:  1. a normal user may own at most MAX_PER_USER processes
+ *         2. the last RESERVED_FOR_ROOT free slots are for root only
+ * Why:    with both rules, a runaway user hits its own cap first, and
+ *         root can always still start a process to clean up.
+ */
+
+#include "def_slot_quota.h"
+#include "security_lab.h"
 #include "process.h"
-#include "kheap.h"
 
-void def_release_child_slot(process_t *child) {
-    if (!child) return;
-    if (child->stack_base) {
-        kfree((void *)child->stack_base);
-        child->stack_base = 0;
-    }
-    child->state = PROCESS_STATE_FREE;
-}
-
-/* ===================================================================
- * DEFENCE: slot quota
- * ===================================================================
- * Restores the INV_RESOURCE guarantee broken by the fork bomb.
- *
- * Two rules, both checked inside process_create() before a slot is
- * handed out:
- *
- *   1. per-user cap   - an unprivileged user may not hold more than
- *                       MAX_PROC_PER_UID processes at once.
- *   2. root reserve   - an unprivileged user may never take the last
- *                       RESERVED_FOR_ROOT slots.
- *
- * Rule 2 exists because a machine that is 100% full is a machine that
- * nobody can log into to fix. Keeping a little room for root turns a
- * permanent denial of service into a recoverable one.
- *
- * The policy is a pure function of three numbers, so it can be tested
- * without touching the real process table.
- * =================================================================== */
-
+#define MAX_PER_USER      8
 #define RESERVED_FOR_ROOT 5
-#define MAX_PROC_PER_UID  8
-
-static int count_free_slots(void) {
-    process_t *t = process_get_table();
-    int n = 0;
-    for (int i = 0; i < MAX_PROCESSES; i++)
-        if (t[i].state == PROCESS_STATE_FREE) n++;
-    return n;
-}
 
 static int count_owned_by(uint32_t uid) {
-    process_t *t = process_get_table();
+    process_t *table = process_get_table();
     int n = 0;
     for (int i = 0; i < MAX_PROCESSES; i++)
-        if (t[i].state != PROCESS_STATE_FREE && t[i].uid == uid) n++;
+        if (table[i].state != PROCESS_STATE_FREE && table[i].uid == uid)
+            n++;
     return n;
 }
 
-/* the whole policy, in one place */
-static int quota_allows(int free_slots, int owned_by_uid, uint32_t uid) {
-    if (uid == 0) return 1;                          /* root is not capped */
-    if (owned_by_uid >= MAX_PROC_PER_UID) return 0;  /* rule 1             */
-    return free_slots > RESERVED_FOR_ROOT;           /* rule 2             */
+// The whole rule, as a pure function so the selftest can try it.
+static int quota_allows(int free_slots, int owned, uint32_t uid) {
+    if (uid == 0) return 1;                     // root is never capped
+    if (owned >= MAX_PER_USER) return 0;        // rule 1
+    return free_slots > RESERVED_FOR_ROOT;      // rule 2
 }
 
 int def_slot_quota_check(uint32_t uid) {
-    int free_slots = count_free_slots();
-    int owned      = count_owned_by(uid);
+    if (quota_allows(process_count_free_slots(), count_owned_by(uid), uid))
+        return 1;
 
-    if (quota_allows(free_slots, owned, uid)) return 1;
-
-    sec_log("slot_quota", "process creation refused: quota or root reserve");
+    sec_log("slot_quota", "process creation refused: user quota or root reserve");
     return 0;
 }
 
-/* selftest() feeds the policy crafted numbers and checks the verdict.
- * The boundary cases are the interesting ones. */
-static int def_slot_quota_selftest(void) {
-    /* unprivileged user under the cap with slots to spare: allowed */
-    if (quota_allows(64, 0, 1000) != 1) return 0;
-
-    /* right at the per-user cap: refused */
-    if (quota_allows(64, MAX_PROC_PER_UID, 1000) != 0) return 0;
-
-    /* one below the cap: still allowed */
-    if (quota_allows(64, MAX_PROC_PER_UID - 1, 1000) != 1) return 0;
-
-    /* table nearly full: the root reserve must hold */
-    if (quota_allows(RESERVED_FOR_ROOT, 0, 1000) != 0) return 0;
-    if (quota_allows(RESERVED_FOR_ROOT + 1, 0, 1000) != 1) return 0;
-
-    /* root is never blocked, even on a completely full table */
-    if (quota_allows(0, 999, 0) != 1) return 0;
-
+static int selftest(void) {
+    if (quota_allows(64, 0, 1000) != 1) return 0;                       // normal case
+    if (quota_allows(64, MAX_PER_USER - 1, 1000) != 1) return 0;        // just under cap
+    if (quota_allows(64, MAX_PER_USER, 1000) != 0) return 0;            // at the cap
+    if (quota_allows(RESERVED_FOR_ROOT + 1, 0, 1000) != 1) return 0;    // reserve not yet hit
+    if (quota_allows(RESERVED_FOR_ROOT, 0, 1000) != 0) return 0;        // reserve holds
+    if (quota_allows(0, 999, 0) != 1) return 0;                         // root always allowed
     return 1;
 }
 
-static const defence_t def = {
+static const defence_t defence = {
     "slot_quota",
-    "cap processes per user and keep a few slots reserved for root",
+    "cap processes per user and keep the last slots for root",
     "fork_bomb",
-    def_slot_quota_selftest
+    selftest
 };
 
 void def_slot_quota_register(void) {
-    proc_security_register_defence(&def);
+    proc_security_register_defence(&defence);
 }

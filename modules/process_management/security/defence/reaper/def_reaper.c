@@ -1,101 +1,77 @@
-#include "proc_security.h"
+/*
+ * def_reaper.c - DEFENCE reaper: finished processes give back their slot.
+ *
+ * Stops:  zombie_leak (security/attack/zombie_leak)
+ * Called: scheduler_tick() (core/scheduler) on every timer tick, and by
+ *         `seclab repair`.
+ * Rules:  1. only zombies are freed
+ *         2. never the running process: we are standing on its stack
+ * Why:    a process cannot free its own stack while it runs on it, so
+ *         process_exit() only marks it ZOMBIE. Someone else must free it
+ *         later, from a different stack. That someone is the reaper.
+ */
+
+#include "def_reaper.h"
+#include "security_lab.h"
 #include "scheduler.h"
+#include "process.h"
 #include "kheap.h"
-#include "string.h"
+#include "cpu.h"
+#include "def_fd_cleanup.h"
 
-/* ===================================================================
- * DEFENCE: reaper
- * ===================================================================
- * Restores INV_RESOURCE - every slot and stack comes back eventually.
- *
- * A process that has exited is a zombie: it will never run again, but
- * its slot and its 4 KB stack are still held. The original
- * process_exit() simply halted in a loop, so the resources were never
- * returned at all.
- *
- * Two rules make reaping safe:
- *
- *   1. only zombies are reaped;
- *   2. never reap the process that is currently running, because
- *      freeing its stack would pull the floor out from under us.
- *
- * The reaper runs from the timer interrupt, which is exactly why it is
- * a safe place to free memory: by then the CPU is on an interrupt
- * stack, not on the stack being freed. That is the whole trick.
- * =================================================================== */
-
-static int reapable(process_t *p, uint32_t current_pid) {
-    if (!p) return 0;
-    if (p->state != PROCESS_STATE_ZOMBIE) return 0;
-    if (p->pid == current_pid) return 0;   /* that is our own floor */
-    return 1;
-}
-
-int def_is_reapable(process_t *p) {
-    process_t *self = scheduler_get_current_process();
-    return reapable(p, self ? self->pid : 0);
+// The whole rule, as a pure function so the selftest can try it.
+static int reapable(const process_t *p, const process_t *running) {
+    return p && p->state == PROCESS_STATE_ZOMBIE && p != running;
 }
 
 void def_reap_zombies(void) {
-    /* During a context switch current_process already points at the
-     * incoming task while the CPU is still running on the outgoing
-     * task's stack. Freeing anything in that window would corrupt the
-     * switch itself, so do nothing and try again on the next tick. */
-    if (scheduler_is_switching()) return;
+    // Interrupts off: a timer tick must not reap the same slot twice
+    // while we are halfway through freeing it.
+    uint32_t flags = cpu_irq_save();
 
-    process_t *table = process_get_table();
-    process_t *self  = scheduler_get_current_process();
-    uint32_t current_pid = self ? self->pid : 0;
+    process_t *table   = process_get_table();
+    process_t *running = scheduler_get_current_process();
 
     for (int i = 0; i < MAX_PROCESSES; i++) {
         process_t *p = &table[i];
-        if (!reapable(p, current_pid)) continue;
+        if (!reapable(p, running))
+            continue;
 
-        if (p->stack_base) kfree((void *)p->stack_base);
+        // DEFENCE fd_cleanup (io_management): close files it left open.
+        def_fd_close_all(p);
 
-        /* the parent is one child lighter now */
-        def_child_release(process_get_by_pid(p->parent_pid));
-
+        if (p->stack_base)
+            kfree((void *)p->stack_base);
         p->stack_base = 0;
-        p->esp        = 0;
-        p->pid        = 0;
-        p->state      = PROCESS_STATE_FREE;
+        p->state = PROCESS_STATE_FREE;
     }
+
+    cpu_irq_restore(flags);
 }
 
-static int def_reaper_selftest(void) {
-    process_t probe;
-    memset(&probe, 0, sizeof(probe));
+static int selftest(void) {
+    process_t a = {0}, b = {0};
 
-    /* a live process is never reaped */
-    probe.state = PROCESS_STATE_RUNNING;
-    probe.pid   = 1234;
-    if (reapable(&probe, 999)  != 0) return 0;
+    a.state = PROCESS_STATE_RUNNING;
+    if (reapable(&a, &b) != 0) return 0;    // alive: keep
 
-    /* a zombie belonging to someone else is reaped */
-    probe.state = PROCESS_STATE_ZOMBIE;
-    if (reapable(&probe, 999)  != 1) return 0;
+    a.state = PROCESS_STATE_SLEEPING;
+    if (reapable(&a, &b) != 0) return 0;    // sleeping is not dead
 
-    /* the current process is never reaped, even as a zombie */
-    if (reapable(&probe, 1234) != 0) return 0;
-
-    /* a sleeping process is not a zombie */
-    probe.state = PROCESS_STATE_SLEEPING;
-    if (reapable(&probe, 999)  != 0) return 0;
-
-    /* a null slot is ignored */
-    if (reapable(0, 999) != 0) return 0;
-
+    a.state = PROCESS_STATE_ZOMBIE;
+    if (reapable(&a, &b) != 1) return 0;    // someone else's zombie: free
+    if (reapable(&a, &a) != 0) return 0;    // our own: never
+    if (reapable(0, &b) != 0) return 0;     // no slot
     return 1;
 }
 
-static const defence_t def = {
+static const defence_t defence = {
     "reaper",
-    "reclaim zombie slots and stacks from the timer interrupt",
+    "free zombie slots and stacks on every timer tick",
     "zombie_leak",
-    def_reaper_selftest
+    selftest
 };
 
 void def_reaper_register(void) {
-    proc_security_register_defence(&def);
+    proc_security_register_defence(&defence);
 }

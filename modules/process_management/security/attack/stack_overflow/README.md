@@ -1,59 +1,37 @@
-# Attack: stack overflow
+# Attack: stack_overflow
 
-**Breaks:** `isolation` · **Severity:** CRITICAL · **Paired defence:** [`stack_guard`](../../defence/stack_guard/README.md)
+| | |
+|---|---|
+| **Stopped by** | [`stack_guard`](../../defence/stack_guard/) |
+| **Breaks** | isolation: a process stays inside its own memory |
+| **Severity** | critical |
 
-## The idea
+## What it does
 
-Every process gets a fixed 4 KB stack, and `push` moves downwards. A
-recursive function with no base case keeps pushing past the bottom of
-that stack into whatever the heap allocated next.
+Every process gets a 4 KiB stack from the kernel heap. Each function
+call pushes a frame. Deep recursion keeps pushing below the stack's
+bottom, and the x86 CPU does not stop it: the next heap object is
+silently overwritten. Nothing crashes right away, which makes this
+worse than a crash.
 
-The process does not crash. Some other object's fields quietly change,
-and the damage only shows up later somewhere unrelated. Silent
-corruption is worse than a fault, because nothing reports it.
+## In UzOS
 
-## How it works here
+| Mode | What happens |
+|---|---|
+| `simulate` | shows the current stack and the bytes left below `ESP` |
+| `live` | measures one frame with an 8-deep recursion, then asks the guard about an `ESP` one push below a stack's bottom |
 
-- `simulate()` reads the running process's `stack_base` and `esp` and
-  prints how much room is left below `esp`. It is read-only.
-- `launch()` never overflows a real stack. It recurses `SAFE_DEPTH` (8)
-  frames of `volatile` locals to measure a real frame, then builds a
-  local `process_t` called `ghost` whose `esp` is one push below its
-  own base, and asks `def_stack_guard_check(&ghost)` for the verdict.
-  That is the exact function the scheduler calls.
-- `cleanup()` is `0`: nothing was created or modified, so there is
-  nothing to undo.
+`live` never really overflows a stack, since that would corrupt the
+heap. It shows that the check the scheduler runs catches it.
 
-## Where the defence hooks in
+## Uses
 
-```c
-/* modules/process_management/core/scheduler.c */
-if (current_process && !def_stack_guard_check(current_process)) {
-    current_process->state = PROCESS_STATE_ZOMBIE;
-}
-```
-
-The check runs on every context switch, so a stack pointer that has
-already escaped its own stack is retired instead of being switched
-into. See [`def_stack_guard.c`](../../defence/stack_guard/def_stack_guard.c).
+`def_stack_guard_check()` from security/defence/stack_guard,
+`scheduler_get_current_process()` from core/scheduler.
 
 ## Try it
 
 ```
-seclab attack stack_overflow          # safe: shows the margin left
-seclab attack stack_overflow live     # measures a frame, asks the guard
-seclab verify stack_guard             # the boundary cases
-seclab log                            # the refusal, as evidence
+seclab attack stack_overflow live
+seclab log
 ```
-
-## What you should see
-
-`launch()` reports a frame size and how many such frames fit in 4 KB -
-typically a few hundred, which is exactly why deep recursion is
-dangerous. The guard then answers `REFUSED`, and `seclab log` gains a
-`stack_guard` entry: "stack pointer left its own stack".
-
-Because the attack only measures and never corrupts, `seclab repair`
-has nothing to clean up. The stronger fix is a guard page - unmap the
-page below each stack so the CPU faults on the first bad write. That
-needs per-process paging; this is the cheap half that works today.

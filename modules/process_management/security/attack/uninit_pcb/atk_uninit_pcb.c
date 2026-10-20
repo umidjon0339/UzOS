@@ -1,92 +1,99 @@
-#include "proc_security.h"
+/*
+ * atk_uninit_pcb.c - ATTACK uninit_pcb: read the last owner's data.
+ *
+ * Breaks:     disclosure - a new process must not see another's data
+ * Stopped by: pcb_wipe (security/defence/pcb_wipe)
+ *
+ * Slots are reused. If process_create() only writes some fields, the
+ * others still hold the old owner's values (open files, cwd, ...).
+ *
+ * simulate(): count free slots that still hold old data.
+ * launch():   leave fake old data in the next free slot, create a process
+ *             there, and count what the new process inherited.
+ * cleanup():  kill the probe process.
+ *
+ * Uses: process_create / process_kill / the process table (core/process).
+ */
+
+#include "security_lab.h"
 #include "process.h"
-#include "scheduler.h"
 #include "vga.h"
 
-/* ===================================================================
- * ATTACK: uninitialised PCB - a recycled slot leaks its last owner.
- * Break INV_DISCLOSURE: a new process must never see another's data.
- * A partly written slot keeps the old cwd, file descriptors and
- * offsets. We recycle a real slot and count what the new process
- * inherited; zero inherited fields means it was cleaned first.
- * =================================================================== */
-#define PROBE_NAME "uninit_probe"
-static uint32_t probe_pid;   /* the one process launch() created */
-static void probe_worker(void) { while (1) asm volatile("hlt"); }
-/* process_create() never writes these fields, so a non-zero value on
- * a fresh process was inherited from the previous owner of the slot. */
-static int sticky_fields(const process_t *p) {
-    int n = (p->cwd != 0) + (p->parent_pid != 0) +
-            (p->child_count != 0) + (p->sleep_ticks != 0);
+#define FAKE_POINTER ((struct vfs_node *)0xDEADBEEF)
+
+static uint32_t probe_pid;      // the process launch() created
+
+static void probe_worker(void) {
+    while (1)
+        asm volatile("hlt");
+}
+
+// Fields process_create() never sets. Non-zero on a new process = leaked.
+static int leaked_fields(const process_t *p) {
+    int n = (p->cwd != 0) + (p->sleep_ticks != 0) + (p->is_system != 0);
     for (int i = 0; i < MAX_FDS; i++)
-        n += (p->fd_table[i] != 0) + (p->fd_offset[i] != 0);
+        n += (p->fd_table[i] != 0) + (p->fd_offset[i] != 0) + (p->fd_flags[i] != 0);
     return n;
 }
 
-/* simulate() reads the table and changes nothing at all. */
-static int atk_uninit_pcb_simulate(void) {
-    process_t *t = process_get_table();
+static process_t *first_free_slot(void) {
+    process_t *table = process_get_table();
+    for (int i = 0; i < MAX_PROCESSES; i++)
+        if (table[i].state == PROCESS_STATE_FREE)
+            return &table[i];
+    return 0;
+}
+
+static int simulate(void) {
+    process_t *table = process_get_table();
     int dirty = 0;
-    for (int i = 0; i < MAX_PROCESSES; i++) {
-        if (t[i].state != PROCESS_STATE_FREE) continue;
-        dirty += sticky_fields(&t[i]) > 0;
-    }
-    vga_print_str("  free slots holding stale fields: ");
+
+    for (int i = 0; i < MAX_PROCESSES; i++)
+        if (table[i].state == PROCESS_STATE_FREE && leaked_fields(&table[i]))
+            dirty++;
+
+    vga_print_str("  free slots holding old data: ");
     vga_print_int(dirty);
-    vga_print_str("   (read-only run)\n");
+    vga_print_str("\n");
     return dirty;
 }
 
-/* launch() recycles the slot process_create() picks next and counts
- * what the new process inherited. One process, then we stop. */
-static int atk_uninit_pcb_launch(void) {
-    process_t *t = process_get_table();
-    int slot = -1;
-    for (int i = 0; i < MAX_PROCESSES; i++)
-        if (t[i].state == PROCESS_STATE_FREE) { slot = i; break; }
-    if (slot < 0) return 0;
+static int launch(void) {
+    process_t *slot = first_free_slot();     // process_create() picks this one
+    if (!slot)
+        return 0;
 
-    /* Keep the attack bounded: replace any probe from an earlier run. */
-    if (probe_pid) process_kill(probe_pid);
+    // Play the previous owner: leave a cwd and an open file behind.
+    slot->cwd = FAKE_POINTER;
+    slot->fd_table[3] = FAKE_POINTER;
+    slot->fd_offset[3] = 512;
 
-    /* uid 0: the slot quota is not the defence under test here. */
-    int pid = process_create(PROBE_NAME, probe_worker, 0);
-    if (pid < 0) return 0;
-    probe_pid = (uint32_t)pid;
+    int pid = process_create("uninit_probe", probe_worker, 0);
+    if (pid < 0)
+        return 0;
+    probe_pid = pid;
 
-    int leaked = sticky_fields(&t[slot]);   /* same slot, new owner */
-    vga_print_str("  inherited stale fields: ");
+    int leaked = leaked_fields(slot);       // same slot, new owner
+    vga_print_str("  fields inherited from the old owner: ");
     vga_print_int(leaked);
-    vga_print_str(leaked ? "  LEAK - the slot was not cleaned\n"
-                         : "  clean - the slot was wiped first\n");
+    vga_print_str(leaked ? "  LEAK\n" : "  (slot was wiped first)\n");
     return leaked;
 }
 
-/* cleanup() stops the probe we made, so the next test starts clean. */
-static int atk_uninit_pcb_cleanup(void) {
-    process_t *self = scheduler_get_current_process();
-    int killed = 0;
-
-    /* Never kill the caller: an attack must not take the shell with it. */
-    if (probe_pid && (!self || self->pid != probe_pid)) {
-        process_kill(probe_pid);
-        killed = 1;
-    }
-    vga_print_str("  probe process stopped\n");
+static int cleanup(void) {
+    int killed = probe_pid && process_kill(probe_pid);
     probe_pid = 0;
     return killed;
 }
 
-static const attack_t atk = {
+static const attack_t attack = {
     "uninit_pcb",
-    "a recycled process slot hands its previous owner's fields to the new process",
+    "a reused process slot hands its old owner's data to the new process",
     INV_DISCLOSURE, SEV_HIGH,
-    atk_uninit_pcb_simulate,
-    atk_uninit_pcb_launch,
-    atk_uninit_pcb_cleanup,
+    simulate, launch, cleanup,
     "pcb_wipe"
 };
 
 void atk_uninit_pcb_register(void) {
-    proc_security_register_attack(&atk);
+    proc_security_register_attack(&attack);
 }

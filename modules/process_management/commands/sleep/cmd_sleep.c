@@ -1,13 +1,20 @@
-#include "../proc_commands_internal.h"
-#include "vga.h"
-#include "proc_syscalls.h"
+/*
+ * cmd_sleep.c - `sleep <seconds>`: pause the shell.
+ *
+ * Uses: sys_sleep (syscalls/sleep), atoi (lib/stdlib), ui_* (ui module).
+ */
+
+#include "proc_commands.h"
+#include "sys_sleep.h"
+#include "stdlib.h"
+#include "ui.h"
 
 void cmd_sleep(const char *args) {
-    if (args[0] == '\0') {
-        vga_print_str("Usage: sleep <seconds>\n");
+    int seconds = atoi(args);
+
+    if (seconds <= 0) {
+        ui_usage("sleep <seconds>");
         return;
     }
-    int seconds = simple_atoi(args);
-    if (seconds <= 0) return;
     sys_sleep(seconds * 1000);
 }

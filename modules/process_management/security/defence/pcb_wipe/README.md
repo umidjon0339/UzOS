@@ -1,60 +1,33 @@
-# Defence: PCB wipe
+# Defence: pcb_wipe
 
-**Counters:** [`uninit_pcb`](../../attack/uninit_pcb/README.md) · **Restores:** `disclosure`
-
-## The idea
-
-Zero a process slot at the moment it is handed to a new process, so no
-field can survive from the previous owner.
-
-```c
-void def_pcb_wipe(process_t *p) {
-    if (!p) return;
-    memset(p, 0, sizeof(process_t));
-    p->state = PROCESS_STATE_FREE;
-}
-```
-Three details matter:
-
-| Detail | Why |
+| | |
 |---|---|
-| clear the whole struct | `memset` does not know the field list, so a field added later is wiped too and cannot quietly become a new leak |
-| then set `state = FREE` | all-zero is not a valid state (`READY` is 0), and a slot that is not `FREE` would look occupied |
-| clear *before* filling | every field is then either the new owner's or zero - one rule that is easy to reason about |
+| **Stops** | [`uninit_pcb`](../../attack/uninit_pcb/) |
+| **Protects** | disclosure: a new process never sees an old one's data |
+| **Called from** | `process_init()` and `process_create()` in [core/process](../../../core/process/process.c) |
 
-The NULL check keeps this safe to call before a slot has been found.
+## The rule
 
-## Why there is no separate policy function
+Zero the whole `process_t` before writing any field of the new process.
 
-Other defences answer a question ("may this user create a process?")
-with a pure function of a few numbers, which is easy to test alone.
-This one always wipes, so there is nothing to decide - a policy
-function would only add a layer. The lesson is different:
-**clear before you fill, at the single place a slot changes hands**.
+## Why
 
-## Where the kernel calls it
+A process slot is reused many times. `process_create()` only fills some
+fields (pid, name, uid, stack). The rest (`cwd`, `fd_table`,
+`fd_offset`, `sleep_ticks`, ...) would keep whatever the last owner
+left. That leaks data, such as which files it had open, and a stale
+`cwd` pointer is a crash waiting to happen.
 
-```c
-/* modules/process_management/core/process.c */
-process_t *p = &process_table[slot];
+Wiping first means every field is either set by the new owner or zero.
 
-/* DEFENCE pcb_wipe: no field of the previous owner may survive. */
-def_pcb_wipe(p);
+## Uses
 
-p->pid   = next_pid++;
-```
-
-Delete that call and the leak returns. `process_init()` and
-`process_fork()` also wipe, so every handover uses the same rule.
+- `memset()` from lib/string
 
 ## Try it
 
 ```
-seclab verify pcb_wipe     # BLOCKED = the selftest holds
+seclab verify pcb_wipe          # fills a fake slot with 0xAB, wipes, checks
 seclab attack uninit_pcb live
-seclab info uninit_pcb
+seclab repair
 ```
-
-The live run should report `inherited stale fields: 0`. This defence
-calls no `sec_log()`, so `seclab log` stays empty and the verdict is
-"not refused" - the count of zero is the evidence.
