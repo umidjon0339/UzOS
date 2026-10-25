@@ -31,5 +31,5 @@ With `fd_cleanup`, the count is back to 0 and the file is deleted.
 
 ```
 seclab attack fd_leak live
-seclab log                       # fd_cleanup closed the leaked file
+audit                            # fd_cleanup closed the leaked file
 ```

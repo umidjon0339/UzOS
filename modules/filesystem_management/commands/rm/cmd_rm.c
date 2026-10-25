@@ -2,7 +2,7 @@
  * cmd_rm.c - `rm <path>`: delete a file or an empty directory.
  *
  * Uses: sys_unlink (syscalls/unlink), ui_* (ui module).
- * Refusals are explained in `seclab log`.
+ * Refusals are explained in `audit`.
  */
 
 #include "fs_commands.h"

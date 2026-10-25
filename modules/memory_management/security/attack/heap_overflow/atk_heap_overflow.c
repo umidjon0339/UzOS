@@ -16,7 +16,8 @@
  *       cpu_irq_save (arch/x86/cpu).
  */
 
-#include "security_lab.h"
+#include "registry.h"
+#include "audit.h"
 #include "kheap.h"
 #include "string.h"
 #include "cpu.h"
@@ -46,7 +47,7 @@ static int launch(void) {
         return 0;
     }
 
-    uint32_t denied = sec_total_denied();
+    uint32_t denied = audit_total();
     uint32_t irq = cpu_irq_save();          // nobody else may walk the heap now
 
     kheap_header_t saved = *b_header;
@@ -65,7 +66,7 @@ static int launch(void) {
     kfree(b);
     kheap_get_stats(&s);
     vga_print_str(s.corrupted ? "  heap still CORRUPTED\n" : "  B repaired, heap healthy\n");
-    return sec_total_denied() - denied;
+    return audit_total() - denied;
 }
 
 static const attack_t attack = {
@@ -77,5 +78,5 @@ static const attack_t attack = {
 };
 
 void atk_heap_overflow_register(void) {
-    proc_security_register_attack(&attack);
+    registry_add_attack(&attack);
 }

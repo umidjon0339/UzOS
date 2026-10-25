@@ -32,7 +32,7 @@ bad push page-faults at once. That needs per-process paging.
 
 - the real `ESP`, read by the scheduler
 - `process_t.stack_base`
-- `sec_log()` from the security lab
+- `audit_log()` from security_management (core/audit)
 
 ## Try it
 

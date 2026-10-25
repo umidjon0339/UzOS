@@ -20,7 +20,7 @@
  *       isr_exception_name (arch/x86/isr), process_kill (core/process).
  */
 
-#include "security_lab.h"
+#include "registry.h"
 #include "usertask.h"
 #include "cpu_faults.h"
 #include "process.h"
@@ -118,5 +118,5 @@ static const attack_t attack = {
 };
 
 void atk_user_exception_register(void) {
-    proc_security_register_attack(&attack);
+    registry_add_attack(&attack);
 }

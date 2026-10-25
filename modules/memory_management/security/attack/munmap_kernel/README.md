@@ -34,5 +34,5 @@ frame and overwrote the kernel.
 
 ```
 seclab attack munmap_kernel live
-seclab log
+audit
 ```

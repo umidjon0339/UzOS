@@ -1,5 +1,5 @@
 /*
- * cmd_userdel.c - `userdel <name>`: remove an account (root only).
+ * cmd_userdel.c - `userdel <name>`: remove an account (CAP_USERS: root).
  *
  * Refused for root, for the user you are, and for a user who still has
  * processes running (kill them first). The home directory and files
@@ -7,13 +7,15 @@
  * longer exists. That uid is never given to anyone else.
  *
  * Uses: users_find_name / users_delete (core/users), session_user
- *       (core/session), the process table (process_management), ui_*.
+ *       (core/session), the process table (process_management),
+ *       caps_require (security_management), ui_*.
  */
 
 #include "user_commands.h"
 #include "users.h"
 #include "session.h"
 #include "process.h"
+#include "caps.h"
 #include "ui.h"
 
 static int has_processes(uint32_t uid) {
@@ -32,10 +34,8 @@ void cmd_userdel(const char *args) {
         ui_usage("userdel <name>");
         return;
     }
-    if (process_caller_uid() != UID_ROOT) {
-        ui_error("userdel", "only root may remove users: type 'su' first");
+    if (!caps_require(CAP_USERS, "userdel"))
         return;
-    }
     if (!user) {
         ui_error("userdel", "no such user");
         return;

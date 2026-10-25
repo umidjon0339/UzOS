@@ -17,7 +17,7 @@
  *       cpu_irq_save (arch/x86/cpu).
  */
 
-#include "security_lab.h"
+#include "registry.h"
 #include "mouse.h"
 #include "cpu.h"
 #include "vga.h"
@@ -93,5 +93,5 @@ static const attack_t attack = {
 };
 
 void atk_mouse_coordinate_escape_register(void) {
-    proc_security_register_attack(&attack);
+    registry_add_attack(&attack);
 }

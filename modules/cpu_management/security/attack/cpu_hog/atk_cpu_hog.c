@@ -19,7 +19,7 @@
  *       (core/priority), sys_sleep / sys_yield, timer_uptime_ms.
  */
 
-#include "security_lab.h"
+#include "registry.h"
 #include "process.h"
 #include "priority.h"
 #include "def_aging.h"
@@ -117,5 +117,5 @@ static const attack_t attack = {
 };
 
 void atk_cpu_hog_register(void) {
-    proc_security_register_attack(&attack);
+    registry_add_attack(&attack);
 }

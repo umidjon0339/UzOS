@@ -16,7 +16,7 @@
  *       (security/defence/elf_validate), Elf32_* types (core/elf).
  */
 
-#include "security_lab.h"
+#include "registry.h"
 #include "vga.h"
 #include "elf.h"
 #include "def_elf_validate.h"
@@ -115,5 +115,5 @@ static const attack_t attack = {
 };
 
 void atk_malicious_elf_register(void) {
-    proc_security_register_attack(&attack);
+    registry_add_attack(&attack);
 }

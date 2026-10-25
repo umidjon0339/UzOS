@@ -2,14 +2,16 @@
  * cmd_passwd.c - `passwd [user]`: change a password.
  *
  *   passwd          your own: type the old one first, then the new one twice
- *   passwd guest    root only: set guest's password (no old one needed)
+ *   passwd guest    CAP_USERS (root) only: set guest's password (no old one needed)
  *
- * Uses: users_* (core/users), session_* (core/session), ui_* (ui module).
+ * Uses: users_* (core/users), session_* (core/session),
+ *       caps_* (security_management), ui_* (ui module).
  */
 
 #include "user_commands.h"
 #include "users.h"
 #include "session.h"
+#include "caps.h"
 #include "string.h"
 #include "ui.h"
 
@@ -22,11 +24,9 @@ void cmd_passwd(const char *args) {
         ui_error("passwd", "no such user");
         return;
     }
-    if (target != me && me->uid != UID_ROOT) {
-        ui_error("passwd", "only root may change another user's password");
-        return;
-    }
-    if (me->uid != UID_ROOT) {
+    if (target != me && !caps_require(CAP_USERS, "passwd"))
+        return;                             // another user's: CAP_USERS only
+    if (!caps_caller_has(CAP_USERS)) {      // your own: prove it is you
         int answer = session_ask_password(me);
         if (answer != PASSWORD_RIGHT) {
             if (answer == PASSWORD_WRONG)

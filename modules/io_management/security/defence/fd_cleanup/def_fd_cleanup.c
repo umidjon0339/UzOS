@@ -13,7 +13,8 @@
  */
 
 #include "def_fd_cleanup.h"
-#include "security_lab.h"
+#include "registry.h"
+#include "audit.h"
 #include "fd.h"
 
 // Close everything; return how many were still open. No logging, so the
@@ -31,7 +32,7 @@ static int close_all(process_t *p) {
 
 void def_fd_close_all(process_t *p) {
     if (close_all(p))
-        sec_log("fd_cleanup", "process ended with open files: closed them");
+        audit_log("fd_cleanup", "process ended with open files: closed them");
 }
 
 static int selftest(void) {
@@ -53,5 +54,5 @@ static const defence_t defence = {
 };
 
 void def_fd_cleanup_register(void) {
-    proc_security_register_defence(&defence);
+    registry_add_defence(&defence);
 }

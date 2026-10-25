@@ -29,7 +29,7 @@ is a quick lookup.
 ## Uses
 
 - `pmm_is_reserved()`, `pmm_is_used()`, `pmm_get_max_blocks()` from core/pmm
-- `sec_log()` from the security lab
+- `audit_log()` from security_management (core/audit)
 
 ## Try it
 

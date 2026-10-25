@@ -25,7 +25,7 @@
 #include "process.h"
 #include "shell.h"
 #include "vfs.h"
-#include "security_lab.h"
+#include "registry.h"
 #include "palette.h"
 #include "font.h"
 #include "rtc.h"
@@ -109,7 +109,7 @@ static void gather(void) {
     format(add("Display"), TEXT_MAX, "%dx%d, theme %s, font %s", vga_cols(), vga_rows(),
            palette_current()->name, font_name(font_current()));
     format(add("Security"), TEXT_MAX, "%d attacks, %d defences",
-           proc_security_attack_count(), proc_security_defence_count());
+           registry_attack_count(), registry_defence_count());
     add(0);                                                 // the colour blocks
 }
 

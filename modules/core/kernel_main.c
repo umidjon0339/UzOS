@@ -39,7 +39,10 @@
 #include "scheduler.h"      // processes
 #include "syscall_handler.h"
 #include "sys_sleep.h"
-#include "security_lab.h"
+
+#include "registry.h"       // security
+#include "catalog.h"
+#include "integrity.h"
 
 #include "ramdisk.h"        // filesystem
 
@@ -62,7 +65,7 @@
 #include "user_commands.h"
 #include "device_commands.h"
 #include "ui_commands.h"
-#include "security_lab_commands.h"
+#include "security_commands.h"
 
 #define KEY_POLL_MS 10          // the shell looks for a key every timer tick
 
@@ -153,13 +156,22 @@ static void setup_memory(uint32_t multiboot_magic, multiboot_info_t *mb_info) {
     boot_ok(detail);
 }
 
-/* ---------- 4. Security lab ---------- */
+/* ---------- 4. Security ---------- */
 
-static void setup_security_lab(void) {
-    boot_begin("Security lab");         // attack/defence demos
-    proc_security_init();
+static void setup_security(void) {
+    boot_begin("Security lab");         // every module's attack/defence pairs
+    catalog_init();
     format(detail, sizeof(detail), "%d attacks, %d defences",
-           proc_security_attack_count(), proc_security_defence_count());
+           registry_attack_count(), registry_defence_count());
+    boot_ok(detail);
+
+    // Measure the kernel while it is surely still the one that was built.
+    boot_begin("Kernel integrity");
+    integrity_init();
+    const integrity_region_t *code = integrity_region(0), *constants = integrity_region(1);
+    format(detail, sizeof(detail), "SHA-256 of %u KB code, %u KB constants",
+           (uint32_t)(code->end - code->start) / 1024,
+           (uint32_t)(constants->end - constants->start) / 1024);
     boot_ok(detail);
 }
 
@@ -179,7 +191,7 @@ static void setup_shell(void) {
     register_user_commands();       // whoami, id, users, ...
     register_device_commands();     // uptime, date, devices, theme, mode, ...
     register_ui_commands();         // uzfetch, statusbar
-    register_security_lab_commands(); // seclab
+    register_security_commands();   // seclab
     format(detail, sizeof(detail), "%d commands", shell_command_count());
     boot_ok(detail);
 }
@@ -227,7 +239,7 @@ void kernel_main(uint32_t multiboot_magic, multiboot_info_t *mb_info) {
     setup_cpu();
     setup_devices();
     setup_memory(multiboot_magic, mb_info);
-    setup_security_lab();
+    setup_security();
     setup_shell();
     setup_filesystem();
     setup_processes();

@@ -6,7 +6,6 @@
  *
  * Uses: process_get_by_pid and the current process (process_management).
  */
-
 #include "sys_getpriority.h"
 #include "scheduler.h"
 

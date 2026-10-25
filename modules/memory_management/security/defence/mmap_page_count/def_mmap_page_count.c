@@ -12,7 +12,8 @@
  */
 
 #include "def_mmap_page_count.h"
-#include "security_lab.h"
+#include "registry.h"
+#include "audit.h"
 #include "memory_layout.h"
 
 // The whole rule, as a pure function so the selftest can try it.
@@ -25,7 +26,7 @@ static int page_count(uint32_t length, uint32_t *pages) {
 int def_mmap_page_count(uint32_t length, uint32_t *pages) {
     if (page_count(length, pages))
         return 1;
-    sec_log("mmap_page_count", "mmap length is 0 or too large");
+    audit_log("mmap_page_count", "mmap length is 0 or too large");
     return 0;
 }
 
@@ -50,5 +51,5 @@ static const defence_t defence = {
 };
 
 void def_mmap_page_count_register(void) {
-    proc_security_register_defence(&defence);
+    registry_add_defence(&defence);
 }

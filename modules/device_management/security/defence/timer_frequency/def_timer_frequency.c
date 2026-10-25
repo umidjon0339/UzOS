@@ -12,7 +12,8 @@
  */
 
 #include "def_timer_frequency.h"
-#include "security_lab.h"
+#include "registry.h"
+#include "audit.h"
 #include "timer.h"
 
 // The whole rule, as a pure function so the selftest can try it.
@@ -23,7 +24,7 @@ static int frequency_ok(uint32_t hz) {
 int def_timer_frequency_ok(uint32_t hz) {
     if (frequency_ok(hz))
         return 1;
-    sec_log("timer_frequency", "PIT frequency refused: divisor would not fit");
+    audit_log("timer_frequency", "PIT frequency refused: divisor would not fit");
     return 0;
 }
 
@@ -45,5 +46,5 @@ static const defence_t defence = {
 };
 
 void def_timer_frequency_register(void) {
-    proc_security_register_defence(&defence);
+    registry_add_defence(&defence);
 }

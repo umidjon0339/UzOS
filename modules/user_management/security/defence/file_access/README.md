@@ -9,12 +9,12 @@
 ## The rule
 
 ```
-root                      -> allowed
+CAP_FILES (root)          -> allowed
 the file's owner          -> the FIRST digit of the mode
 everybody else            -> the SECOND digit
 each digit = 4 (read) + 2 (write); the wanted bits must all be there
 
-remove / rename / chmod   -> also: you own it (or you are root)
+remove / rename / chmod   -> also: you own it (or hold CAP_FILES)
 ```
 
 | Mode | Shown | Owner | Others |
@@ -32,7 +32,8 @@ syscalls, so every command and every program goes through it.
 ## Uses
 
 - `vfs_node_t.owner` / `.mode` from filesystem_management
-- `sec_log()` from the security lab
+- `caps_has(uid, CAP_FILES)` from security_management [core/caps](../../../../security_management/core/caps/)
+- `audit_log()` from security_management (core/audit)
 
 ## Try it
 

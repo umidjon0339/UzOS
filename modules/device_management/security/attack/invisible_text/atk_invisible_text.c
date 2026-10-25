@@ -15,7 +15,8 @@
  * Uses: palette_use / palette_current (vga/palette).
  */
 
-#include "security_lab.h"
+#include "registry.h"
+#include "audit.h"
 #include "palette.h"
 #include "vga.h"
 
@@ -40,7 +41,7 @@ static int simulate(void) {
 }
 
 static int launch(void) {
-    uint32_t denied = sec_total_denied();
+    uint32_t denied = audit_total();
     const char *before = palette_current()->name;
 
     vga_print_str("  install theme where all colours = background -> ");
@@ -51,7 +52,7 @@ static int launch(void) {
     vga_print_str("  theme now: ");
     vga_print_str(palette_current()->name);
     vga_print_str(palette_current()->name == before ? " (unchanged)\n" : " (CHANGED)\n");
-    return sec_total_denied() - denied;
+    return audit_total() - denied;
 }
 
 static const attack_t attack = {
@@ -63,5 +64,5 @@ static const attack_t attack = {
 };
 
 void atk_invisible_text_register(void) {
-    proc_security_register_attack(&attack);
+    registry_add_attack(&attack);
 }

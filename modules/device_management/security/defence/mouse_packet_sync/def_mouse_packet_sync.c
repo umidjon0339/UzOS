@@ -15,7 +15,8 @@
  */
 
 #include "def_mouse_packet_sync.h"
-#include "security_lab.h"
+#include "registry.h"
+#include "audit.h"
 
 #define ALWAYS_ONE   0x08       // bit 3 of the first byte
 #define OVERFLOW     0xC0       // bits 6 and 7: x / y overflowed
@@ -27,14 +28,14 @@ static int has_overflow(uint8_t first)     { return (first & OVERFLOW) != 0; }
 int def_mouse_sync_ok(uint8_t byte) {
     if (is_packet_start(byte))
         return 1;
-    sec_log("mouse_packet_sync", "mouse byte dropped: packet out of step");
+    audit_log("mouse_packet_sync", "mouse byte dropped: packet out of step");
     return 0;
 }
 
 int def_mouse_packet_ok(const uint8_t *packet) {
     if (!has_overflow(packet[0]))
         return 1;
-    sec_log("mouse_packet_sync", "mouse packet dropped: movement overflowed");
+    audit_log("mouse_packet_sync", "mouse packet dropped: movement overflowed");
     return 0;
 }
 
@@ -57,5 +58,5 @@ static const defence_t defence = {
 };
 
 void def_mouse_packet_sync_register(void) {
-    proc_security_register_defence(&defence);
+    registry_add_defence(&defence);
 }

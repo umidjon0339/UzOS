@@ -32,7 +32,7 @@ is logged. That is a clean failure instead of a mysterious crash later.
 ## Uses
 
 - `kheap_header_t`, `KHEAP_MAGIC` from core/kheap
-- `sec_log()` from the security lab
+- `audit_log()` from security_management (core/audit)
 
 ## Try it
 

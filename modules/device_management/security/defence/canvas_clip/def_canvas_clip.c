@@ -14,7 +14,7 @@
  */
 
 #include "def_canvas_clip.h"
-#include "security_lab.h"
+#include "registry.h"
 
 static int64_t max64(int64_t a, int64_t b) { return a > b ? a : b; }
 static int64_t min64(int64_t a, int64_t b) { return a < b ? a : b; }
@@ -71,5 +71,5 @@ static const defence_t defence = {
 };
 
 void def_canvas_clip_register(void) {
-    proc_security_register_defence(&defence);
+    registry_add_defence(&defence);
 }

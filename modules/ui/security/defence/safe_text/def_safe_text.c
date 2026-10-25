@@ -15,7 +15,8 @@
  */
 
 #include "def_safe_text.h"
-#include "security_lab.h"
+#include "registry.h"
+#include "audit.h"
 
 #define CUT_MARK '\xAF'         // » in code page 437
 
@@ -42,7 +43,7 @@ int def_safe_text(const char *text, char *out, int width) {
         width = 0;
     if (clean(text, out, width) == 0)
         return 1;
-    sec_log("safe_text", "control character in a name shown as '?'");
+    audit_log("safe_text", "control character in a name shown as '?'");
     return 0;
 }
 
@@ -70,5 +71,5 @@ static const defence_t defence = {
 };
 
 void def_safe_text_register(void) {
-    proc_security_register_defence(&defence);
+    registry_add_defence(&defence);
 }

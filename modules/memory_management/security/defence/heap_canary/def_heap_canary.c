@@ -15,7 +15,8 @@
  */
 
 #include "def_heap_canary.h"
-#include "security_lab.h"
+#include "registry.h"
+#include "audit.h"
 
 // The whole rule, as a pure function so the selftest can try it.
 static int header_intact(const kheap_header_t *h) {
@@ -30,7 +31,7 @@ static int header_intact(const kheap_header_t *h) {
 int def_heap_block_ok(const kheap_header_t *h) {
     if (header_intact(h))
         return 1;
-    sec_log("heap_canary", "heap block header overwritten: walk stopped");
+    audit_log("heap_canary", "heap block header overwritten: walk stopped");
     return 0;
 }
 
@@ -56,5 +57,5 @@ static const defence_t defence = {
 };
 
 void def_heap_canary_register(void) {
-    proc_security_register_defence(&defence);
+    registry_add_defence(&defence);
 }

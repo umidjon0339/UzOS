@@ -13,7 +13,8 @@
  */
 
 #include "def_filename_check.h"
-#include "security_lab.h"
+#include "registry.h"
+#include "audit.h"
 #include "vfs.h"
 #include "string.h"
 
@@ -39,14 +40,14 @@ static int name_ok(const char *name) {
 int def_component_ok(int len) {
     if (length_ok(len))
         return 1;
-    sec_log("filename_check", "path component longer than a name can be");
+    audit_log("filename_check", "path component longer than a name can be");
     return 0;
 }
 
 int def_new_name_ok(const char *name) {
     if (name && name_ok(name))
         return 1;
-    sec_log("filename_check", "bad file name refused");
+    audit_log("filename_check", "bad file name refused");
     return 0;
 }
 
@@ -77,5 +78,5 @@ static const defence_t defence = {
 };
 
 void def_filename_check_register(void) {
-    proc_security_register_defence(&defence);
+    registry_add_defence(&defence);
 }

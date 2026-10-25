@@ -13,7 +13,8 @@
  */
 
 #include "def_rtc_validate.h"
-#include "security_lab.h"
+#include "registry.h"
+#include "audit.h"
 
 static int days_in_month(int year, int month) {
     static const uint8_t days[] = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
@@ -32,7 +33,7 @@ static int time_ok(const rtc_time_t *t) {
 int def_rtc_time_ok(const rtc_time_t *t) {
     if (time_ok(t))
         return 1;
-    sec_log("rtc_validate", "impossible date/time from the RTC refused");
+    audit_log("rtc_validate", "impossible date/time from the RTC refused");
     return 0;
 }
 
@@ -57,5 +58,5 @@ static const defence_t defence = {
 };
 
 void def_rtc_validate_register(void) {
-    proc_security_register_defence(&defence);
+    registry_add_defence(&defence);
 }

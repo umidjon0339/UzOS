@@ -39,5 +39,5 @@ and the kernel prints them after the program exits.
 
 ```
 seclab attack priority_out_of_range live
-seclab log
+audit
 ```

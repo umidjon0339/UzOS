@@ -11,7 +11,8 @@
  * Uses: sys_read / sys_write (syscalls/).
  */
 
-#include "security_lab.h"
+#include "registry.h"
+#include "audit.h"
 #include "sys_read.h"
 #include "sys_write.h"
 #include "fd.h"
@@ -31,7 +32,7 @@ static void report(const char *what, int result) {
 }
 
 static int launch(void) {
-    uint32_t denied = sec_total_denied();
+    uint32_t denied = audit_total();
     static char buf[16];
 
     report("write(1, NULL, 5)         ", sys_write(STDOUT, 0, 5));
@@ -40,7 +41,7 @@ static int launch(void) {
 
     vga_print_str("  normal write: ");
     sys_write(STDOUT, "ok\n", 3);
-    return sec_total_denied() - denied;
+    return audit_total() - denied;
 }
 
 static const attack_t attack = {
@@ -52,5 +53,5 @@ static const attack_t attack = {
 };
 
 void atk_oversized_transfer_register(void) {
-    proc_security_register_attack(&attack);
+    registry_add_attack(&attack);
 }

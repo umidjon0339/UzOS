@@ -15,7 +15,7 @@
  *       scheduler_get_current_process (core/scheduler).
  */
 
-#include "security_lab.h"
+#include "registry.h"
 #include "process.h"
 #include "scheduler.h"
 #include "vga.h"
@@ -69,5 +69,5 @@ static const attack_t attack = {
 };
 
 void atk_kill_system_register(void) {
-    proc_security_register_attack(&attack);
+    registry_add_attack(&attack);
 }

@@ -11,7 +11,7 @@
  */
 
 #include "def_mouse_bounds.h"
-#include "security_lab.h"
+#include "registry.h"
 #include "mouse.h"
 
 int def_mouse_clamp(int value, int max) {
@@ -37,5 +37,5 @@ static const defence_t defence = {
 };
 
 void def_mouse_bounds_register(void) {
-    proc_security_register_defence(&defence);
+    registry_add_defence(&defence);
 }

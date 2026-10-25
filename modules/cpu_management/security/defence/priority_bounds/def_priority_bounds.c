@@ -6,7 +6,7 @@
  *         syscall and the `nice` command, before anything is changed.
  * Rules:  1. PRIORITY_MIN <= level <= PRIORITY_MAX       (1..7)
  *         2. the target exists and is not a system process
- *         3. root may set any level on any other process
+ *         3. CAP_PRIORITY (root) may set any level on any other process
  *         4. a user only on its own processes, and only DOWN
  *            (level <= its current priority), like Unix `nice`
  * Why:    the level is a number from a user program.
@@ -18,15 +18,17 @@
  */
 
 #include "def_priority_bounds.h"
-#include "security_lab.h"
+#include "registry.h"
+#include "audit.h"
 #include "priority.h"
+#include "caps.h"
 
 // The whole rule, as a pure function so the selftest can try it.
 static int change_allowed(int level, int target_exists, int target_is_system,
                           uint32_t caller_uid, uint32_t target_uid, int current) {
     if (level < PRIORITY_MIN || level > PRIORITY_MAX) return 0;    // rule 1
     if (!target_exists || target_is_system) return 0;               // rule 2
-    if (caller_uid == 0) return 1;                                  // rule 3
+    if (caps_has(caller_uid, CAP_PRIORITY)) return 1;               // rule 3
     return caller_uid == target_uid && level <= current;            // rule 4
 }
 
@@ -40,9 +42,9 @@ int def_priority_change_allowed(const process_t *caller, const process_t *target
         return 1;
 
     if (level < PRIORITY_MIN || level > PRIORITY_MAX)
-        sec_log("priority_bounds", "priority refused: not a level from 1 to 7");
+        audit_log("priority_bounds", "priority refused: not a level from 1 to 7");
     else
-        sec_log("priority_bounds", "priority refused: system process, not yours, or a raise");
+        audit_log("priority_bounds", "priority refused: system process, not yours, or a raise");
     return 0;
 }
 
@@ -67,5 +69,5 @@ static const defence_t defence = {
 };
 
 void def_priority_bounds_register(void) {
-    proc_security_register_defence(&defence);
+    registry_add_defence(&defence);
 }

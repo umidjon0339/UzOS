@@ -15,7 +15,8 @@
  * Uses: rtc_decode / rtc_read (rtc/).
  */
 
-#include "security_lab.h"
+#include "registry.h"
+#include "audit.h"
 #include "rtc.h"
 #include "vga.h"
 
@@ -39,7 +40,7 @@ static int simulate(void) {
 }
 
 static int launch(void) {
-    uint32_t denied = sec_total_denied();
+    uint32_t denied = audit_total();
     rtc_time_t t;
 
     for (unsigned i = 0; i < BAD_COUNT; i++) {
@@ -51,7 +52,7 @@ static int launch(void) {
 
     vga_print_str("  the real clock still reads: ");
     vga_print_str(rtc_read(&t) ? "a valid date\n" : "nothing valid\n");
-    return sec_total_denied() - denied;
+    return audit_total() - denied;
 }
 
 static const attack_t attack = {
@@ -63,5 +64,5 @@ static const attack_t attack = {
 };
 
 void atk_rtc_garbage_register(void) {
-    proc_security_register_attack(&attack);
+    registry_add_attack(&attack);
 }

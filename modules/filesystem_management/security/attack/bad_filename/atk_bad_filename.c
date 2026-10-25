@@ -12,7 +12,8 @@
  * Uses: ramdisk_create / ramdisk_delete (core/ramdisk), vfs_lookup (core/vfs).
  */
 
-#include "security_lab.h"
+#include "registry.h"
+#include "audit.h"
 #include "ramdisk.h"
 #include "string.h"
 #include "vga.h"
@@ -40,7 +41,7 @@ static int simulate(void) {
 }
 
 static int launch(void) {
-    uint32_t denied = sec_total_denied();
+    uint32_t denied = audit_total();
 
     for (unsigned i = 0; i < BAD_COUNT; i++) {
         vfs_node_t *made = ramdisk_create(fs_root, bad[i].name, FS_FILE);
@@ -59,7 +60,7 @@ static int launch(void) {
     vga_print_str(found ? "  lookup of a 300-char name -> FOUND?\n"
                         : "  lookup of a 300-char name -> refused, nothing copied\n");
 
-    return sec_total_denied() - denied;
+    return audit_total() - denied;
 }
 
 static const attack_t attack = {
@@ -71,5 +72,5 @@ static const attack_t attack = {
 };
 
 void atk_bad_filename_register(void) {
-    proc_security_register_attack(&attack);
+    registry_add_attack(&attack);
 }

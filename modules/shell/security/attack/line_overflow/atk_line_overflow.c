@@ -12,7 +12,8 @@
  * Uses: line_t / line_clear / line_insert (core/line).
  */
 
-#include "security_lab.h"
+#include "registry.h"
+#include "audit.h"
 #include "line.h"
 #include "vga.h"
 
@@ -33,7 +34,7 @@ static int launch(void) {
         uint32_t guard[GUARDS];
     } test;
 
-    uint32_t denied = sec_total_denied();
+    uint32_t denied = audit_total();
     line_clear(&test.line);
     for (int i = 0; i < GUARDS; i++)
         test.guard[i] = MARK;
@@ -54,7 +55,7 @@ static int launch(void) {
     vga_print_str("  guard words damaged: ");
     vga_print_int(damaged);
     vga_print_str(damaged ? "  (OVERFLOW)\n" : "\n");
-    return sec_total_denied() - denied;
+    return audit_total() - denied;
 }
 
 static const attack_t attack = {
@@ -66,5 +67,5 @@ static const attack_t attack = {
 };
 
 void atk_line_overflow_register(void) {
-    proc_security_register_attack(&attack);
+    registry_add_attack(&attack);
 }

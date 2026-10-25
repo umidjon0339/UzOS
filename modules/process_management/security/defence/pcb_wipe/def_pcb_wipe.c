@@ -11,7 +11,7 @@
  */
 
 #include "def_pcb_wipe.h"
-#include "security_lab.h"
+#include "registry.h"
 #include "string.h"
 
 void def_pcb_wipe(process_t *p) {
@@ -44,5 +44,5 @@ static const defence_t defence = {
 };
 
 void def_pcb_wipe_register(void) {
-    proc_security_register_defence(&defence);
+    registry_add_defence(&defence);
 }

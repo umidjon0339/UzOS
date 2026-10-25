@@ -12,7 +12,7 @@
  */
 
 #include "def_reaper.h"
-#include "security_lab.h"
+#include "registry.h"
 #include "scheduler.h"
 #include "process.h"
 #include "kheap.h"
@@ -73,5 +73,5 @@ static const defence_t defence = {
 };
 
 void def_reaper_register(void) {
-    proc_security_register_defence(&defence);
+    registry_add_defence(&defence);
 }

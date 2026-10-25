@@ -32,5 +32,5 @@ With `kill_guard` on, every call is refused inside `process_kill()`.
 
 ```
 seclab attack kill_system live
-seclab log
+audit
 ```

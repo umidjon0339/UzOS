@@ -15,7 +15,8 @@
  */
 
 #include "def_transfer_bounds.h"
-#include "security_lab.h"
+#include "registry.h"
+#include "audit.h"
 #include "memory_layout.h"
 #include "fd.h"
 
@@ -32,7 +33,7 @@ int def_transfer_ok(const void *buf, uint32_t count) {
     const char *reason = refusal((uint32_t)buf, count);
     if (!reason)
         return 1;
-    sec_log("transfer_bounds", reason);
+    audit_log("transfer_bounds", reason);
     return 0;
 }
 
@@ -54,5 +55,5 @@ static const defence_t defence = {
 };
 
 void def_transfer_bounds_register(void) {
-    proc_security_register_defence(&defence);
+    registry_add_defence(&defence);
 }

@@ -22,7 +22,7 @@ process_management/
 ├── syscalls/                     one folder per system call
 │   ├── handler/    syscall_handler.h/.c   int 0x80 -> the right sys_*()
 │   └── exit/ getpid/ sleep/ yield/        sys_<name>.h/.c
-└── security/                     attack/defence pairs (see security_lab)
+└── security/                     attack/defence pairs (see security_management)
     ├── attack/<id>/   atk_<id>.c + README.md    how a guarantee breaks
     └── defence/<id>/  def_<id>.h/.c + README.md  how the kernel stops it
 ```
@@ -120,6 +120,7 @@ table routes them all:
 | 19 | `time`: [device_management](../device_management/syscalls/) |
 | 20–22 | `cputime`, `setpriority`, `getpriority`: [cpu_management](../cpu_management/syscalls/) |
 | 23–24 | `getuid`, `setuid`: [user_management](../user_management/syscalls/) |
+| 25 | `getcaps`: [security_management](../security_management/syscalls/) |
 
 For calls from ring 3, every pointer argument (buffer or path) is
 checked first by `user_ptr_bounds`: it must be the program's own mapped
@@ -134,7 +135,7 @@ memory, so a bad pointer fails only that call.
 | `kill <pid>` | stop a process | `process_kill` (→ kill_guard) |
 | `spawn` | start a worker that beats 3 times, then exits | `process_create`, `sys_sleep`, `sys_exit` |
 | `sleep <s>` | pause the shell (Ctrl+C ends it) | `sys_sleep_interruptible` |
-| `exec <file> [&]` | load and run an ELF program, e.g. `exec hello`: in the foreground (Ctrl+C stops it), or with `&` in the background | `elf_load_and_run`, `sys_sleep_interruptible`, `process_kill` |
+| `exec <file> [&]` | load and run an ELF program, e.g. `exec hello`: in the foreground (Ctrl+C stops it), or with `&` in the background; refused if the kernel's code changed (integrity_check) | `elf_load_and_run`, `sys_sleep_interruptible`, `process_kill` |
 | `testuser [null\|badptr]` | run a tiny ring 3 program: `write` (prints hello), `getpid`, `uptime`, `mmap`, `munmap`, `exit`; with `null` it writes to address 0 and only it is killed; with `badptr` it passes `write()` an unmapped buffer and only that call fails | usertask (VMM, `switch_to_user_mode`, user_stack) |
 
 ## Security: attack ↔ defence
@@ -151,12 +152,14 @@ memory, so a bad pointer fails only that call.
 | `malicious_elf` | trust | `elf_validate` | `elf_load_and_run` |
 
 Each folder has a README. Try `seclab list`, `seclab attack <id> live`
-and `seclab verify all`. The lab itself lives in [`modules/security_lab`](../security_lab/).
+and `seclab verify all`. The lab itself lives in [`modules/security_management`](../security_management/).
 
 ## Known limits
 
 - **One address space.** All processes share the same page directory, so
   they could read each other's memory. Per-process page directories are
   the next big step; `fork()` waits for them.
-- **ELF programs run in ring 0** (with uid 1). Only usertask programs
-  (`testuser`, the cpu_management attacks) really run in ring 3.
+- **ELF programs run in ring 0** (as the user who started them). Only
+  usertask programs (`testuser`, the cpu_management attacks) really run
+  in ring 3. A ring 0 program could even write into the kernel's code;
+  integrity_check (security_management) notices at the next `exec`.

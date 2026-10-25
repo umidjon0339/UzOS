@@ -16,7 +16,8 @@
  * Uses: process_create / process_kill (process_management), cmd_ps.
  */
 
-#include "security_lab.h"
+#include "registry.h"
+#include "audit.h"
 #include "process.h"
 #include "proc_commands.h"
 #include "sys_sleep.h"
@@ -39,7 +40,7 @@ static int simulate(void) {
 }
 
 static int launch(void) {
-    uint32_t denied = sec_total_denied();
+    uint32_t denied = audit_total();
 
     int pid = process_create(FAKE_NAME, sleeper, 0);
     if (pid < 0) {
@@ -49,7 +50,7 @@ static int launch(void) {
     vga_print_str("  started a process with a newline in its name; ps shows:\n");
     cmd_ps("");
     process_kill(pid);
-    return sec_total_denied() - denied;
+    return audit_total() - denied;
 }
 
 static const attack_t attack = {
@@ -61,5 +62,5 @@ static const attack_t attack = {
 };
 
 void atk_output_spoof_register(void) {
-    proc_security_register_attack(&attack);
+    registry_add_attack(&attack);
 }

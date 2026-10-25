@@ -5,13 +5,16 @@
  * Called: process_create() (core/process), before a slot is handed out.
  * Rules:  1. a normal user may own at most MAX_PER_USER processes
  *         2. the last RESERVED_FOR_ROOT free slots are for root only
+ *         Both rules skip whoever holds CAP_RESOURCE (root).
  * Why:    with both rules, a runaway user hits its own cap first, and
  *         root can always still start a process to clean up.
  */
 
 #include "def_slot_quota.h"
-#include "security_lab.h"
+#include "registry.h"
+#include "audit.h"
 #include "process.h"
+#include "caps.h"
 
 #define MAX_PER_USER      8
 #define RESERVED_FOR_ROOT 5
@@ -27,7 +30,7 @@ static int count_owned_by(uint32_t uid) {
 
 // The whole rule, as a pure function so the selftest can try it.
 static int quota_allows(int free_slots, int owned, uint32_t uid) {
-    if (uid == 0) return 1;                     // root is never capped
+    if (caps_has(uid, CAP_RESOURCE)) return 1;  // root is never capped
     if (owned >= MAX_PER_USER) return 0;        // rule 1
     return free_slots > RESERVED_FOR_ROOT;      // rule 2
 }
@@ -36,7 +39,7 @@ int def_slot_quota_check(uint32_t uid) {
     if (quota_allows(process_count_free_slots(), count_owned_by(uid), uid))
         return 1;
 
-    sec_log("slot_quota", "process creation refused: user quota or root reserve");
+    audit_log("slot_quota", "process creation refused: user quota or root reserve");
     return 0;
 }
 
@@ -58,5 +61,5 @@ static const defence_t defence = {
 };
 
 void def_slot_quota_register(void) {
-    proc_security_register_defence(&defence);
+    registry_add_defence(&defence);
 }

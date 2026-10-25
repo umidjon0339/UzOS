@@ -11,7 +11,8 @@
  */
 
 #include "def_input_bound.h"
-#include "security_lab.h"
+#include "registry.h"
+#include "audit.h"
 
 // The whole rule, as a pure function so the selftest can try it.
 static int has_room(int used, int capacity) {
@@ -21,7 +22,7 @@ static int has_room(int used, int capacity) {
 int def_input_room_ok(int used, int capacity) {
     if (has_room(used, capacity))
         return 1;
-    sec_log("input_bound", "input line full: extra characters dropped");
+    audit_log("input_bound", "input line full: extra characters dropped");
     return 0;
 }
 
@@ -42,5 +43,5 @@ static const defence_t defence = {
 };
 
 void def_input_bound_register(void) {
-    proc_security_register_defence(&defence);
+    registry_add_defence(&defence);
 }

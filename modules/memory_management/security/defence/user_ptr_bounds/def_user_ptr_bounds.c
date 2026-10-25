@@ -16,7 +16,8 @@
  */
 
 #include "def_user_ptr_bounds.h"
-#include "security_lab.h"
+#include "registry.h"
+#include "audit.h"
 #include "memory_layout.h"
 #include "vmm.h"
 
@@ -52,7 +53,7 @@ int def_user_range_ok(uint32_t start, uint32_t size) {
 
     if (!reason)
         return 1;
-    sec_log("user_ptr_bounds", reason);
+    audit_log("user_ptr_bounds", reason);
     return 0;
 }
 
@@ -62,13 +63,13 @@ int def_user_string_ok(uint32_t start, uint32_t max) {
         int new_page = i == 0 || (addr & (PAGE_SIZE - 1)) == 0;
 
         if (new_page && (!in_user_space(addr, 1) || !user_page_mapped(addr))) {
-            sec_log("user_ptr_bounds", "string is not in mapped user memory");
+            audit_log("user_ptr_bounds", "string is not in mapped user memory");
             return 0;
         }
         if (*(const char *)addr == '\0')
             return 1;                               // found the end in time
     }
-    sec_log("user_ptr_bounds", "string has no end within the limit");
+    audit_log("user_ptr_bounds", "string has no end within the limit");
     return 0;
 }
 
@@ -91,5 +92,5 @@ static const defence_t defence = {
 };
 
 void def_user_ptr_bounds_register(void) {
-    proc_security_register_defence(&defence);
+    registry_add_defence(&defence);
 }

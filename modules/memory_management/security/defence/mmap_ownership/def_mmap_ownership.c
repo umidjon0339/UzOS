@@ -12,7 +12,8 @@
  */
 
 #include "def_mmap_ownership.h"
-#include "security_lab.h"
+#include "registry.h"
+#include "audit.h"
 #include "umem.h"
 
 // The whole rule, as a pure function so the selftest can try it.
@@ -23,7 +24,7 @@ static int owns_region(uint32_t recorded_pages, uint32_t pages) {
 int def_munmap_allowed(uint32_t start, uint32_t pages) {
     if (owns_region(umem_region_pages(start), pages))
         return 1;
-    sec_log("mmap_ownership", "munmap refused: not a region mmap() handed out");
+    audit_log("mmap_ownership", "munmap refused: not a region mmap() handed out");
     return 0;
 }
 
@@ -43,5 +44,5 @@ static const defence_t defence = {
 };
 
 void def_mmap_ownership_register(void) {
-    proc_security_register_defence(&defence);
+    registry_add_defence(&defence);
 }

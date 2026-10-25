@@ -14,7 +14,8 @@
  */
 
 #include "def_safe_arith.h"
-#include "security_lab.h"
+#include "registry.h"
+#include "audit.h"
 
 // The rules, as pure functions so the selftest can try them.
 static int fits(int64_t v) {
@@ -30,7 +31,7 @@ static const char *divide_refusal(int64_t a, int64_t b) {
 int def_calc_fits(int64_t value) {
     if (fits(value))
         return 1;
-    sec_log("safe_arith", "calc refused: value does not fit 32 bits");
+    audit_log("safe_arith", "calc refused: value does not fit 32 bits");
     return 0;
 }
 
@@ -38,7 +39,7 @@ int def_calc_divide_ok(int64_t a, int64_t b) {
     const char *reason = divide_refusal(a, b);
     if (!reason)
         return 1;
-    sec_log("safe_arith", reason);
+    audit_log("safe_arith", reason);
     return 0;
 }
 
@@ -61,5 +62,5 @@ static const defence_t defence = {
 };
 
 void def_safe_arith_register(void) {
-    proc_security_register_defence(&defence);
+    registry_add_defence(&defence);
 }

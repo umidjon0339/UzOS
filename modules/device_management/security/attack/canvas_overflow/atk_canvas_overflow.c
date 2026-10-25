@@ -15,7 +15,7 @@
  * Uses: canvas_* (gui/canvas), kmalloc/kfree (memory_management).
  */
 
-#include "security_lab.h"
+#include "registry.h"
 #include "canvas.h"
 #include "kheap.h"
 #include "vga.h"
@@ -72,5 +72,5 @@ static const attack_t attack = {
 };
 
 void atk_canvas_overflow_register(void) {
-    proc_security_register_attack(&attack);
+    registry_add_attack(&attack);
 }

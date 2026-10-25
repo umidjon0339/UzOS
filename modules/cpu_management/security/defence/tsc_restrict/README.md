@@ -39,7 +39,7 @@ Spectre attacks for the same reason.
 
 - `cpu_read_cr4()` / `cpu_write_cr4()` / `CR4_TSD` from arch/x86/cpu
 - `cpu_has(CPU_FEAT_TSC)` from [core/info](../../../core/info/)
-- `sec_log()` from the security lab
+- `audit_log()` from security_management (core/audit)
 
 ## Try it
 

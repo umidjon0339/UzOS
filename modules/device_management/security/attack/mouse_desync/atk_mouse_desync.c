@@ -15,7 +15,8 @@
  * Uses: mouse_handle_byte / mouse_get_state / mouse_set_state (mouse/).
  */
 
-#include "security_lab.h"
+#include "registry.h"
+#include "audit.h"
 #include "mouse.h"
 #include "cpu.h"
 #include "vga.h"
@@ -41,7 +42,7 @@ static int simulate(void) {
 
 static int launch(void) {
     mouse_state_t saved, after;
-    uint32_t denied = sec_total_denied();
+    uint32_t denied = audit_total();
     uint8_t stray = STRAY;
     uint8_t click_right[3] = { LEFT_BUTTON, 10, 0 };
     uint8_t overflow[3]    = { OVERFLOWED, 0xFF, 0 };
@@ -67,7 +68,7 @@ static int launch(void) {
     mouse_set_state(&saved);
     mouse_reset_decoder();
     cpu_irq_restore(irq);
-    return sec_total_denied() - denied;
+    return audit_total() - denied;
 }
 
 static const attack_t attack = {
@@ -79,5 +80,5 @@ static const attack_t attack = {
 };
 
 void atk_mouse_desync_register(void) {
-    proc_security_register_attack(&attack);
+    registry_add_attack(&attack);
 }

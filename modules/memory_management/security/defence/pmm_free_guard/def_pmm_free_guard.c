@@ -14,7 +14,8 @@
  */
 
 #include "def_pmm_free_guard.h"
-#include "security_lab.h"
+#include "registry.h"
+#include "audit.h"
 #include "pmm.h"
 
 // Why a free was refused, so the log can say it.
@@ -33,7 +34,7 @@ int def_pmm_free_ok(uint32_t addr) {
                                         pmm_is_reserved(frame), pmm_is_used(frame));
     if (!reason)
         return 1;
-    sec_log("pmm_free_guard", reason);
+    audit_log("pmm_free_guard", reason);
     return 0;
 }
 
@@ -56,5 +57,5 @@ static const defence_t defence = {
 };
 
 void def_pmm_free_guard_register(void) {
-    proc_security_register_defence(&defence);
+    registry_add_defence(&defence);
 }

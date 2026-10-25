@@ -35,7 +35,7 @@ void cmd_spawn(const char *args) {
     int pid = process_create("worker", worker, process_caller_uid());   // yours
 
     if (pid < 0) {
-        ui_error("spawn", "no free process slot (or refused, see `seclab log`)");
+        ui_error("spawn", "no free process slot (or refused, see `audit`)");
         return;
     }
     ui_start(UI_OK, "spawn");

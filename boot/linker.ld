@@ -4,6 +4,8 @@
  * The kernel is loaded at 1 MiB (below that is BIOS/VGA memory).
  * Each section starts on a 4 KiB page so paging can protect it later.
  * _kernel_start/_kernel_end tell the PMM which frames the kernel uses.
+ * _text_* and _rodata_* mark the parts that never change after boot:
+ * security_management/core/integrity hashes them.
  */
 ENTRY(_start)
 
@@ -15,14 +17,18 @@ SECTIONS
     /* Code. The multiboot header goes first so the bootloader finds it. */
     .text ALIGN(4K) :
     {
+        _text_start = .;
         KEEP(*(.multiboot))
         *(.text .text.*)
+        _text_end = .;
     }
 
     /* Constants and string literals. */
     .rodata ALIGN(4K) :
     {
+        _rodata_start = .;
         *(.rodata .rodata.*)
+        _rodata_end = .;
     }
 
     /* Initialised global variables. */

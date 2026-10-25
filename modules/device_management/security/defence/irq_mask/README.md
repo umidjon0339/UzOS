@@ -28,7 +28,7 @@ user permissions: everything is closed unless there is a reason.
 ## Uses
 
 - `isr_has_handler()` from arch/x86/isr
-- `sec_log()` from the security lab
+- `audit_log()` from security_management (core/audit)
 
 ## Try it
 

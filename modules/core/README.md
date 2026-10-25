@@ -21,7 +21,7 @@ uses the steps before it:
 | 1 | `setup_cpu`          | GDT + TSS, IDT, PIC remap                | `arch/x86`, `device_management/pic` |
 | 2 | `setup_devices`      | timer (100 Hz), keyboard, mouse, clock   | `device_management` |
 | 3 | `setup_memory`       | PMM (frames), VMM (paging), heap         | `memory_management` |
-| 4 | `setup_security_lab` | attack/defence demos                     | `security_lab`, each module's `security/` |
+| 4 | `setup_security`     | attack/defence pairs; SHA-256 of the kernel's code | `security_management`, each module's `security/` |
 | 5 | `setup_shell`        | shell + every module's commands          | `shell`, each module's `commands/` |
 | 6 | `setup_filesystem`   | RAMDisk with the root `/`                | `filesystem_management` |
 | 7 | `setup_processes`    | scheduler; kernel_main becomes a process | `process_management` |

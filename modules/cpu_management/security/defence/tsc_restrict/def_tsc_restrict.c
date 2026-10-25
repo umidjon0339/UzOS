@@ -17,7 +17,8 @@
  */
 
 #include "def_tsc_restrict.h"
-#include "security_lab.h"
+#include "registry.h"
+#include "audit.h"
 #include "cpu.h"
 #include "cpu_info.h"
 #include "string.h"
@@ -36,7 +37,7 @@ void def_tsc_restrict_enable(void) {
 
 void def_tsc_restrict_note(uint8_t vector, const char *instruction) {
     if (vector == VECTOR_GP && instruction && strcmp(instruction, "rdtsc") == 0)
-        sec_log("tsc_restrict", "rdtsc from ring 3 refused: the cycle counter is kernel-only");
+        audit_log("tsc_restrict", "rdtsc from ring 3 refused: the cycle counter is kernel-only");
 }
 
 static int selftest(void) {
@@ -59,5 +60,5 @@ static const defence_t defence = {
 };
 
 void def_tsc_restrict_register(void) {
-    proc_security_register_defence(&defence);
+    registry_add_defence(&defence);
 }

@@ -15,7 +15,7 @@
  * Uses: vmm_walk (core/vmm).
  */
 
-#include "security_lab.h"
+#include "registry.h"
 #include "memory_layout.h"
 #include "vmm.h"
 #include "vga.h"
@@ -63,5 +63,5 @@ static const attack_t attack = {
 };
 
 void atk_null_deref_register(void) {
-    proc_security_register_attack(&attack);
+    registry_add_attack(&attack);
 }

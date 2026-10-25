@@ -14,7 +14,8 @@
  */
 
 #include "def_stack_guard.h"
-#include "security_lab.h"
+#include "registry.h"
+#include "audit.h"
 
 // The whole rule, as a pure function so the selftest can try it.
 static int stack_pointer_ok(uint32_t esp, uint32_t base) {
@@ -28,7 +29,7 @@ int def_stack_guard_check(const process_t *p, uint32_t esp) {
     if (!p || stack_pointer_ok(esp, p->stack_base))
         return 1;
 
-    sec_log("stack_guard", "stack pointer left its own stack");
+    audit_log("stack_guard", "stack pointer left its own stack");
     return 0;
 }
 
@@ -53,5 +54,5 @@ static const defence_t defence = {
 };
 
 void def_stack_guard_register(void) {
-    proc_security_register_defence(&defence);
+    registry_add_defence(&defence);
 }

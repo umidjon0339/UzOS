@@ -35,7 +35,7 @@ checks, a crafted file could:
 
 - `USER_SPACE_START` / `USER_SPACE_END` from memory_management/core/layout
 - `Elf32_Ehdr` / `Elf32_Phdr` from core/elf
-- `sec_log()` from the security lab
+- `audit_log()` from security_management (core/audit)
 
 ## Try it
 

@@ -9,20 +9,21 @@
 ## What it does
 
 The ring 3 program [setuid_escalation.s](setuid_escalation.s) runs as
-guest (uid 1), calls `setuid(0)`, then `getuid()`, and leaves both
-answers in the usertask mailbox.
+guest (uid 1), calls `setuid(0)`, then `getuid()` (who am I now?) and
+`getcaps()` (which privileges do I have now?), and leaves the answers
+in the usertask mailbox.
 
 ## In UzOS
 
 | Mode | What happens |
 |---|---|
 | `simulate` | explains what uid 0 would give the program |
-| `live` | runs it; expected: `setuid(0) returned -1, getuid() is now 1` |
+| `live` | runs it; expected: `setuid(0) returned -1, getuid() is now 1` and `getcaps() = 0x0` |
 
 ## Uses
 
 - `usertask_start()` / `usertask_mailbox()` from process_management/core/usertask
-- syscalls 24 `setuid` and 23 `getuid`
+- syscalls 24 `setuid`, 23 `getuid` and 25 `getcaps` (security_management)
 
 ## Try it
 

@@ -15,7 +15,7 @@
  * Uses: sys_mmap / sys_munmap (syscalls/).
  */
 
-#include "security_lab.h"
+#include "registry.h"
 #include "memory_layout.h"
 #include "vga.h"
 #include "sys_mmap.h"
@@ -66,5 +66,5 @@ static const attack_t attack = {
 };
 
 void atk_mmap_length_wrap_register(void) {
-    proc_security_register_attack(&attack);
+    registry_add_attack(&attack);
 }

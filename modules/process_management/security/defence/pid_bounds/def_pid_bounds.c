@@ -11,7 +11,8 @@
  */
 
 #include "def_pid_bounds.h"
-#include "security_lab.h"
+#include "registry.h"
+#include "audit.h"
 
 // The whole rule, as a pure function so the selftest can try it.
 static int pid_in_range(uint32_t pid) {
@@ -22,7 +23,7 @@ int def_pid_bounds_check(uint32_t pid) {
     if (pid_in_range(pid))
         return 1;
 
-    sec_log("pid_bounds", "PID 0, out of range, or PID space used up");
+    audit_log("pid_bounds", "PID 0, out of range, or PID space used up");
     return 0;
 }
 
@@ -44,5 +45,5 @@ static const defence_t defence = {
 };
 
 void def_pid_bounds_register(void) {
-    proc_security_register_defence(&defence);
+    registry_add_defence(&defence);
 }

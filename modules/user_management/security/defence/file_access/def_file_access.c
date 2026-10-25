@@ -5,24 +5,26 @@
  * Called: perm_check / perm_may_remove / perm_may_chmod (core/perm),
  *         which sys_open, sys_mkdir, sys_unlink, sys_rename, sys_chdir,
  *         `ls`, `chmod` and the ELF loader call before touching a file.
- * Rules:  1. root (uid 0) may do anything
+ * Rules:  1. CAP_FILES (root) may do anything
  *         2. the owner gets the FIRST digit of the mode
  *         3. everybody else gets the SECOND digit
  *         4. the wanted bits (4 = read, 2 = write) must all be there
- *         Removing a file or changing its mode: owner or root only.
+ *         Removing a file or changing its mode: owner or CAP_FILES only.
  * Why:    without this, every user can read every other user's files,
  *         overwrite them, or delete them: users would have names but
  *         nothing of their own.
  */
 
 #include "def_file_access.h"
-#include "security_lab.h"
+#include "registry.h"
+#include "audit.h"
 #include "perm.h"
 #include "users.h"
+#include "caps.h"
 
 // The whole rule, as a pure function so the selftest can try it.
 static int access_allows(uint32_t uid, uint32_t owner, uint32_t mode, int want) {
-    if (uid == UID_ROOT) return 1;                          // rule 1
+    if (caps_has(uid, CAP_FILES)) return 1;                 // rule 1
     uint32_t digit = uid == owner ? mode >> 3 : mode & 7;   // rules 2 and 3
     return (digit & (uint32_t)want) == (uint32_t)want;      // rule 4
 }
@@ -30,14 +32,14 @@ static int access_allows(uint32_t uid, uint32_t owner, uint32_t mode, int want) 
 int def_file_access_ok(uint32_t uid, uint32_t owner, uint32_t mode, int want) {
     if (access_allows(uid, owner, mode, want))
         return 1;
-    sec_log("file_access", "permission denied by the file's mode");
+    audit_log("file_access", "permission denied by the file's mode");
     return 0;
 }
 
 int def_file_access_owner_ok(uint32_t uid, uint32_t owner) {
-    if (uid == UID_ROOT || uid == owner)
+    if (caps_has(uid, CAP_FILES) || uid == owner)
         return 1;
-    sec_log("file_access", "permission denied: not the owner");
+    audit_log("file_access", "permission denied: not the owner");
     return 0;
 }
 
@@ -61,5 +63,5 @@ static const defence_t defence = {
 };
 
 void def_file_access_register(void) {
-    proc_security_register_defence(&defence);
+    registry_add_defence(&defence);
 }

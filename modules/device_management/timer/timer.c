@@ -6,8 +6,8 @@
  * switch tasks.
  *
  * Uses: register_interrupt_handler (arch/x86/isr), pic_unmask (pic/),
- *       scheduler_tick (process_management), sec_watchdog_tick
- *       (security_lab), cpu_account_tick (cpu_management), and the
+ *       scheduler_tick (process_management), watchdog_tick
+ *       (security_management), cpu_account_tick (cpu_management), and the
  *       defence timer_frequency.
  */
 
@@ -16,7 +16,7 @@
 #include "io.h"
 #include "pic.h"
 #include "scheduler.h"
-#include "security_lab.h"
+#include "watchdog.h"
 #include "cpu_account.h"
 #include "def_timer_frequency.h"
 
@@ -30,7 +30,7 @@ static uint32_t frequency;
 
 static void timer_callback(registers_t *regs) {
     timer_ticks++;
-    sec_watchdog_tick();
+    watchdog_tick();
     cpu_account_tick(regs);         // before the switch: charge who WAS running
     scheduler_tick();               // may switch to another task
 }

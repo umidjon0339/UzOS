@@ -15,7 +15,8 @@
  * Uses: kmalloc / kfree / kheap_get_stats (core/kheap).
  */
 
-#include "security_lab.h"
+#include "registry.h"
+#include "audit.h"
 #include "kheap.h"
 #include "vga.h"
 
@@ -27,15 +28,15 @@ static int simulate(void) {
 }
 
 static void try_free(const char *what, void *p) {
-    uint32_t denied = sec_total_denied();
+    uint32_t denied = audit_total();
     kfree(p);
     vga_print_str("  ");
     vga_print_str(what);
-    vga_print_str(sec_total_denied() > denied ? " -> refused\n" : " -> FREED\n");
+    vga_print_str(audit_total() > denied ? " -> refused\n" : " -> FREED\n");
 }
 
 static int launch(void) {
-    uint32_t denied = sec_total_denied();
+    uint32_t denied = audit_total();
     int on_stack = 0;
 
     uint8_t *a = kmalloc(32);
@@ -52,7 +53,7 @@ static int launch(void) {
     kheap_stats_t s;
     kheap_get_stats(&s);
     vga_print_str(s.corrupted ? "  heap: CORRUPTED\n" : "  heap: still healthy\n");
-    return sec_total_denied() - denied;
+    return audit_total() - denied;
 }
 
 static const attack_t attack = {
@@ -64,5 +65,5 @@ static const attack_t attack = {
 };
 
 void atk_heap_double_free_register(void) {
-    proc_security_register_attack(&attack);
+    registry_add_attack(&attack);
 }

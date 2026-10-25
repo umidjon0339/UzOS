@@ -13,7 +13,8 @@
  */
 
 #include "def_descriptor_bounds.h"
-#include "security_lab.h"
+#include "registry.h"
+#include "audit.h"
 #include "sys_open.h"
 #include "fd.h"
 
@@ -34,7 +35,7 @@ int def_fd_ok(const process_t *p, int fd, uint32_t need) {
                                  in_range ? p->fd_flags[fd] : 0, need);
     if (!reason)
         return 1;
-    sec_log("descriptor_bounds", reason);
+    audit_log("descriptor_bounds", reason);
     return 0;
 }
 
@@ -58,5 +59,5 @@ static const defence_t defence = {
 };
 
 void def_descriptor_bounds_register(void) {
-    proc_security_register_defence(&defence);
+    registry_add_defence(&defence);
 }

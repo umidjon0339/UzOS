@@ -15,7 +15,7 @@ void cmd_date(const char *args) {
     rtc_time_t now;
 
     if (!rtc_read(&now)) {
-        ui_error("date", "the clock gave an impossible date (see `seclab log`)");
+        ui_error("date", "the clock gave an impossible date (see `audit`)");
         return;
     }
 

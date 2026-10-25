@@ -31,7 +31,7 @@ a partial unmap is refused too.
 ## Uses
 
 - `umem_region_pages()` from core/umem
-- `sec_log()` from the security lab
+- `audit_log()` from security_management (core/audit)
 
 ## Try it
 

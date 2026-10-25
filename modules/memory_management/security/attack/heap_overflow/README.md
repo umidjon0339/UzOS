@@ -36,6 +36,6 @@ damaged.
 
 ```
 seclab attack heap_overflow live
-seclab log
+audit
 heapinfo                         # Health: OK
 ```

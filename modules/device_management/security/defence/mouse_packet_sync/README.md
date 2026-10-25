@@ -35,11 +35,11 @@ decoder finds the start again.
 
 ## Uses
 
-- `sec_log()` from the security lab (every dropped byte is evidence)
+- `audit_log()` from security_management (core/audit) (every dropped byte is evidence)
 
 ## Try it
 
 ```
 seclab attack mouse_desync live
-seclab log
+audit
 ```

@@ -15,7 +15,8 @@
  */
 
 #include "def_aging.h"
-#include "security_lab.h"
+#include "registry.h"
+#include "audit.h"
 #include "priority.h"
 #include "timer.h"
 
@@ -39,7 +40,7 @@ void def_aging_note_rescue(void) {
     if (last && timer_ticks - last < NOTE_EVERY_TICKS)
         return;
     last = timer_ticks ? timer_ticks : 1;
-    sec_log("aging", "a starving process got the CPU");
+    audit_log("aging", "a starving process got the CPU");
 }
 
 static int selftest(void) {
@@ -60,5 +61,5 @@ static const defence_t defence = {
 };
 
 void def_aging_register(void) {
-    proc_security_register_defence(&defence);
+    registry_add_defence(&defence);
 }

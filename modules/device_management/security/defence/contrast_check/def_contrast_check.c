@@ -14,7 +14,8 @@
  */
 
 #include "def_contrast_check.h"
-#include "security_lab.h"
+#include "registry.h"
+#include "audit.h"
 
 int def_brightness(uint32_t rgb) {
     int r = rgb >> 16 & 0xFF, g = rgb >> 8 & 0xFF, b = rgb & 0xFF;
@@ -30,7 +31,7 @@ static int readable(uint32_t fg, uint32_t bg) {
 int def_contrast_ok(uint32_t fg, uint32_t bg, const char *what) {
     if (readable(fg, bg))
         return 1;
-    sec_log("contrast_check", what);
+    audit_log("contrast_check", what);
     return 0;
 }
 
@@ -53,5 +54,5 @@ static const defence_t defence = {
 };
 
 void def_contrast_check_register(void) {
-    proc_security_register_defence(&defence);
+    registry_add_defence(&defence);
 }

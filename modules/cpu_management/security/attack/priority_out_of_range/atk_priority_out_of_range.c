@@ -19,7 +19,7 @@
  *       setpriority (syscalls/setpriority) through int 0x80.
  */
 
-#include "security_lab.h"
+#include "registry.h"
 #include "usertask.h"
 #include "ui.h"
 
@@ -84,5 +84,5 @@ static const attack_t attack = {
 };
 
 void atk_priority_out_of_range_register(void) {
-    proc_security_register_attack(&attack);
+    registry_add_attack(&attack);
 }

@@ -24,11 +24,11 @@ its files for it.
 ## Uses
 
 - `fd_release()` / `fd_count()` from core/fd
-- `sec_log()` from the security lab: a leak that had to be cleaned up is evidence
+- `audit_log()` from security_management (core/audit): a leak that had to be cleaned up is evidence
 
 ## Try it
 
 ```
 seclab attack fd_leak live
-seclab log
+audit
 ```

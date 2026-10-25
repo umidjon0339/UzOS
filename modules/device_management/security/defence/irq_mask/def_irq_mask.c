@@ -13,7 +13,8 @@
  */
 
 #include "def_irq_mask.h"
-#include "security_lab.h"
+#include "registry.h"
+#include "audit.h"
 #include "pic.h"
 #include "isr.h"
 
@@ -26,7 +27,7 @@ static int may_unmask(uint8_t irq, int has_handler) {
 int def_irq_unmask_ok(uint8_t irq) {
     if (may_unmask(irq, irq < 16 && isr_has_handler(IRQ_BASE + irq)))
         return 1;
-    sec_log("irq_mask", "IRQ line kept masked: no driver handles it");
+    audit_log("irq_mask", "IRQ line kept masked: no driver handles it");
     return 0;
 }
 
@@ -46,5 +47,5 @@ static const defence_t defence = {
 };
 
 void def_irq_mask_register(void) {
-    proc_security_register_defence(&defence);
+    registry_add_defence(&defence);
 }

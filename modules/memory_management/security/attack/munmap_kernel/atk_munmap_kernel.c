@@ -14,7 +14,8 @@
  * Uses: sys_mmap / sys_munmap (syscalls/), pmm_get_used_blocks (core/pmm).
  */
 
-#include "security_lab.h"
+#include "registry.h"
+#include "audit.h"
 #include "memory_layout.h"
 #include "pmm.h"
 #include "vga.h"
@@ -38,7 +39,7 @@ static void try_munmap(const char *what, void *addr, uint32_t length) {
 }
 
 static int launch(void) {
-    uint32_t denied = sec_total_denied();
+    uint32_t denied = audit_total();
 
     try_munmap("kernel code ", (void *)0x00100000, PAGE_SIZE);
     try_munmap("kernel heap ", (void *)KHEAP_START, PAGE_SIZE);
@@ -50,7 +51,7 @@ static int launch(void) {
                       ? "  whole region -> unmapped (allowed, it is ours)\n"
                       : "  whole region -> FAILED\n");
     }
-    return sec_total_denied() - denied;
+    return audit_total() - denied;
 }
 
 static const attack_t attack = {
@@ -62,5 +63,5 @@ static const attack_t attack = {
 };
 
 void atk_munmap_kernel_register(void) {
-    proc_security_register_attack(&attack);
+    registry_add_attack(&attack);
 }

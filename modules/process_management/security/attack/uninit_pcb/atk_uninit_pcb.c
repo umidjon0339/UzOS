@@ -15,7 +15,7 @@
  * Uses: process_create / process_kill / the process table (core/process).
  */
 
-#include "security_lab.h"
+#include "registry.h"
 #include "process.h"
 #include "vga.h"
 
@@ -95,5 +95,5 @@ static const attack_t attack = {
 };
 
 void atk_uninit_pcb_register(void) {
-    proc_security_register_attack(&attack);
+    registry_add_attack(&attack);
 }

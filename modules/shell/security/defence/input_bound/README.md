@@ -28,7 +28,7 @@ there is exactly one place where the check is needed.
 
 ## Uses
 
-- `sec_log()` from the security lab
+- `audit_log()` from security_management (core/audit)
 
 ## Try it
 

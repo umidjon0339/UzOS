@@ -11,7 +11,8 @@
 1. The target must exist.
 2. **System processes** (`idle`, `kernel_main`) can never be killed.
    `scheduler_init()` marks them with `is_system = 1`.
-3. Root (uid 0) may kill any other process; a user only its own.
+3. Whoever holds **CAP_KILL** (root) may kill any other process; a
+   user only its own.
 
 ## Why
 
@@ -26,7 +27,8 @@ the scheduler with nothing to run when everyone sleeps.
 ## Uses
 
 - `process_t.is_system` and `process_t.uid` from the process table
-- `sec_log()` from the security lab, to record each refusal
+- `caps_has(uid, CAP_KILL)` from security_management [core/caps](../../../../security_management/core/caps/)
+- `audit_log()` from security_management (core/audit), to record each refusal
 
 ## Try it
 
@@ -34,5 +36,5 @@ the scheduler with nothing to run when everyone sleeps.
 ps                     # idle and kernel_main show "(system)"
 kill 1                 # refused
 seclab attack kill_system live
-seclab log
+audit
 ```

@@ -9,7 +9,9 @@
 ## The rule
 
 1. A normal user may own at most **8** processes.
-2. The last **5** free slots are kept for root (uid 0).
+2. The last **5** free slots are kept for root.
+
+Whoever holds **CAP_RESOURCE** (root) skips both rules.
 
 ## Why
 
@@ -20,13 +22,14 @@ sure root can always get in to clean up, even when the table is almost full.
 ## Uses
 
 - `process_count_free_slots()` and the process table, to count slots
-- `sec_log()` from the security lab, to record each refusal
+- `caps_has(uid, CAP_RESOURCE)` from security_management [core/caps](../../../../security_management/core/caps/)
+- `audit_log()` from security_management (core/audit), to record each refusal
 
 ## Try it
 
 ```
 seclab verify slot_quota
 seclab attack fork_bomb live     # 8 created, then refused
-seclab log
+audit
 seclab repair
 ```

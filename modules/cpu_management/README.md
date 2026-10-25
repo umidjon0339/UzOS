@@ -25,7 +25,7 @@ cpu_management/
 │   └── cpuinfo/ faults/ cpustat/ nice/
 ├── syscalls/                     one folder per system call
 │   └── cputime/ setpriority/ getpriority/
-└── security/                     attack/defence pairs (see security_lab)
+└── security/                     attack/defence pairs (see security_management)
     ├── attack/   user_exception/ tsc_timing/ priority_out_of_range/ cpu_hog/
     │             (each with its ring 3 program as a .s file, + README)
     └── defence/  fault_isolation/ tsc_restrict/ priority_bounds/ aging/

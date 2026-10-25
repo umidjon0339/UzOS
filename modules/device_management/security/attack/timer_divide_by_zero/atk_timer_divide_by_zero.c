@@ -14,7 +14,8 @@
  * Uses: init_timer / timer_frequency (timer/).
  */
 
-#include "security_lab.h"
+#include "registry.h"
+#include "audit.h"
 #include "timer.h"
 #include "vga.h"
 
@@ -40,7 +41,7 @@ static int simulate(void) {
 }
 
 static int launch(void) {
-    uint32_t denied = sec_total_denied();
+    uint32_t denied = audit_total();
 
     for (unsigned i = 0; i < BAD_COUNT; i++)
         init_timer(bad_rates[i].hz);
@@ -48,7 +49,7 @@ static int launch(void) {
     vga_print_str("  tick rate after the attack: ");
     vga_print_int(timer_frequency());
     vga_print_str(timer_frequency() == TIMER_HZ ? " Hz (unchanged)\n" : " Hz (CHANGED)\n");
-    return sec_total_denied() - denied;
+    return audit_total() - denied;
 }
 
 static const attack_t attack = {
@@ -60,5 +61,5 @@ static const attack_t attack = {
 };
 
 void atk_timer_divide_by_zero_register(void) {
-    proc_security_register_attack(&attack);
+    registry_add_attack(&attack);
 }

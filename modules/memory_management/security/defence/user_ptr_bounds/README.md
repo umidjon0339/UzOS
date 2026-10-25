@@ -38,7 +38,7 @@ addresses passed as "user". User space is now `0x08000000`–`0xC0000000`
 ## Uses
 
 - `USER_SPACE_START` / `USER_SPACE_END` from core/layout, `vmm_walk()` from core/vmm
-- `sec_log()` from the security lab
+- `audit_log()` from security_management (core/audit)
 
 ## Try it
 

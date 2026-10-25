@@ -11,7 +11,8 @@
  * Uses: calc_eval (commands/calc).
  */
 
-#include "security_lab.h"
+#include "registry.h"
+#include "audit.h"
 #include "calc.h"
 #include "vga.h"
 
@@ -37,7 +38,7 @@ static int simulate(void) {
 }
 
 static int launch(void) {
-    uint32_t denied = sec_total_denied();
+    uint32_t denied = audit_total();
     int32_t result;
     const char *error;
 
@@ -55,7 +56,7 @@ static int launch(void) {
     else
         vga_print_str("FAILED");
     vga_print_str("\n");
-    return sec_total_denied() - denied;
+    return audit_total() - denied;
 }
 
 static const attack_t attack = {
@@ -67,5 +68,5 @@ static const attack_t attack = {
 };
 
 void atk_calc_overflow_register(void) {
-    proc_security_register_attack(&attack);
+    registry_add_attack(&attack);
 }

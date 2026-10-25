@@ -34,11 +34,11 @@ as exactly one cell of exactly the right width.
 
 ## Uses
 
-- `sec_log()` from the security lab
+- `audit_log()` from security_management (core/audit)
 
 ## Try it
 
 ```
 seclab attack output_spoof live
-seclab log
+audit
 ```

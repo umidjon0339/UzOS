@@ -14,7 +14,7 @@
  * Uses: def_pid_bounds_check (security/defence/pid_bounds), the process table.
  */
 
-#include "security_lab.h"
+#include "registry.h"
 #include "process.h"
 #include "vga.h"
 #include "def_pid_bounds.h"
@@ -73,5 +73,5 @@ static const attack_t attack = {
 };
 
 void atk_pid_wrap_register(void) {
-    proc_security_register_attack(&attack);
+    registry_add_attack(&attack);
 }

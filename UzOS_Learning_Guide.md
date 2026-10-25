@@ -24,7 +24,7 @@ This is the heart of the initialization phase. If you want to see how the OS is 
    * **PMM** (Physical Memory Manager): Tracks free RAM pages.
    * **VMM** (Virtual Memory Manager): Sets up paging.
    * **KHEAP**: Sets up `kmalloc` for dynamic memory allocation.
-7. **Security lab**: registers every module's attack/defence pairs.
+7. **Security**: registers every module's attack/defence pairs, then **measures the kernel**: the SHA-256 of its code and constants, to compare with later.
 8. **Shell**: Starts the CLI and registers commands.
 9. **Filesystem**: Initializes the Virtual File System (VFS) and the initial RAMDisk. Then **Users**: root and guest, each with a home directory under `/home`.
 10. **Process Management**: Turns on the scheduler to allow multitasking.
@@ -68,7 +68,7 @@ modules/<module>/
 1. **`core/`**: The pure logic of the subsystem. For memory, this is the PMM and VMM. For processes, this is the scheduler and ELF loader.
 2. **`commands/`**: User-facing shell commands, one folder each (e.g. `commands/kill/cmd_kill.c`), registered from one small table.
 3. **`syscalls/`**: The door for user programs. Each syscall has a folder with its number (`SYS_READ`), header and code; `process_management/syscalls/handler/` routes `int 0x80` to all of them.
-4. **`security/`**: Paired attacks and defences. Every file starts with what it is, what it uses and why; every folder has a README. The `seclab` command (in `modules/security_lab/`) runs them.
+4. **`security/`**: Paired attacks and defences. Every file starts with what it is, what it uses and why; every folder has a README. The `seclab` command (in `modules/security_management/`) runs them.
 
 Every module now follows this layout and has a README with its full map.
 
@@ -108,7 +108,6 @@ See [modules/process_management/README.md](modules/process_management/README.md)
 * **User tasks (`core/usertask/`)**: copies a small assembly program to a user page and drops it to ring 3. `testuser` and several security lab attacks use it.
 * **ELF Loader (`core/elf/`)**: Reads an ELF file from the filesystem, checks it, maps it into memory, and creates a process for it.
 * **System calls (`syscalls/`)**: `int 0x80` with the number in EAX. `syscalls/handler/` routes it to `exit`, `getpid`, `sleep` or `yield`.
-* **Security lab (`modules/security_lab/`)**: The shared registry and the `seclab` command. Each module keeps its own attack/defence pairs.
 
 ### E. CPU Management (`modules/cpu_management/`)
 See [modules/cpu_management/README.md](modules/cpu_management/README.md) for the full map.
@@ -126,16 +125,26 @@ See [modules/user_management/README.md](modules/user_management/README.md) for t
 * **Hash (`core/hash/`)**: SHA-256, written out step by step.
 * **Session (`core/session/`)**: the login prompt and switching users. Logging in sets the shell process's uid; every check in the kernel then sees that user.
 * **Permissions (`core/perm/`)**: each file has an owner and a mode like `64` (`rw/r-`: owner reads and writes, others read). The filesystem syscalls ask before every open, create, delete, rename and `cd`.
-* **Syscalls**: `getuid`, `setuid` (only root may change its uid).
+* **Syscalls**: `getuid`, `setuid` (only CAP_SETUID, that is root, may change the uid).
 * **Commands**: `whoami`, `id`, `users`, `su`, `logout`, `passwd`, `chmod`, `chown`, `useradd`, `userdel`. `ls` shows owners and modes; the prompt ends in `#` for root.
 
-### G. Filesystem Management (`modules/filesystem_management/`)
+### G. Security Management (`modules/security_management/`)
+See [modules/security_management/README.md](modules/security_management/README.md) for the full map. Two questions: **protection** (who may do what?) and **security** (what was tried, and is the kernel still itself?).
+* **Capabilities (`core/caps/`)**: root's rights, split into named privileges like Linux has: `CAP_KILL`, `CAP_SETUID`, `CAP_FILES`, `CAP_CHOWN`, `CAP_USERS`, `CAP_PRIORITY`, `CAP_RESOURCE`, `CAP_SECLAB`. Every check asks for exactly one (`caps_has(uid, CAP_KILL)`), and one table decides who holds which: root all, other users none.
+* **Audit log (`core/audit/`)**: every refusal of every defence, with the time, the user and the PID. A ring of the newest 32 events, plus a counter per defence that never forgets. No one can clear it.
+* **Kernel integrity (`core/integrity/`)**: SHA-256 of `.text` and `.rodata` at boot; `exec` measures again before it starts a program and refuses on a patched kernel.
+* **Security lab (`core/registry/`, `core/catalog/`, `core/watchdog/`)**: the list of every module's attack/defence pairs, and the `seclab` command that runs them. A live run is BLOCKED only when the attack's own defence refused it.
+* **Syscalls**: `getcaps` (which capabilities do I have?).
+* **Commands**: `audit [sum]`, `caps [user]`, `integrity`, `seclab`.
+* **Its own pairs**: `kernel_patch` ↔ `integrity_check` (one byte written into kernel code), `log_flood` ↔ `audit_limit` (hiding a refusal under a flood of cheap ones).
+
+### H. Filesystem Management (`modules/filesystem_management/`)
 See [modules/filesystem_management/README.md](modules/filesystem_management/README.md).
 * **VFS (`core/vfs/`)**: the tree of files and directories, path lookup (`/a/b`, `../x`), and open counts.
 * **RAMDisk (`core/ramdisk/`)**: the driver that keeps every file's bytes in the kernel heap.
 * **Commands**: `ls cd pwd mkdir touch rm cat write cp mv wc grep hexdump`, all with full paths. Every file has an owner and a mode (see User Management).
 
-### H. Shell (`modules/shell/`)
+### I. Shell (`modules/shell/`)
 See [modules/shell/README.md](modules/shell/README.md).
 * **Core**: the command registry, the line being typed (`line/`), history (Up/Down) and Tab completion for commands and paths.
 * **Commands**: `help` (built from the registry), `clear`, `echo`, `color`, `calc` (a recursive-descent parser), `history`, `snake`.
@@ -143,7 +152,7 @@ See [modules/shell/README.md](modules/shell/README.md).
 * **Colours while you type (`core/highlight/`)**: the command word turns green when it is a real command, red when no command starts like it.
 * **Ctrl+C**: at the prompt it clears the line; while a command runs it sends the signal `SIGINT` (`process_management/core/signal/`), and `sleep`, `top`, `exec`, `snake`, `startx` stop early. `exec hello` runs in the foreground; `exec hello &` in the background.
 
-### I. UI (`modules/ui/`)
+### J. UI (`modules/ui/`)
 See [modules/ui/README.md](modules/ui/README.md).
 * **Style (`core/style/`)**: one look for every message: `ui_error`, `ui_ok`, `ui_warn`, `ui_usage`; colours by meaning, not by number.
 * **Frames and bars (`core/box/`)**: `┌─ Title ─┐` panels, table cells that cannot be broken by a strange name, `███░░` bars. `meminfo`, `heapinfo`, `ps`, `devices` and `ioinfo` use them.

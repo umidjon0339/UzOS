@@ -1,12 +1,13 @@
 /*
  * catalog.c - The list of every attack and defence in UzOS.
  *
- * Each attack/defence folder has a <id>_register() function. To add a
- * new one: write the folder, declare its register function here, and
- * call it in proc_security_init(). The `seclab list` order follows this.
+ * Each attack/defence folder has a <id>_register() function, which hands
+ * its attack_t / defence_t to the registry (core/registry). To add a new
+ * one: write the folder, declare its register function here, and call it
+ * in catalog_init(). The `seclab list` order follows this.
  */
 
-#include "security_lab.h"
+#include "catalog.h"
 
 /* ---------- process_management ---------- */
 void atk_fork_bomb_register(void);              void def_slot_quota_register(void);
@@ -64,7 +65,11 @@ void atk_line_overflow_register(void);          void def_input_bound_register(vo
 /* ---------- ui ---------- */
 void atk_output_spoof_register(void);           void def_safe_text_register(void);
 
-void proc_security_init(void) {
+/* ---------- security_management ---------- */
+void atk_kernel_patch_register(void);           void def_integrity_check_register(void);
+void atk_log_flood_register(void);              void def_audit_limit_register(void);
+
+void catalog_init(void) {
     // process_management
     atk_fork_bomb_register();               def_slot_quota_register();
     atk_kill_system_register();             def_kill_guard_register();
@@ -120,4 +125,8 @@ void proc_security_init(void) {
 
     // ui
     atk_output_spoof_register();            def_safe_text_register();
+
+    // security_management
+    atk_kernel_patch_register();            def_integrity_check_register();
+    atk_log_flood_register();               def_audit_limit_register();
 }

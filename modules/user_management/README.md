@@ -10,7 +10,7 @@ holds the rule for who may read or change a file.
 | Which users exist? | `core/users`: the user table (uid, name, home, salt, hash) |
 | How is a password kept? | `core/hash`: SHA-256; only salt + hash are stored |
 | Who is using the shell? | `core/session`: login prompt, `su`, `logout` |
-| May this user read or change this file? | `core/perm`: owner + mode, root passes |
+| May this user read or change this file? | `core/perm`: owner + mode, CAP_FILES (root) passes |
 
 ```
 user_management/
@@ -24,7 +24,7 @@ user_management/
 │   └── whoami/ id/ users/ su/ logout/ passwd/ chmod/ chown/ useradd/ userdel/
 ├── syscalls/                     one folder per system call
 │   └── getuid/ setuid/
-└── security/                     attack/defence pairs (see security_lab)
+└── security/                     attack/defence pairs (see security_management)
     ├── attack/   setuid_escalation/ file_permission_bypass/   (each with its .s program)
     └── defence/  setuid_guard/ file_access/
 ```
@@ -37,12 +37,13 @@ What other modules hand to it, and what they ask of it:
 | filesystem_management | `vfs_node_t.owner` / `.mode`; its syscalls and `vfs_lookup` call `perm_check()` |
 | io_management | `sys_open` calls `perm_check()` for read / write / create |
 | shell | the prompt asks `session_user()` |
+| security_management | `caps_has()` / `caps_require()` decide what root may do; `audit` and `caps` show user names |
 
 ## The users
 
 | uid | name | password | home | |
 |---|---|---|---|---|
-| 0 | `root` | `uzos` | `/home/root` (mode 60, private) | may do anything |
+| 0 | `root` | `uzos` | `/home/root` (mode 60, private) | holds every capability |
 | 1 | `guest` | `guest` | `/home/guest` (mode 64) | a normal user |
 | 1000+ | added with `useradd` | chosen then | `/home/<name>` | normal users |
 
@@ -74,7 +75,7 @@ login:  hash what was typed with the same salt, compare every byte
 boot -> "uzos login:"  name + hidden password  -> session_switch(user)
                                                    shell process uid = user's uid
                                                    cwd = user's home
-su [user]  -> same switch; root needs no password
+su [user]  -> same switch; CAP_SETUID (root) needs no password
 logout     -> back to "uzos login:"
 ```
 
@@ -102,8 +103,8 @@ digit = 4 (read) + 2 (write)       64 -> rw/r-     60 -> rw/--     40 -> r-/--
 | directory | `ls`, `cd`, walking through it in a path | create or delete things in it |
 
 - Deleting, renaming or `chmod` also needs you to **own** the entry.
-- Only root may use `chown`.
-- Root passes every check.
+- Only CAP_CHOWN (root) may use `chown`.
+- CAP_FILES (root) passes every check.
 - New entries belong to whoever created them, with mode 64.
 
 One `open()`, step by step:
@@ -120,7 +121,7 @@ sys_open("/home/root/notes", O_READ)            io_management
 | # | Syscall | Arguments | Result |
 |---|---|---|---|
 | 23 | `getuid` | none | the caller's uid |
-| 24 | `setuid` | EBX = uid | 0 / -1 (setuid_guard: only root may change its uid) |
+| 24 | `setuid` | EBX = uid | 0 / -1 (setuid_guard: only CAP_SETUID may change the uid) |
 
 ## Commands
 
@@ -138,7 +139,16 @@ sys_open("/home/root/notes", O_READ)            io_management
 | `userdel <name>` | remove an account (files stay) | root |
 
 Elsewhere: `ls` shows mode and owner, `ps`/`top` show user names, `cd`
-alone goes home, and `seclab ... live` and `seclab repair` need root.
+alone goes home, and `seclab ... live` and `seclab repair` need
+CAP_SECLAB.
+
+## Root's rights are capabilities
+
+"Root may do it" is never written as `uid == 0` in a check. Each check
+asks for one capability (security_management/core/caps): CAP_SETUID
+for `su` and setuid_guard, CAP_FILES for file_access, CAP_CHOWN for
+`chown`, CAP_USERS for `useradd`, `userdel` and `passwd <user>`. Root
+holds all of them, other users none; `caps [user]` lists them.
 
 ## Security: attack ↔ defence
 

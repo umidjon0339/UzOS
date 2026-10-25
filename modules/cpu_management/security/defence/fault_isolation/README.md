@@ -36,7 +36,7 @@ Vectors 2, 8 and 18 are never survivable: they say the machine itself
 ## Uses
 
 - `registers_t` (saved `cs`, `int_no`) from arch/x86/isr
-- `sec_log()` from the security lab
+- `audit_log()` from security_management (core/audit)
 
 ## Try it
 

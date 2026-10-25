@@ -20,7 +20,7 @@
  *       (filesystem_management), usertask_* (process_management/core/usertask).
  */
 
-#include "security_lab.h"
+#include "registry.h"
 #include "tsc.h"
 #include "vfs.h"
 #include "usertask.h"
@@ -94,5 +94,5 @@ static const attack_t attack = {
 };
 
 void atk_tsc_timing_register(void) {
-    proc_security_register_attack(&attack);
+    registry_add_attack(&attack);
 }

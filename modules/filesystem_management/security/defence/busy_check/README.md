@@ -37,7 +37,7 @@ calls them for every `open` and `close`, and when a process ends.
 
 - `vfs_node_t.open_count`, `fs_root` from core/vfs
 - the process table (process_management), to find current directories
-- `sec_log()` from the security lab
+- `audit_log()` from security_management (core/audit)
 
 ## Try it
 

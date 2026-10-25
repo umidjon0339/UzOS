@@ -32,7 +32,7 @@ slices all wrong, without any error message.
 ## Uses
 
 - `PIT_INPUT_HZ` / `TIMER_HZ` from timer/
-- `sec_log()` from the security lab
+- `audit_log()` from security_management (core/audit)
 
 ## Try it
 

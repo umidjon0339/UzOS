@@ -10,21 +10,23 @@
 
 ```
 1. the wanted uid belongs to a real user
-2. root may become any user          (to give up its rights)
+2. CAP_SETUID (root) may become any user   (to give up its rights)
 3. anyone else may only stay itself
 ```
 
 ## Why
 
 Every other check in UzOS trusts the uid: `kill_guard`, `slot_quota`,
-`priority_bounds`, `file_access`. If a program could set its own uid
-to 0, all of them would let it through. `setuid` is only for going
+`priority_bounds`, `file_access` all ask `caps_has(uid, ...)`, and uid 0
+holds every capability. If a program could set its own uid to 0, all
+of them would let it through. `setuid` is only for going
 **down** (root to a normal user), never up.
 
 ## Uses
 
 - `users_find_uid()` from [core/users](../../../core/users/)
-- `sec_log()` from the security lab
+- `caps_has(uid, CAP_SETUID)` from security_management [core/caps](../../../../security_management/core/caps/)
+- `audit_log()` from security_management (core/audit)
 
 ## Try it
 

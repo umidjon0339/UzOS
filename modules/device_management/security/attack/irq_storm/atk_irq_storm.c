@@ -15,7 +15,8 @@
  * Uses: pic_unmask / pic_get_mask (pic/), isr_has_handler (arch/x86/isr).
  */
 
-#include "security_lab.h"
+#include "registry.h"
+#include "audit.h"
 #include "pic.h"
 #include "isr.h"
 #include "vga.h"
@@ -47,7 +48,7 @@ static int simulate(void) {
 }
 
 static int launch(void) {
-    uint32_t denied = sec_total_denied();
+    uint32_t denied = audit_total();
     uint16_t before = pic_get_mask();
 
     for (unsigned i = 0; i < TARGET_COUNT; i++) {
@@ -62,7 +63,7 @@ static int launch(void) {
     }
 
     vga_print_str(pic_get_mask() == before ? "  PIC mask unchanged\n" : "  PIC mask CHANGED\n");
-    return sec_total_denied() - denied;
+    return audit_total() - denied;
 }
 
 static const attack_t attack = {
@@ -74,5 +75,5 @@ static const attack_t attack = {
 };
 
 void atk_irq_storm_register(void) {
-    proc_security_register_attack(&attack);
+    registry_add_attack(&attack);
 }

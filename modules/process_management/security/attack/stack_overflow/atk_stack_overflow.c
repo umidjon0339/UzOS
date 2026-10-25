@@ -17,7 +17,7 @@
  *       scheduler_get_current_process (core/scheduler), cpu_read_esp (arch/x86/cpu).
  */
 
-#include "security_lab.h"
+#include "registry.h"
 #include "scheduler.h"
 #include "process.h"
 #include "vga.h"
@@ -94,5 +94,5 @@ static const attack_t attack = {
 };
 
 void atk_stack_overflow_register(void) {
-    proc_security_register_attack(&attack);
+    registry_add_attack(&attack);
 }

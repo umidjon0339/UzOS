@@ -32,7 +32,7 @@ owns each block.
 
 - `kheap_header_t`, `KHEAP_MAGIC` from core/kheap
 - `KHEAP_START` / `KHEAP_SIZE` from core/layout
-- `sec_log()` from the security lab
+- `audit_log()` from security_management (core/audit)
 
 ## Try it
 

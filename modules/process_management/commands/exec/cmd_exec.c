@@ -42,7 +42,7 @@ static void wait_foreground(int pid) {
             ui_printf("stopped PID %d", pid);
             ui_end();
         } else {
-            ui_error("exec", "could not stop it (see `seclab log`)");
+            ui_error("exec", "could not stop it (see `audit`)");
         }
         return;
     }

@@ -10,7 +10,8 @@
  */
 
 #include "def_file_range.h"
-#include "security_lab.h"
+#include "registry.h"
+#include "audit.h"
 
 // The whole rule, as a pure function so the selftest can try it.
 static int in_range(uint32_t offset, uint32_t size, uint32_t limit) {
@@ -20,7 +21,7 @@ static int in_range(uint32_t offset, uint32_t size, uint32_t limit) {
 int def_file_range_ok(uint32_t offset, uint32_t size, uint32_t limit) {
     if (in_range(offset, size, limit))
         return 1;
-    sec_log("file_range", "file write past the size limit refused");
+    audit_log("file_range", "file write past the size limit refused");
     return 0;
 }
 
@@ -41,5 +42,5 @@ static const defence_t defence = {
 };
 
 void def_file_range_register(void) {
-    proc_security_register_defence(&defence);
+    registry_add_defence(&defence);
 }

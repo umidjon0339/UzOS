@@ -8,6 +8,10 @@ fault policy, TSC, accounting, priority scheduling with aging.
 Phase 7: User management (`modules/user_management/`) - **done**: user
 table with salted SHA-256 passwords, login prompt, su/passwd, file
 owners and modes, useradd/userdel.
+Phase 8: Security management (`modules/security_management/`) - **done**:
+the security lab moved and split (registry, catalog, audit, watchdog),
+capabilities, audit log with user/PID, kernel integrity (SHA-256 of
+.text/.rodata), getcaps syscall, two pairs of its own.
 
 ## Implemented Modules
 - Multiboot boot (`boot/boot.s`), linker script (`boot/linker.ld`), Makefile
@@ -34,19 +38,26 @@ owners and modes, useradd/userdel.
   `useradd` (uids never reused), passwords as salt + SHA-256 x1000, login
   prompt at boot, `su`, `logout`, `passwd`, file owner + mode (`chmod`,
   `chown`, checked in fs/io syscalls and `vfs_lookup`), syscalls 23/24
-- Shell: history, Tab completion, `guest@uzos:~$` / `root@uzos:~#` prompt, 58 commands,
+- `modules/security_management/`: capabilities (`caps`, CAP_KILL ... CAP_SECLAB,
+  `getcaps` syscall 25) replace every privilege `uid == 0` test; audit log
+  (`audit [sum]`: ring of 32 + per-defence counters, user + PID, rate limit);
+  kernel integrity (`integrity`, checked before every `exec`); the lab
+- Shell: history, Tab completion, `guest@uzos:~$` / `root@uzos:~#` prompt, 61 commands,
   command word coloured while typing (green / normal / red), Ctrl+C
   (clears the line, or SIGINT to the running command: `core/signal/`,
   `sys_sleep_interruptible`); `exec` runs in the foreground, `&` = background
 - GUI: BGA framebuffer, compositing window manager, `startx`
 
 ## Security Lab
-Shared framework: `modules/security_lab/` (registry, log, watchdog,
-`catalog.c` list, `seclab` command). Each module keeps its own pairs in
-`modules/<module>/security/{attack,defence}/<id>/`.
+Shared framework: `modules/security_management/core/` (registry,
+catalog, audit, watchdog) and the `seclab` command. Each module keeps its
+own pairs in `modules/<module>/security/{attack,defence}/<id>/`.
 
 Drive it with `seclab list | info <id> | attack <id> [live] |
-defence <id> | verify <id|all> | log | status | repair`.
+defence <id> | verify <id|all> | log | status | repair`. A live run is
+BLOCKED only when the attack's own defence refused something; run
+`seclab repair` between live runs (fork_bomb's workers fill root's quota).
+40 pairs, `seclab verify all` = 40 of 40.
 
 process_management pairs (8):
 1. `fork_bomb`            <-> `slot_quota`   per-user cap + root reserve
@@ -95,14 +106,18 @@ ui pairs (1):
 1. `output_spoof` <-> `safe_text`  names in tables: no control characters, cut to fit
 
 user_management pairs (2):
-1. `setuid_escalation`      <-> `setuid_guard` only root may change its uid
-2. `file_permission_bypass` <-> `file_access`  owner + mode checked; root passes
+1. `setuid_escalation`      <-> `setuid_guard` only CAP_SETUID may change the uid
+2. `file_permission_bypass` <-> `file_access`  owner + mode checked; CAP_FILES passes
 
 cpu_management pairs (4):
 1. `user_exception`        <-> `fault_isolation` a ring 3 fault kills only that process
 2. `tsc_timing`            <-> `tsc_restrict`    CR4.TSD: rdtsc is kernel-only
 3. `priority_out_of_range` <-> `priority_bounds` levels 1-7, users only lower their own
 4. `cpu_hog`               <-> `aging`           waiting raises priority: no starvation
+
+security_management pairs (2):
+1. `kernel_patch` <-> `integrity_check` SHA-256 of kernel code at boot vs before exec
+2. `log_flood`    <-> `audit_limit`     10 events per defence per second; the rest counted
 
 Tier 2 (needs per-process paging): cross-process memory read/write,
 guard pages below stacks, TOCTOU on the kill path.
@@ -240,7 +255,25 @@ Fixed in the shell step:
     program that never exits (`exec hello`) needed `kill`
 69. a password cancelled halfway (Esc) stayed on the stack
 
+Fixed in security_management:
+70. a live run counted ANY refusal as "BLOCKED": six ring 3 attacks run
+    after fork_bomb were really refused process slots by slot_quota and
+    never ran, yet showed BLOCKED. The verdict now counts only the
+    attack's own defence
+71. the audit log did not say who was refused (no uid, no PID), could be
+    read half-written by an interrupt, and one noisy defence could push
+    every other event out of it (audit_limit)
+72. privilege was a `uid == 0` test copied into a dozen checks; now one
+    capability table (core/caps)
+73. nothing noticed a write into the kernel's own code (integrity_check)
+74. `process_management/README.md` said ELF programs run as uid 1; they
+    run as the user who started them
+
 Still open:
+- Kernel code pages are writable (identity map with PAGE_WRITABLE, CR0.WP
+  off): integrity_check detects a patch but cannot prevent it.
+- Capabilities follow the uid; there is no per-process capability set,
+  so a process cannot drop one and keep the rest.
 - No groups (Linux's middle mode digit) and no execute bit: read is
   enough to `exec` a program.
 - `userland/hello.c` (`exec hello`) runs in ring 0 and ends in a `hlt`

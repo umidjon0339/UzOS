@@ -2,13 +2,15 @@
 ; setuid_escalation.s - A ring 3 program (guest, uid 1) asks to become root.
 ;
 ; Used by atk_setuid_escalation.c through usertask (process_management).
-; It calls setuid(0), then getuid() to see who it is now, and leaves
-; both answers in the mailbox for the kernel to show.
+; It calls setuid(0), then getuid() to see who it is now and getcaps()
+; to see which privileges it has, and leaves the answers in the mailbox
+; for the kernel to show.
 ; =============================================================================
 
 SYS_EXIT   equ 1
 SYS_GETUID equ 23
 SYS_SETUID equ 24
+SYS_GETCAPS equ 25
 MAILBOX    equ 0x40000F00       ; = USERTASK_MAILBOX in usertask.h
 DONE       equ 0x600D           ; mailbox[0]: "finished"
 
@@ -25,6 +27,10 @@ setuid_program:
     mov eax, SYS_GETUID
     int 0x80
     mov [MAILBOX + 8], eax      ; mailbox[2] = who I am now
+
+    mov eax, SYS_GETCAPS
+    int 0x80
+    mov [MAILBOX + 12], eax     ; mailbox[3] = my capabilities (a bit set)
 
     mov dword [MAILBOX], DONE
     mov eax, SYS_EXIT

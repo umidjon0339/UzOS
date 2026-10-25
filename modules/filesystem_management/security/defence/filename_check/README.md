@@ -26,7 +26,7 @@
 ## Uses
 
 - `FS_NAME_MAX` from core/vfs
-- `sec_log()` from the security lab
+- `audit_log()` from security_management (core/audit)
 
 ## Try it
 

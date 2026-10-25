@@ -24,6 +24,6 @@ void cmd_id(const char *args) {
     ui_printf("uid=%u(%s)  home=%s", user->uid, user->name, user->home);
     ui_color(UI_DIM);
     if (user->uid == UID_ROOT)
-        ui_printf("  (the administrator: may do anything)");
+        ui_printf("  (the administrator: see `caps`)");
     ui_end();
 }

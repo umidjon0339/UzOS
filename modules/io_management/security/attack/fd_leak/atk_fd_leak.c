@@ -17,7 +17,8 @@
  *       ramdisk_create / sys_unlink (filesystem_management), timer_wait.
  */
 
-#include "security_lab.h"
+#include "registry.h"
+#include "audit.h"
 #include "process.h"
 #include "ramdisk.h"
 #include "sys_open.h"
@@ -43,7 +44,7 @@ static int launch(void) {
     vfs_node_t *file = ramdisk_create(fs_root, TEMP + 1, FS_FILE);
     if (!file)
         return 0;
-    uint32_t denied = sec_total_denied();
+    uint32_t denied = audit_total();
 
     process_create("leaky", leaky_process, 0);
     timer_wait(WAIT_TICKS);
@@ -54,7 +55,7 @@ static int launch(void) {
 
     int deleted = sys_unlink(TEMP) == 0;
     vga_print_str(deleted ? "  rm /seclab_leak -> deleted\n" : "  rm /seclab_leak -> REFUSED, stuck\n");
-    return sec_total_denied() - denied;
+    return audit_total() - denied;
 }
 
 static const attack_t attack = {
@@ -66,5 +67,5 @@ static const attack_t attack = {
 };
 
 void atk_fd_leak_register(void) {
-    proc_security_register_attack(&attack);
+    registry_add_attack(&attack);
 }

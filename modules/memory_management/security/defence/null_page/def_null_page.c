@@ -12,7 +12,7 @@
  */
 
 #include "def_null_page.h"
-#include "security_lab.h"
+#include "registry.h"
 #include "vmm.h"
 
 void def_null_page_protect(void) {
@@ -37,5 +37,5 @@ static const defence_t defence = {
 };
 
 void def_null_page_register(void) {
-    proc_security_register_defence(&defence);
+    registry_add_defence(&defence);
 }

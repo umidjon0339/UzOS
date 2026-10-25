@@ -18,7 +18,7 @@
  *       (arch/x86/cpu), stack_top (boot/boot.s).
  */
 
-#include "security_lab.h"
+#include "registry.h"
 #include "cpu.h"
 #include "memory_layout.h"
 #include "vga.h"
@@ -81,5 +81,5 @@ static const attack_t attack = {
 };
 
 void atk_kernel_stack_to_user_register(void) {
-    proc_security_register_attack(&attack);
+    registry_add_attack(&attack);
 }

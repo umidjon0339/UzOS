@@ -33,5 +33,5 @@ heap. It shows that the check the scheduler runs catches it.
 
 ```
 seclab attack stack_overflow live
-seclab log
+audit
 ```

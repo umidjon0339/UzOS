@@ -11,7 +11,7 @@
 ```
 1. 1 <= level <= 7                       a real level (0 is the idle task's)
 2. the target exists, not a system process   idle, kernel_main, statusd keep theirs
-3. root (uid 0) may set any level on any other process
+3. CAP_PRIORITY (root) may set any level on any other process
 4. a user: only its own processes, and only DOWN (level <= current)
 ```
 
@@ -35,7 +35,8 @@ or the command, so every caller passes through it.
 
 - `PRIORITY_MIN` / `PRIORITY_MAX` from [core/priority](../../../core/priority/)
 - `process_t` (`uid`, `is_system`, `priority`) from process_management
-- `sec_log()` from the security lab
+- `caps_has(uid, CAP_PRIORITY)` from security_management [core/caps](../../../../security_management/core/caps/)
+- `audit_log()` from security_management (core/audit)
 
 ## Try it
 

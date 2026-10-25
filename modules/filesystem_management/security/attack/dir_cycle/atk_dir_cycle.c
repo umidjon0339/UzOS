@@ -14,7 +14,8 @@
  * Uses: sys_mkdir / sys_rename / sys_unlink (syscalls/).
  */
 
-#include "security_lab.h"
+#include "registry.h"
+#include "audit.h"
 #include "sys_mkdir.h"
 #include "sys_rename.h"
 #include "sys_unlink.h"
@@ -34,7 +35,7 @@ static void try_move(const char *what, const char *from, const char *to) {
 }
 
 static int launch(void) {
-    uint32_t denied = sec_total_denied();
+    uint32_t denied = audit_total();
 
     if (sys_mkdir("/seclab_a") || sys_mkdir("/seclab_a/b")) {
         vga_print_str("  could not build the test directories\n");
@@ -45,7 +46,7 @@ static int launch(void) {
 
     sys_unlink("/seclab_a/b");
     sys_unlink("/seclab_a");
-    return sec_total_denied() - denied;
+    return audit_total() - denied;
 }
 
 static const attack_t attack = {
@@ -57,5 +58,5 @@ static const attack_t attack = {
 };
 
 void atk_dir_cycle_register(void) {
-    proc_security_register_attack(&attack);
+    registry_add_attack(&attack);
 }

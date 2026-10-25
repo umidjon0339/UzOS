@@ -6,10 +6,12 @@
  *   3. for each PT_LOAD segment: map pages, zero them, copy the bytes
  *   4. start a process at e_entry
  *
- * Running a program needs read permission on its file (perm_check).
+ * Running a program needs read permission on its file (perm_check), and
+ * a kernel whose code is still the code it booted with (integrity_check).
  *
  * Uses: vfs_lookup/vfs_read (filesystem_management), perm_check
- *       (user_management), pmm_alloc_block +
+ *       (user_management), integrity_verify (security_management),
+ *       pmm_alloc_block +
  *       vmm_map_page (memory_management), process_create (core/process),
  *       ui_error (ui module) to say why a program was refused.
  *
@@ -27,6 +29,7 @@
 #include "string.h"
 #include "process.h"
 #include "def_elf_validate.h"
+#include "integrity.h"
 
 
 static int fail(const char *reason) {
@@ -54,6 +57,10 @@ static int load_segment(vfs_node_t *file, const Elf32_Phdr *ph) {
 }
 
 int elf_load_and_run(const char *filename) {
+    // DEFENCE integrity_check: a patched kernel starts no programs.
+    if (!integrity_verify())
+        return fail("refused: the kernel's code changed since boot (see `integrity`)");
+
     vfs_node_t *file = vfs_lookup(vfs_cwd(), filename);
     if (!file || !(file->flags & FS_FILE))
         return fail("file not found");

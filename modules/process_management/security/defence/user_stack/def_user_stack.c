@@ -13,7 +13,8 @@
  */
 
 #include "def_user_stack.h"
-#include "security_lab.h"
+#include "registry.h"
+#include "audit.h"
 #include "memory_layout.h"
 
 // The whole rule, as a pure function so the selftest can try it.
@@ -26,7 +27,7 @@ int def_user_stack_ok(uint32_t esp) {
     if (user_stack_ok(esp))
         return 1;
 
-    sec_log("user_stack", "refused to give ring 3 a stack outside user space");
+    audit_log("user_stack", "refused to give ring 3 a stack outside user space");
     return 0;
 }
 
@@ -50,5 +51,5 @@ static const defence_t defence = {
 };
 
 void def_user_stack_register(void) {
-    proc_security_register_defence(&defence);
+    registry_add_defence(&defence);
 }

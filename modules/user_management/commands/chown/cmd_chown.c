@@ -3,17 +3,17 @@
  *
  *   chown guest /home/guest/notes
  *
- * Root only. (If anyone could give files away, a user could hand a
+ * Needs CAP_CHOWN (root). (If anyone could give files away, a user could hand a
  * file to someone else and make them look responsible for it, or slip
  * past that user's limits. Linux has the same rule.)
  *
- * Uses: users_find_name (core/users), process_caller_uid (process_management),
+ * Uses: users_find_name (core/users), caps_require (security_management),
  *       vfs_lookup (filesystem_management), arg_next (lib), ui_* (ui module).
  */
 
 #include "user_commands.h"
 #include "users.h"
-#include "process.h"
+#include "caps.h"
 #include "vfs.h"
 #include "args.h"
 #include "ui.h"
@@ -26,10 +26,8 @@ void cmd_chown(const char *args) {
         ui_usage("chown <user> <path>");
         return;
     }
-    if (process_caller_uid() != UID_ROOT) {
-        ui_error("chown", "only root may give files away");
+    if (!caps_require(CAP_CHOWN, "chown"))
         return;
-    }
 
     const user_t *user = users_find_name(name);
     vfs_node_t *node = vfs_lookup(vfs_cwd(), path);

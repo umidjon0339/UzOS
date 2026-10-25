@@ -25,7 +25,7 @@ PID 0 always means "no process", so it is refused too.
 
 ## Uses
 
-- `sec_log()` from the security lab
+- `audit_log()` from security_management (core/audit)
 
 ## Try it
 

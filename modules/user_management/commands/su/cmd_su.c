@@ -4,28 +4,28 @@
  *   su          become root
  *   su guest    become guest
  *
- * You must type that user's password, except when you are root: root
- * may become anyone. Afterwards the shell runs with the new uid and
+ * You must type that user's password, except when you hold CAP_SETUID
+ * (root): root may become anyone. Afterwards the shell runs with the new uid and
  * starts in the new user's home. `logout` ends the session.
  *
  * Uses: users_find_name (core/users), session_* (core/session),
- *       ui_* (ui module).
+ *       caps_caller_has (security_management), ui_* (ui module).
  */
 
 #include "user_commands.h"
 #include "users.h"
 #include "session.h"
+#include "caps.h"
 #include "ui.h"
 
 void cmd_su(const char *args) {
     const user_t *target = users_find_name(args[0] ? args : "root");
-    const user_t *me = session_user();
 
     if (!target) {
         ui_error("su", "no such user");
         return;
     }
-    if (me && me->uid != UID_ROOT) {
+    if (!caps_caller_has(CAP_SETUID)) {
         int answer = session_ask_password(target);
         if (answer != PASSWORD_RIGHT) {
             if (answer == PASSWORD_WRONG)

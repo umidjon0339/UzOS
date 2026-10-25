@@ -30,7 +30,7 @@ checks the result against the 32-bit range before going on.
 
 ## Uses
 
-- `sec_log()` from the security lab
+- `audit_log()` from security_management (core/audit)
 
 ## Try it
 

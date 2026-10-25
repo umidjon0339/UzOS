@@ -29,7 +29,7 @@ call from asking for all of RAM.
 ## Uses
 
 - `PAGE_SIZE` from core/layout
-- `sec_log()` from the security lab
+- `audit_log()` from security_management (core/audit)
 
 ## Try it
 

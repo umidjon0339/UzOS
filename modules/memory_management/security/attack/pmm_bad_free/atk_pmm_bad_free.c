@@ -16,7 +16,8 @@
  *       _kernel_start (boot/linker.ld).
  */
 
-#include "security_lab.h"
+#include "registry.h"
+#include "audit.h"
 #include "pmm.h"
 #include "vga.h"
 
@@ -40,7 +41,7 @@ static void try_free(const char *what, uint32_t addr) {
 }
 
 static int launch(void) {
-    uint32_t denied = sec_total_denied();
+    uint32_t denied = audit_total();
 
     try_free("kernel frame      ", (uint32_t)_kernel_start);
     try_free("misaligned address", 0x00200001);
@@ -53,7 +54,7 @@ static int launch(void) {
         try_free("second free (double)", (uint32_t)frame);
     }
 
-    return sec_total_denied() - denied;
+    return audit_total() - denied;
 }
 
 static const attack_t attack = {
@@ -65,5 +66,5 @@ static const attack_t attack = {
 };
 
 void atk_pmm_bad_free_register(void) {
-    proc_security_register_attack(&attack);
+    registry_add_attack(&attack);
 }

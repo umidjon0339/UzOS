@@ -40,7 +40,7 @@ A screen that hides things lies by omission.
 ## Uses
 
 - `palette_rgb()` from vga/palette
-- `sec_log()` from the security lab
+- `audit_log()` from security_management (core/audit)
 
 ## Try it
 

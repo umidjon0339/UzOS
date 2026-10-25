@@ -9,14 +9,15 @@
  *
  * simulate(): explain what setuid(0) would give a guest program.
  * launch():   run setuid_escalation.s as guest in ring 3; it calls
- *             setuid(0) and getuid() and leaves the answers in the
- *             usertask mailbox.
+ *             setuid(0), getuid() and getcaps() and leaves the answers
+ *             in the usertask mailbox.
  *
  * Uses: usertask_* (process_management/core/usertask), and the syscalls
- *       setuid / getuid (syscalls/) through int 0x80.
+ *       setuid / getuid (syscalls/) and getcaps (security_management)
+ *       through int 0x80.
  */
 
-#include "security_lab.h"
+#include "registry.h"
 #include "usertask.h"
 #include "users.h"
 #include "ui.h"
@@ -54,7 +55,9 @@ static int launch(void) {
     ui_color(became_root ? UI_BAD : UI_GOOD);
     ui_printf("%s\n", became_root ? "ROOT!" : "(still guest)");
     ui_reset();
-    return became_root;
+    ui_printf("  getcaps() = 0x%x: %s\n", mailbox[3],
+              mailbox[3] ? "it holds privileges" : "no privileges at all");
+    return became_root || mailbox[3] != 0;
 }
 
 static const attack_t attack = {
@@ -66,5 +69,5 @@ static const attack_t attack = {
 };
 
 void atk_setuid_escalation_register(void) {
-    proc_security_register_attack(&attack);
+    registry_add_attack(&attack);
 }

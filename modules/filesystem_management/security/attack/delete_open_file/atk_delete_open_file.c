@@ -17,7 +17,8 @@
  *       sys_unlink (syscalls/unlink), the current process (process_management).
  */
 
-#include "security_lab.h"
+#include "registry.h"
+#include "audit.h"
 #include "ramdisk.h"
 #include "scheduler.h"
 #include "sys_unlink.h"
@@ -37,7 +38,7 @@ static void try_delete(const char *what, const char *path) {
 }
 
 static int launch(void) {
-    uint32_t denied = sec_total_denied();
+    uint32_t denied = audit_total();
     process_t *self = scheduler_get_current_process();
 
     // 1. An open file.
@@ -65,7 +66,7 @@ static int launch(void) {
     }
     sys_unlink("/seclab_dir");
 
-    return sec_total_denied() - denied;
+    return audit_total() - denied;
 }
 
 static const attack_t attack = {
@@ -77,5 +78,5 @@ static const attack_t attack = {
 };
 
 void atk_delete_open_file_register(void) {
-    proc_security_register_attack(&attack);
+    registry_add_attack(&attack);
 }

@@ -32,5 +32,5 @@ The PMM gives the most recently freed frames to the next caller. So:
 
 ```
 seclab attack pmm_bad_free live
-seclab log
+audit
 ```

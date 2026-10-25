@@ -55,6 +55,8 @@
 // user_management
 #include "sys_getuid.h"
 #include "sys_setuid.h"
+// security_management
+#include "sys_getcaps.h"
 
 #define SYSCALL_ERROR ((uint32_t)-1)
 
@@ -134,6 +136,8 @@ static uint32_t do_getpriority(registers_t *r) { return (uint32_t)sys_getpriorit
 static uint32_t do_getuid(registers_t *r) { (void)r; return sys_getuid(); }
 static uint32_t do_setuid(registers_t *r) { return (uint32_t)sys_setuid(r->ebx); }
 
+static uint32_t do_getcaps(registers_t *r) { (void)r; return sys_getcaps(); }
+
 /* ---------- The table ---------- */
 
 static const struct {
@@ -165,6 +169,7 @@ static const struct {
     { SYS_GETPRIORITY, "getpriority", do_getpriority },
     { SYS_GETUID,      "getuid",      do_getuid      },
     { SYS_SETUID,      "setuid",      do_setuid      },
+    { SYS_GETCAPS,     "getcaps",     do_getcaps     },
 };
 #define TABLE_SIZE (sizeof(table) / sizeof(table[0]))
 

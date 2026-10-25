@@ -27,7 +27,7 @@ own `ESP` to ring 3. Now `testuser` maps a real user stack page at
 ## Uses
 
 - `USER_SPACE_START` / `USER_SPACE_END` from memory_management/core/layout
-- `sec_log()` from the security lab
+- `audit_log()` from security_management (core/audit)
 
 ## Try it
 

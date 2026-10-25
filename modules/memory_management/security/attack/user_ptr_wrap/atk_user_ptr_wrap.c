@@ -16,7 +16,7 @@
  * Uses: def_user_range_ok (security/defence/user_ptr_bounds).
  */
 
-#include "security_lab.h"
+#include "registry.h"
 #include "memory_layout.h"
 #include "vga.h"
 #include "def_user_ptr_bounds.h"
@@ -80,5 +80,5 @@ static const attack_t attack = {
 };
 
 void atk_user_ptr_wrap_register(void) {
-    proc_security_register_attack(&attack);
+    registry_add_attack(&attack);
 }

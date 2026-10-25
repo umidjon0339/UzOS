@@ -1,5 +1,5 @@
 /*
- * cmd_useradd.c - `useradd <name>`: create a new account (root only).
+ * cmd_useradd.c - `useradd <name>`: create a new account (CAP_USERS: root).
  *
  *   useradd alice      asks for alice's password twice, then:
  *                      uid 1000, home /home/alice (owned by alice)
@@ -8,13 +8,13 @@
  * letter. Each new user gets the next uid; uids are never reused.
  *
  * Uses: users_add / users_name_ok (core/users), session_ask_new_password
- *       (core/session), process_caller_uid (process_management), ui_*.
+ *       (core/session), caps_require (security_management), ui_*.
  */
 
 #include "user_commands.h"
 #include "users.h"
 #include "session.h"
-#include "process.h"
+#include "caps.h"
 #include "string.h"
 #include "ui.h"
 
@@ -25,10 +25,8 @@ void cmd_useradd(const char *args) {
         ui_usage("useradd <name>");
         return;
     }
-    if (process_caller_uid() != UID_ROOT) {
-        ui_error("useradd", "only root may add users: type 'su' first");
+    if (!caps_require(CAP_USERS, "useradd"))
         return;
-    }
     if (!users_name_ok(args) || users_find_name(args)) {
         ui_error("useradd", "name taken, or not 1-15 of a-z 0-9 _ (starting with a letter)");
         return;

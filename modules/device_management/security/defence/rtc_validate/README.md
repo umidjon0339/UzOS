@@ -36,12 +36,12 @@ passes through, and hands out either a real date or nothing.
 ## Uses
 
 - `rtc_time_t` from rtc/
-- `sec_log()` from the security lab
+- `audit_log()` from security_management (core/audit)
 
 ## Try it
 
 ```
 seclab attack rtc_garbage live
-seclab log
+audit
 date                              # still a real date
 ```

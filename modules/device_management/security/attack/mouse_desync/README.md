@@ -33,5 +33,5 @@ naive:   [00 09 0A] [00 ...      flags=00 dx=09 dy=0A: wrong click, wrong move
 
 ```
 seclab attack mouse_desync live
-seclab log
+audit
 ```

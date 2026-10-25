@@ -27,5 +27,5 @@ void cmd_kill(const char *args) {
     if (process_kill(pid))
         ui_ok("kill", "process stopped");
     else
-        ui_error("kill", "refused: no such process, or a system one (see `seclab log`)");
+        ui_error("kill", "refused: no such process, or a system one (see `audit`)");
 }

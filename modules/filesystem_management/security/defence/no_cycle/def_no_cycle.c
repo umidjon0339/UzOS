@@ -11,13 +11,14 @@
  */
 
 #include "def_no_cycle.h"
-#include "security_lab.h"
+#include "registry.h"
+#include "audit.h"
 
 int def_move_allowed(vfs_node_t *node, vfs_node_t *new_dir) {
     // Walk up from the destination: meeting 'node' means it is below node.
     if (!((node->flags & FS_DIRECTORY) && vfs_is_ancestor(node, new_dir)))
         return 1;
-    sec_log("no_cycle", "move refused: a directory cannot go inside itself");
+    audit_log("no_cycle", "move refused: a directory cannot go inside itself");
     return 0;
 }
 
@@ -44,5 +45,5 @@ static const defence_t defence = {
 };
 
 void def_no_cycle_register(void) {
-    proc_security_register_defence(&defence);
+    registry_add_defence(&defence);
 }

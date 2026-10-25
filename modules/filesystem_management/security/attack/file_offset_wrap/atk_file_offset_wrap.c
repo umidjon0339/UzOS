@@ -14,7 +14,8 @@
  * Uses: ramdisk_create / ramdisk_delete (core/ramdisk), vfs_write (core/vfs).
  */
 
-#include "security_lab.h"
+#include "registry.h"
+#include "audit.h"
 #include "ramdisk.h"
 #include "vga.h"
 
@@ -40,14 +41,14 @@ static int launch(void) {
     vfs_node_t *f = ramdisk_create(fs_root, TEMP_NAME, FS_FILE);
     if (!f)
         return 0;
-    uint32_t denied = sec_total_denied();
+    uint32_t denied = audit_total();
 
     try_write(f, "offset 0xFFFFFFF0, size 0x20   ", 0xFFFFFFF0, 0x20);
     try_write(f, "offset 64 KiB - 1, size 2      ", RAMDISK_MAX_FILE_SIZE - 1, 2);
     try_write(f, "offset 0, size 4 (normal write)", 0, 4);
 
     ramdisk_delete(fs_root, TEMP_NAME);
-    return sec_total_denied() - denied;
+    return audit_total() - denied;
 }
 
 static const attack_t attack = {
@@ -59,5 +60,5 @@ static const attack_t attack = {
 };
 
 void atk_file_offset_wrap_register(void) {
-    proc_security_register_attack(&attack);
+    registry_add_attack(&attack);
 }

@@ -39,7 +39,7 @@ at most once a second.
 ## Uses
 
 - `PRIORITY_IDLE` / `PRIORITY_MAX` from [core/priority](../../../core/priority/)
-- `timer_ticks` (rate limit of the log), `sec_log()` from the security lab
+- `timer_ticks` (rate limit of the log), `audit_log()` from security_management (core/audit)
 
 ## Try it
 

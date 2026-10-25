@@ -30,11 +30,11 @@ mean something.
 
 - `process_t.fd_table` / `fd_flags` (process_management), `O_READ` /
   `O_WRITE` from syscalls/open
-- `sec_log()` from the security lab
+- `audit_log()` from security_management (core/audit)
 
 ## Try it
 
 ```
 seclab attack invalid_descriptor live
-seclab log
+audit
 ```

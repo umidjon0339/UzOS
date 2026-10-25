@@ -12,7 +12,8 @@
  *       sys_unlink (filesystem_management).
  */
 
-#include "security_lab.h"
+#include "registry.h"
+#include "audit.h"
 #include "sys_open.h"
 #include "sys_read.h"
 #include "sys_write.h"
@@ -39,7 +40,7 @@ static void report(const char *what, int result) {
 }
 
 static int launch(void) {
-    uint32_t denied = sec_total_denied();
+    uint32_t denied = audit_total();
     char byte = 'x';
 
     report("read(-1)            ", sys_read(-1, &byte, 1));
@@ -55,7 +56,7 @@ static int launch(void) {
         sys_close(fd);
         sys_unlink(TEMP);
     }
-    return sec_total_denied() - denied;
+    return audit_total() - denied;
 }
 
 static const attack_t attack = {
@@ -67,5 +68,5 @@ static const attack_t attack = {
 };
 
 void atk_invalid_descriptor_register(void) {
-    proc_security_register_attack(&attack);
+    registry_add_attack(&attack);
 }

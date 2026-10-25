@@ -15,7 +15,8 @@
  */
 
 #include "def_busy_check.h"
-#include "security_lab.h"
+#include "registry.h"
+#include "audit.h"
 #include "process.h"
 
 static int is_some_cwd(vfs_node_t *node) {
@@ -41,7 +42,7 @@ int def_delete_allowed(vfs_node_t *node) {
                                  node->num_children, node == fs_root, is_some_cwd(node));
     if (!reason)
         return 1;
-    sec_log("busy_check", reason);
+    audit_log("busy_check", reason);
     return 0;
 }
 
@@ -63,5 +64,5 @@ static const defence_t defence = {
 };
 
 void def_busy_check_register(void) {
-    proc_security_register_defence(&defence);
+    registry_add_defence(&defence);
 }

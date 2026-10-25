@@ -15,7 +15,8 @@
  */
 
 #include "def_heap_guard.h"
-#include "security_lab.h"
+#include "registry.h"
+#include "audit.h"
 #include "kheap.h"
 
 #define HEADER_SIZE sizeof(kheap_header_t)
@@ -43,7 +44,7 @@ int def_kfree_ok(const void *p) {
 
     if (!reason)
         return 1;
-    sec_log("heap_guard", reason);
+    audit_log("heap_guard", reason);
     return 0;
 }
 
@@ -72,5 +73,5 @@ static const defence_t defence = {
 };
 
 void def_heap_guard_register(void) {
-    proc_security_register_defence(&defence);
+    registry_add_defence(&defence);
 }

@@ -30,7 +30,7 @@ pass kernel buffers, so they only get these rules.
 ## Uses
 
 - `NULL_PAGE_END` (memory_management layout), `IO_MAX_TRANSFER` from core/fd
-- `sec_log()` from the security lab
+- `audit_log()` from security_management (core/audit)
 
 ## Try it
 

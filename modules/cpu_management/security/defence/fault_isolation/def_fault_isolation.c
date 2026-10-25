@@ -17,7 +17,8 @@
  */
 
 #include "def_fault_isolation.h"
-#include "security_lab.h"
+#include "registry.h"
+#include "audit.h"
 
 #define VECTOR_NMI           2
 #define VECTOR_DOUBLE_FAULT  8
@@ -36,7 +37,7 @@ static int survivable(uint32_t cs, uint32_t vector) {
 int def_fault_isolation_survivable(const registers_t *regs) {
     if (!survivable(regs->cs, regs->int_no))
         return 0;
-    sec_log("fault_isolation", "ring 3 exception: killed the process, not the OS");
+    audit_log("fault_isolation", "ring 3 exception: killed the process, not the OS");
     return 1;
 }
 
@@ -63,5 +64,5 @@ static const defence_t defence = {
 };
 
 void def_fault_isolation_register(void) {
-    proc_security_register_defence(&defence);
+    registry_add_defence(&defence);
 }

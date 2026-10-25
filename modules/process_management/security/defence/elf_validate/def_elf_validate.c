@@ -15,7 +15,8 @@
  */
 
 #include "def_elf_validate.h"
-#include "security_lab.h"
+#include "registry.h"
+#include "audit.h"
 #include "memory_layout.h"
 
 // The first 4 bytes of every ELF file: 0x7F 'E' 'L' 'F'.
@@ -50,14 +51,14 @@ static int segment_ok(const Elf32_Phdr *ph) {
 int def_elf_check_header(const Elf32_Ehdr *h) {
     if (header_ok(h))
         return 1;
-    sec_log("elf_validate", "ELF header rejected");
+    audit_log("elf_validate", "ELF header rejected");
     return 0;
 }
 
 int def_elf_check_segments(const Elf32_Phdr *ph, int count) {
     for (int i = 0; i < count; i++) {
         if (!segment_ok(&ph[i])) {
-            sec_log("elf_validate", "ELF segment outside user space");
+            audit_log("elf_validate", "ELF segment outside user space");
             return 0;
         }
     }
@@ -108,5 +109,5 @@ static const defence_t defence = {
 };
 
 void def_elf_validate_register(void) {
-    proc_security_register_defence(&defence);
+    registry_add_defence(&defence);
 }
