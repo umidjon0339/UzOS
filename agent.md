@@ -5,6 +5,19 @@ Phase 5: User Mode, System Calls, and Task Scheduling.
 Phase 5.5: Process Security Lab (attacks + defences) - **done for Tier 1**.
 Phase 6: CPU management (`modules/cpu_management/`) - **done**: info,
 fault policy, TSC, accounting, priority scheduling with aging.
+Phase 6b: Linux CPU tools and syscalls in cpu_management - **done**:
+30 commands and 30 syscalls, one folder each, full-path includes;
+nice + policies (FIFO/RR/BATCH/IDLE, RT throttling), affinity, rlimits,
+NUMA policies (one node), clone threads, perf counters + sampling with
+kernel symbols (two-pass link), /proc, power profiles, load average.
+`cpucalls` = 63 of 63 syscall answers from ring 3.
+Clean structure: cpu_management = commands/ syscalls/ security/ core/
+only. Each command/syscall/attack/defence folder is self-contained
+(helpers copied: run_child.c in the 7 launcher commands, own thread code
+in clone/clone3/exit_group, perf counters in syscalls/perf_event_open,
+ksyms in commands/perf_report). core/ keeps only what the kernel calls
+or shared state (rule in cpu_management/core/README.md). /proc moved to
+filesystem_management/core/procfs.
 Phase 7: User management (`modules/user_management/`) - **done**: user
 table with salted SHA-256 passwords, login prompt, su/passwd, file
 owners and modes, useradd/userdel.
@@ -30,10 +43,20 @@ capabilities, audit log with user/PID, kernel integrity (SHA-256 of
 - VFS over a RAMDisk; `ls cd pwd cat touch mkdir write rm cp mv wc grep hexdump`
 - Processes (PCB table), scheduler + context switch, ELF32 loader,
   `core/usertask/` runs small .s programs in ring 3 (testuser, attacks)
-- `modules/cpu_management/`: cpuid features (`cpuinfo`), a handler for
+- `modules/cpu_management/`: cpuid features (`cpuinfo`, `lscpu`), a handler for
   every CPU exception (`faults`), TSC clock speed, CPU time per process
-  (`cpustat`, `cputime` syscall 20), priorities 1-7 with 50 ms slices and
-  aging (`nice`, syscalls 21/22); `ps`/`top` show PRI and CPU%
+  (exact task clock per switch, 60 s history, load average), nice -> levels
+  1-7 with 50 ms slices and aging, policies OTHER/BATCH/IDLE/FIFO/RR with
+  RT throttling, CPU affinity, resource limits (enforced: CPU, FSIZE, DATA,
+  NPROC, NOFILE, NICE, RTPRIO), NUMA policies, clone()/clone3() threads,
+  perf_event_open + perf record/report with kernel symbols, power
+  profiles; /proc (cpuinfo, stat, <pid>/status) in filesystem_management. Syscalls 2, 4, 20-22,
+  26-51. Commands: lscpu nproc top htop btop mpstat vmstat pidstat sar ps
+  uptime nice renice chrt taskset numactl time perf cpupower turbostat
+  systemd-cgtop systemctl powerprofilesctl ulimit getconf cpuinfo faults
+  cpustat cpucalls. `ps`, `top` (from process_management), `uptime` (from
+  device_management), syscalls `getpid` and `yield` (now `sched_yield`)
+  moved here; each command/syscall has its own folder and header
 - `modules/user_management/`: users root (0) / guest (1) / 1000+ via
   `useradd` (uids never reused), passwords as salt + SHA-256 x1000, login
   prompt at boot, `su`, `logout`, `passwd`, file owner + mode (`chmod`,
@@ -42,7 +65,7 @@ capabilities, audit log with user/PID, kernel integrity (SHA-256 of
   `getcaps` syscall 25) replace every privilege `uid == 0` test; audit log
   (`audit [sum]`: ring of 32 + per-defence counters, user + PID, rate limit);
   kernel integrity (`integrity`, checked before every `exec`); the lab
-- Shell: history, Tab completion, `guest@uzos:~$` / `root@uzos:~#` prompt, 61 commands,
+- Shell: history, Tab completion, `guest@uzos:~$` / `root@uzos:~#` prompt, 83 commands (table: 128),
   command word coloured while typing (green / normal / red), Ctrl+C
   (clears the line, or SIGINT to the running command: `core/signal/`,
   `sys_sleep_interruptible`); `exec` runs in the foreground, `&` = background

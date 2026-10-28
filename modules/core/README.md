@@ -23,7 +23,7 @@ uses the steps before it:
 | 3 | `setup_memory`       | PMM (frames), VMM (paging), heap         | `memory_management` |
 | 4 | `setup_security`     | attack/defence pairs; SHA-256 of the kernel's code | `security_management`, each module's `security/` |
 | 5 | `setup_shell`        | shell + every module's commands          | `shell`, each module's `commands/` |
-| 6 | `setup_filesystem`   | RAMDisk with the root `/`                | `filesystem_management` |
+| 6 | `setup_filesystem`   | RAMDisk with the root `/`, then `/proc`  | `filesystem_management` (ramdisk, procfs) |
 | 7 | `setup_processes`    | scheduler; kernel_main becomes a process | `process_management` |
 | 8 | `setup_syscalls`     | `int 0x80` handler                       | `process_management/syscalls` |
 | 9 | `sti`                | hardware interrupts on                   | |

@@ -18,16 +18,16 @@
  *       (ui), and the defences fault_isolation and tsc_restrict.
  */
 
-#include "cpu_faults.h"
-#include "scheduler.h"
-#include "timer.h"
-#include "string.h"
-#include "ui.h"
+#include "modules/cpu_management/core/faults/cpu_faults.h"
+#include "modules/process_management/core/scheduler/scheduler.h"
+#include "modules/device_management/timer/timer.h"
+#include "lib/string/string.h"
+#include "modules/ui/core/style/ui.h"
 
-#include "def_fault_isolation.h"
-#include "def_tsc_restrict.h"
-#include "def_user_ptr_bounds.h"
-#include "def_safe_text.h"
+#include "modules/cpu_management/security/user_exception/defence/fault_isolation/def_fault_isolation.h"
+#include "modules/cpu_management/security/side_channel/defence/tsc_restrict/def_tsc_restrict.h"
+#include "modules/memory_management/security/defence/user_ptr_bounds/def_user_ptr_bounds.h"
+#include "modules/ui/security/defence/safe_text/def_safe_text.h"
 
 #define PAGE_FAULT 14       // memory_management/core/vmm owns this one
 

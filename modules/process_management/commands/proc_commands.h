@@ -9,8 +9,7 @@
 // Add every command below to the shell. Called once from kernel_main.
 void register_proc_commands(void);
 
-void cmd_ps(const char *args);
-void cmd_top(const char *args);
+// ps and top moved to cpu_management/commands/ (with the other CPU tools).
 void cmd_kill(const char *args);
 void cmd_spawn(const char *args);
 void cmd_sleep(const char *args);

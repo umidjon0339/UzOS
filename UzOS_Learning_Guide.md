@@ -85,7 +85,7 @@ See [modules/device_management/README.md](modules/device_management/README.md) f
 * `vga/`: the console (text, colours, scroll-back, the status row). It draws through a **display** interface: `vga/text/` (80x25, 80x50) or `gui/fbcon/` (1024x768 graphics, 128x48 characters on a wallpaper). `vga/palette/` holds the colour themes.
 * `font/`: the UzOS font (based on Terminus) and UzOS's own icons (folder, check, crescent...).
 * `gui/`: video card (`bga`), drawing (`canvas`), double buffering (`screen`) and windows (`wm`).
-* **Commands**: `uptime`, `date`, `devices` (IRQ lines and interrupt counts), `startx` (ESC returns to the shell), `beep`, `play`, and for the screen `theme`, `font`, `mode`.
+* **Commands**: `date`, `devices` (IRQ lines and interrupt counts), `startx` (ESC returns to the shell), `beep`, `play`, and for the screen `theme`, `font`, `mode`.
 
 ### B. I/O Management (`modules/io_management/`)
 See [modules/io_management/README.md](modules/io_management/README.md).
@@ -107,17 +107,22 @@ See [modules/process_management/README.md](modules/process_management/README.md)
 * **Scheduler (`core/scheduler/`)**: The mechanism of multitasking. When a turn ends, `switch_task.s` saves the registers and EFLAGS of the current process on its stack and resumes the next one (context switching). *Which* process is next is decided by cpu_management.
 * **User tasks (`core/usertask/`)**: copies a small assembly program to a user page and drops it to ring 3. `testuser` and several security lab attacks use it.
 * **ELF Loader (`core/elf/`)**: Reads an ELF file from the filesystem, checks it, maps it into memory, and creates a process for it.
-* **System calls (`syscalls/`)**: `int 0x80` with the number in EAX. `syscalls/handler/` routes it to `exit`, `getpid`, `sleep` or `yield`.
+* **System calls (`syscalls/`)**: `int 0x80` with the number in EAX. `syscalls/handler/` routes every module's syscalls; this module's own are `exit` and `sleep` (`getpid` and `sched_yield` live in cpu_management).
 
 ### E. CPU Management (`modules/cpu_management/`)
 See [modules/cpu_management/README.md](modules/cpu_management/README.md) for the full map.
 * **Info (`core/info/`)**: decodes `cpuid`: vendor, family/model/stepping, and feature flags (`tsc`, `pae`, `sse`, ...). The kernel asks `cpu_has(CPU_FEAT_TSC)` before it uses a feature.
 * **Faults (`core/faults/`)**: a handler for every CPU exception. A fault in ring 3 (divide by zero, `cli`, `ud2`, ...) kills that process with a `[CPU FAULT]` report; a fault in ring 0 is a kernel bug and halts.
 * **TSC (`core/tsc/`)**: the cycle counter, and the clock speed measured against the PIT.
-* **Accounting (`core/accounting/`)**: every timer tick is charged to the process it interrupted, in ring 3 or ring 0, or to idle: CPU time per process and the load of the last second.
-* **Priority (`core/priority/`)**: the scheduling policy. Levels 1–7 (7 first, 0 = the idle task), 50 ms turns, equal levels take turns, and **aging** so a busy high process cannot starve the others.
-* **Syscalls**: `cputime`, `setpriority`, `getpriority`.
-* **Commands**: `cpuinfo [flags]`, `faults [list]`, `cpustat`, `nice [pid [level]]`. `ps` and `top` show PRI and CPU%.
+* **Accounting (`core/accounting/`)**: every timer tick is charged to the process it interrupted (user, nice, system or idle); every task switch is timed exactly with the TSC; the last 60 seconds are kept. **Load average** (`core/loadavg/`): 1, 5 and 15 minutes, as in Linux.
+* **Priority and policy (`core/priority/`, `core/policy/`)**: users set a **nice** value (-20..19), which becomes one of seven levels; equal levels take turns, 50 ms each, and **aging** stops starvation. Policies `SCHED_OTHER`, `SCHED_BATCH`, `SCHED_IDLE`, and real-time `SCHED_FIFO` / `SCHED_RR` (1..99), which may use at most 95% of each second (RT throttling).
+* **Affinity, limits, NUMA (`core/affinity/`, `core/rlimit/`, `core/numa/`)**: CPU masks (one CPU), resource limits (CPU seconds, open files, file size, heap, processes, nice, real-time) and memory policies (one node). A new process inherits all of them (`core/task/`).
+* **Threads (`syscalls/clone/`, `syscalls/clone3/`)**: make a thread that shares memory and starts in ring 3 as a copy of its parent (`clone_enter.s`); `syscalls/exit_group/` ends them all.
+* **Perf**: the timer samples EIPs for `perf record` (`core/perf/`); counters you read through a file descriptor live in `syscalls/perf_event_open/`; `commands/perf_report/` knows the kernel's function names (the Makefile links the kernel twice for that).
+* **Clean structure**: cpu_management has only `commands/`, `syscalls/`, `security/` and `core/`. Each command/syscall/attack/defence folder holds everything it needs (helpers are copied, several files allowed); `core/` keeps only what the kernel itself calls or state that must exist once. See `modules/cpu_management/core/README.md`.
+* **/proc** (`filesystem_management/core/procfs/`): `cat /proc/cpuinfo`, `/proc/stat`, `/proc/<pid>/status`: files the kernel writes when you read them, built from cpu_management's numbers.
+* **Syscalls** (one folder each): `getpid`, `gettid`, `sched_yield`, `cputime`, `setpriority`, `getpriority`, `sched_setscheduler`, `sched_getscheduler`, `sched_setparam`, `sched_getparam`, `sched_get_priority_min/max`, `sched_rr_get_interval`, `sched_setaffinity`, `sched_getaffinity`, `sched_setattr`, `sched_getattr`, `getrlimit`, `setrlimit`, `prlimit64`, `getcpu`, `perf_event_open`, `clone`, `clone3`, `move_pages`, `mbind`, `set_mempolicy`, `get_mempolicy`, `migrate_pages`, `membarrier`, `exit_group`. `cpucalls` tests them all from ring 3.
+* **Commands** (one folder each): `lscpu`, `nproc`, `top`, `htop`, `btop`, `mpstat`, `vmstat`, `pidstat`, `sar`, `ps`, `uptime`, `nice`, `renice`, `chrt`, `taskset`, `numactl`, `time`, `perf stat|record|report|list`, `cpupower`, `turbostat`, `systemd-cgtop`, `systemctl`, `powerprofilesctl`, `ulimit`, `getconf`, and UzOS's own `cpuinfo`, `faults`, `cpustat`, `cpucalls`.
 
 ### F. User Management (`modules/user_management/`)
 See [modules/user_management/README.md](modules/user_management/README.md) for the full map.
@@ -150,7 +155,7 @@ See [modules/shell/README.md](modules/shell/README.md).
 * **Commands**: `help` (built from the registry), `clear`, `echo`, `color`, `calc` (a recursive-descent parser), `history`, `snake`.
 * **Prompt**: `guest@uzos:~/docs$`, like a Linux shell; `#` instead of `$` for root.
 * **Colours while you type (`core/highlight/`)**: the command word turns green when it is a real command, red when no command starts like it.
-* **Ctrl+C**: at the prompt it clears the line; while a command runs it sends the signal `SIGINT` (`process_management/core/signal/`), and `sleep`, `top`, `exec`, `snake`, `startx` stop early. `exec hello` runs in the foreground; `exec hello &` in the background.
+* **Ctrl+C**: at the prompt it clears the line; while a command runs it sends the signal `SIGINT` (`process_management/core/signal/`), and `sleep`, `top`, `exec`, `snake`, `startx` stop early. `exec /hello` runs in the foreground; `exec /hello &` in the background. Commands that start another command (`nice`, `time`, `perf stat`, ...) pass Ctrl+C on to it.
 
 ### J. UI (`modules/ui/`)
 See [modules/ui/README.md](modules/ui/README.md).
@@ -166,13 +171,13 @@ See [modules/ui/README.md](modules/ui/README.md).
 ### Adding a new Shell Command
 Every module follows the same pattern:
 1. **Create the folder**: `modules/<module>/commands/<mycmd>/cmd_<mycmd>.c`, starting with a short comment: what it does, what it uses, why.
-2. **Declare it** in the module's `commands/<module>_commands.h`.
+2. **Declare it** in the module's `commands/<module>_commands.h` (cpu_management: in its own `cmd_<mycmd>.h`, next to the .c; include files by their full path, e.g. `#include "modules/cpu_management/core/tsc/tsc.h"`).
 3. **Register it**: add one line to the command table in `commands/<module>_commands.c`.
 
 ### Adding a new System Call
 1. **Create the folder**: `modules/<module>/syscalls/<name>/` with `sys_<name>.h` (the `SYS_<NAME>` number and the prototype) and `sys_<name>.c`.
 2. **Route it**: include `sys_<name>.h` in `modules/process_management/syscalls/handler/syscall_handler.c`, write a small `do_<name>()` wrapper (check pointer arguments with `buffer_ok` / `path_ok`), and add one line to the table.
-3. Arguments come in EBX, ECX, EDX; the wrapper's return value goes back to the program in EAX.
+3. Arguments come in EBX, ECX, EDX, ESI, EDI, EBP; the wrapper's return value goes back to the program in EAX.
 
 ### Printing from a command
 Use the ui module, not raw colours: `ui_error("mycmd", "what went wrong")`, `ui_usage("mycmd <arg>")`, `ui_ok(...)`. For a table, `box_begin` / `box_row` / `ui_cell` / `box_end`.

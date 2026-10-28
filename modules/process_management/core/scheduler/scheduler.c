@@ -8,7 +8,9 @@
  * Uses: switch_task (switch_task.s) to swap stacks, set_kernel_stack
  *       (arch/x86/tss) so ring 3 interrupts land on the right stack,
  *       cpu_irq_save / cpu_read_esp (arch/x86/cpu), priority_pick_next /
- *       priority_tick / priority_start_turn (cpu_management), and two defences:
+ *       priority_tick / priority_start_turn (cpu_management), cpu_account_switch
+ *       (cpu_management: times every switch), power_idle (cpu_management:
+ *       what the idle CPU does), and two defences:
  *         stack_guard - retire a process whose stack overflowed (yield)
  *         reaper      - free the slots of finished processes (tick)
  */
@@ -17,7 +19,9 @@
 #include "process.h"
 #include "tss.h"
 #include "cpu.h"
-#include "priority.h"
+#include "modules/cpu_management/core/priority/priority.h"        // priority_*
+#include "modules/cpu_management/core/accounting/cpu_account.h"   // cpu_account_switch
+#include "modules/cpu_management/core/power/power.h"              // power_idle
 
 #include "def_stack_guard.h"
 #include "def_reaper.h"
@@ -31,9 +35,11 @@ static process_t *idle;         // the idle task
 static int started;             // 0 until scheduler_start()
 
 // Runs when nothing else is READY, so the scheduler always has a choice.
+// What "doing nothing" means (hlt, or spinning) is the power profile's
+// choice (cpu_management/core/power).
 static void idle_task(void) {
     while (1)
-        asm volatile("hlt");    // sleep until the next interrupt
+        power_idle();
 }
 
 static process_t *mark_system(int pid) {
@@ -131,6 +137,7 @@ void scheduler_yield(void) {
     } else if (next) {
         process_t *prev = current;
 
+        cpu_account_switch(prev, next);     // first: still RUNNING = it was preempted
         if (prev->state == PROCESS_STATE_RUNNING)
             prev->state = PROCESS_STATE_READY;
         next->state = PROCESS_STATE_RUNNING;

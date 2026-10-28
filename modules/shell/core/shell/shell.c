@@ -123,7 +123,7 @@ static void show_line(const char *text) {
 
 /* ---------- Running a command ---------- */
 
-static void run(const char *input) {
+int shell_run_command(const char *input) {
     char name[32];
     char args[LINE_MAX];
 
@@ -134,23 +134,28 @@ static void run(const char *input) {
         args[--end] = '\0';
 
     if (!name[0])
-        return;                                 // an empty line
+        return 1;                               // an empty line: nothing to do
 
     const shell_command_t *cmd = shell_find(name);
     if (!cmd) {
         ui_start(UI_ERROR, name);
         vga_print_str("command not found (type 'help' for the list)");
         ui_end();
-        return;
+        return 0;
     }
+    cmd->handler(args);
+    ui_reset();                                 // a command may leave any colour
+    return 1;
+}
+
+static void run(const char *input) {
     // While the command runs, Ctrl+C becomes SIGINT for this process.
     process_t *self = scheduler_get_current_process();
     signal_clear(self, SIGINT);                 // nothing old may stop it
     running = self;
-    cmd->handler(args);
+    shell_run_command(input);
     running = 0;
 
-    ui_reset();                                 // a command may leave any colour
     if (signal_pending(self, SIGINT)) {         // it was interrupted
         signal_clear(self, SIGINT);
         vga_print_str("^C\n");

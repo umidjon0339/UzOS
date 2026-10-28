@@ -2,15 +2,13 @@
 #define CPU_COMMANDS_H
 
 /*
- * cpu_commands.h - Shell commands of cpu_management.
+ * cpu_commands.h - Add cpu_management's shell commands to the shell.
+ *
+ * Each command lives in its own folder, commands/<name>/, with its own
+ * header cmd_<name>.h; cpu_commands.c lists them all.
  */
 
-// Add every command below to the shell. Called once from kernel_main.
+// Add every command of cpu_management to the shell. Called once from kernel_main.
 void register_cpu_commands(void);
-
-void cmd_cpuinfo(const char *args);
-void cmd_faults(const char *args);
-void cmd_cpustat(const char *args);
-void cmd_nice(const char *args);
 
 #endif

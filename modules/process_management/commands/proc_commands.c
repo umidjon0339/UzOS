@@ -12,8 +12,6 @@ static const struct {
     const char *description;
     void (*handler)(const char *args);
 } commands[] = {
-    { "ps",       "List running processes",                 cmd_ps       },
-    { "top",      "Live view of processes ('q' quits)",     cmd_top      },
     { "kill",     "Kill a process by PID",                  cmd_kill     },
     { "spawn",    "Start a background worker process",      cmd_spawn    },
     { "sleep",    "Sleep for N seconds",                    cmd_sleep    },

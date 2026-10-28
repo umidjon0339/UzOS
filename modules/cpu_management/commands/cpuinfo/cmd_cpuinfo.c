@@ -11,14 +11,14 @@
  *       (arch/x86/cpu), box_* / ui_* (ui module).
  */
 
-#include "cpu_commands.h"
-#include "cpu_info.h"
-#include "tsc.h"
-#include "cpu.h"
-#include "string.h"
-#include "format.h"
-#include "ui.h"
-#include "box.h"
+#include "modules/cpu_management/commands/cpuinfo/cmd_cpuinfo.h"  // this command
+#include "modules/cpu_management/core/info/cpu_info.h"            // cpu_info, cpu_has
+#include "modules/cpu_management/core/tsc/tsc.h"                  // tsc_mhz
+#include "arch/x86/cpu/cpu.h"                                     // cpu_read_cr0/cr4, CR*_*
+#include "lib/string/string.h"                                    // strcmp
+#include "lib/format/format.h"                                    // format
+#include "modules/ui/core/style/ui.h"                             // ui_*
+#include "modules/ui/core/box/box.h"                              // box_*
 
 #define WIDTH        62
 #define LABEL_WIDTH  11

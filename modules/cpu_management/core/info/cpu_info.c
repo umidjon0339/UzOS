@@ -14,8 +14,8 @@
  *       (arch/x86/cpuid).
  */
 
-#include "cpu_info.h"
-#include "cpuid.h"
+#include "modules/cpu_management/core/info/cpu_info.h"
+#include "arch/x86/cpuid/cpuid.h"
 
 #define LEAF_FEATURES 1
 

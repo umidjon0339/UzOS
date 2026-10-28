@@ -24,7 +24,7 @@
 #include "box.h"
 
 #define INDENT       "  "
-#define NAME_WIDTH   10         // longest names ("statusbar", "testuser") + a space
+#define NAME_WIDTH   17         // longest name ("powerprofilesctl") + a space
 
 static void explain(const char *name) {
     const shell_command_t *cmd = shell_find(name);

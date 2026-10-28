@@ -9,7 +9,9 @@
  * returns the OLD break, so sbrk(n) == "here are your n new bytes".
  * malloc() in a C library is built on top of exactly this.
  *
- * Uses: umem_map / umem_unmap (core/umem), cpu_irq_save (arch/x86/cpu).
+ * Uses: umem_map / umem_unmap (core/umem), cpu_irq_save (arch/x86/cpu),
+ *       rlimit_data_ok (cpu_management/core/rlimit): RLIMIT_DATA caps the
+ *       heap size of the caller.
  * For now there is one break for the whole system, because all processes
  * share one address space.
  */
@@ -18,6 +20,8 @@
 #include "umem.h"
 #include "memory_layout.h"
 #include "cpu.h"
+#include "modules/cpu_management/core/rlimit/rlimit.h"             // rlimit_data_ok
+#include "modules/process_management/core/scheduler/scheduler.h"   // the caller
 
 static uint32_t brk = USER_BRK_START;
 
@@ -32,7 +36,12 @@ void *sys_sbrk(int32_t increment) {
     // 64-bit math, so a huge increment cannot wrap around 4 GiB.
     int64_t wanted = (int64_t)brk + increment;
 
-    if (wanted >= USER_BRK_START && wanted <= USER_BRK_END) {
+    // RLIMIT_DATA: the heap may not grow past the caller's limit.
+    int allowed = wanted < brk ||
+                  rlimit_data_ok(scheduler_get_current_process(),
+                                 (uint32_t)(wanted - USER_BRK_START));
+
+    if (allowed && wanted >= USER_BRK_START && wanted <= USER_BRK_END) {
         uint32_t new_brk = (uint32_t)wanted;
         uint32_t old_top = page_up(brk);        // first page not mapped yet
         uint32_t new_top = page_up(new_brk);

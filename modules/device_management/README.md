@@ -27,7 +27,7 @@ device_management/
 │   │            font8x8.h/.c      8x8 pixel font for the desktop
 │   ├── screen/  screen.h/.c       back buffer + present (double buffering)
 │   └── wm/      window_manager.h/.c  windows, z-order, drag
-├── commands/  device_commands.h/.c + uptime/ date/ devices/ startx/ beep/ play/
+├── commands/  device_commands.h/.c + date/ devices/ startx/ beep/ play/
 │                                    theme/ font/ mode/
 ├── syscalls/  uptime/ time/       milliseconds since boot; seconds since 1970
 └── security/  attack/<id>/  defence/<id>/   (7 pairs, each with a README)
@@ -121,9 +121,11 @@ the console redraws its text from history.
 
 ## Commands and syscall
 
+The `uptime` COMMAND moved to [cpu_management](../cpu_management/README.md#commands)
+(it shows the load average); the `uptime` SYSCALL stays here.
+
 | Command | What it does | Uses |
 |---|---|---|
-| `uptime` | time since boot, ticks, tick rate | `timer_*` |
 | `date` | date and time, and the Unix time | `rtc_*` |
 | `devices` | IRQ lines: vector, masked/open, handler, count; hardware found | `isr_*`, `pic_get_mask` |
 | `startx` | graphical desktop with a live System Monitor; ESC returns | `gui/*`, `mouse`, `keyboard` |

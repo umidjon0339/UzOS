@@ -6,11 +6,11 @@
  *       tsc_restrict to keep the counter away from ring 3.
  */
 
-#include "tsc.h"
-#include "cpu.h"
-#include "cpu_info.h"
-#include "timer.h"
-#include "def_tsc_restrict.h"
+#include "modules/cpu_management/core/tsc/tsc.h"
+#include "arch/x86/cpu/cpu.h"
+#include "modules/cpu_management/core/info/cpu_info.h"
+#include "modules/device_management/timer/timer.h"
+#include "modules/cpu_management/security/side_channel/defence/tsc_restrict/def_tsc_restrict.h"
 
 static uint32_t mhz;
 

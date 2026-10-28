@@ -9,9 +9,9 @@
  *       current process (process_management).
  */
 
-#include "sys_cputime.h"
-#include "cpu_account.h"
-#include "scheduler.h"
+#include "modules/cpu_management/syscalls/cputime/sys_cputime.h"
+#include "modules/cpu_management/core/accounting/cpu_account.h"
+#include "modules/process_management/core/scheduler/scheduler.h"
 
 int32_t sys_cputime(uint32_t pid) {
     process_t *p = pid ? process_get_by_pid(pid) : scheduler_get_current_process();

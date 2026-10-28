@@ -9,7 +9,7 @@
 // Add every command below to the shell. Called once from kernel_main.
 void register_device_commands(void);
 
-void cmd_uptime(const char *args);
+// uptime moved to cpu_management/commands/uptime (it shows the load average).
 void cmd_devices(const char *args);
 void cmd_startx(const char *args);
 void cmd_beep(const char *args);

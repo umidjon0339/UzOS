@@ -50,9 +50,30 @@ void atk_fd_leak_register(void);                void def_fd_cleanup_register(voi
 
 /* ---------- cpu_management ---------- */
 void atk_user_exception_register(void);         void def_fault_isolation_register(void);
-void atk_tsc_timing_register(void);             void def_tsc_restrict_register(void);
-void atk_priority_out_of_range_register(void);  void def_priority_bounds_register(void);
-void atk_cpu_hog_register(void);                void def_aging_register(void);
+void atk_side_channel_register(void);             void def_tsc_restrict_register(void);
+void atk_priority_abuse_register(void);  void def_priority_bounds_register(void);
+void atk_starvation_register(void);                void def_aging_register(void);
+
+/* cpu_management - new CPU attacks (resource / scheduling / privilege) */
+void atk_cpu_exhaustion_register(void);           void def_cpu_time_limit_register(void);
+void atk_infinite_loop_register(void);            void def_cpu_watchdog_register(void);
+void atk_resource_exhaustion_register(void);      void def_resource_quota_register(void);
+void atk_cpu_fork_bomb_register(void);            void def_process_quota_register(void);
+void atk_denial_of_service_register(void);        void def_fair_scheduling_register(void);
+void atk_scheduling_manipulation_register(void);  void def_policy_restriction_register(void);
+void atk_realtime_scheduling_abuse_register(void);void def_rt_throttling_register(void);
+void atk_privilege_escalation_register(void);     void def_permission_check_register(void);
+/* cpu_management - microarchitecture (illustrations) */
+void atk_spectre_register(void);                  void def_user_kernel_isolation_register(void);
+void atk_meltdown_register(void);                 void def_page_separation_register(void);
+void atk_cache_timing_register(void);             void def_coarse_timer_register(void);
+void atk_branch_prediction_register(void);        void def_speculation_barrier_register(void);
+/* cpu_management - concepts (documented, not reproducible here) */
+void atk_distributed_denial_of_service_register(void); void def_rate_limiting_register(void);
+void atk_rowhammer_register(void);                void def_ecc_and_refresh_register(void);
+void atk_return_oriented_programming_register(void);   void def_wx_and_aslr_register(void);
+void atk_code_injection_register(void);           void def_nx_pages_register(void);
+void atk_hypervisor_escape_register(void);        void def_vm_isolation_register(void);
 
 /* ---------- user_management ---------- */
 void atk_setuid_escalation_register(void);      void def_setuid_guard_register(void);
@@ -111,9 +132,30 @@ void catalog_init(void) {
 
     // cpu_management
     atk_user_exception_register();          def_fault_isolation_register();
-    atk_tsc_timing_register();              def_tsc_restrict_register();
-    atk_priority_out_of_range_register();   def_priority_bounds_register();
-    atk_cpu_hog_register();                 def_aging_register();
+    atk_side_channel_register();              def_tsc_restrict_register();
+    atk_priority_abuse_register();   def_priority_bounds_register();
+    atk_starvation_register();                 def_aging_register();
+
+    // cpu_management - new CPU attacks (resource / scheduling / privilege)
+    atk_cpu_exhaustion_register();            def_cpu_time_limit_register();
+    atk_infinite_loop_register();             def_cpu_watchdog_register();
+    atk_resource_exhaustion_register();       def_resource_quota_register();
+    atk_cpu_fork_bomb_register();             def_process_quota_register();
+    atk_denial_of_service_register();         def_fair_scheduling_register();
+    atk_scheduling_manipulation_register();   def_policy_restriction_register();
+    atk_realtime_scheduling_abuse_register(); def_rt_throttling_register();
+    atk_privilege_escalation_register();      def_permission_check_register();
+    // cpu_management - microarchitecture (illustrations)
+    atk_spectre_register();                   def_user_kernel_isolation_register();
+    atk_meltdown_register();                  def_page_separation_register();
+    atk_cache_timing_register();              def_coarse_timer_register();
+    atk_branch_prediction_register();         def_speculation_barrier_register();
+    // cpu_management - concepts (documented, not reproducible here)
+    atk_distributed_denial_of_service_register(); def_rate_limiting_register();
+    atk_rowhammer_register();                 def_ecc_and_refresh_register();
+    atk_return_oriented_programming_register();    def_wx_and_aslr_register();
+    atk_code_injection_register();            def_nx_pages_register();
+    atk_hypervisor_escape_register();         def_vm_isolation_register();
 
     // user_management
     atk_setuid_escalation_register();       def_setuid_guard_register();

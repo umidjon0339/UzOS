@@ -16,7 +16,6 @@ typedef struct {
 } command_t;
 
 static const command_t hardware[] = {
-    { "uptime",  "Time since boot and timer ticks",            cmd_uptime  },
     { "date",    "Date and time from the real-time clock",     cmd_date    },
     { "devices", "Hardware, IRQ lines and interrupt counts",   cmd_devices },
     { "startx",  "Start the graphical desktop (ESC to leave)", cmd_startx  },

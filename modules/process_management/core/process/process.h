@@ -21,6 +21,7 @@
 #define PROCESS_STACK_SIZE 4096     // each process gets one 4 KiB stack
 #define PROCESS_NAME_LEN   32
 #define MAX_FDS            16       // open files per process
+#define PROCESS_RLIMITS    16       // resource limits, numbered as in Linux (cpu_management/core/rlimit)
 
 struct vfs_node;
 
@@ -53,16 +54,47 @@ typedef struct process {
     uint32_t fd_offset[MAX_FDS];        // where the next read/write happens
     uint32_t fd_flags[MAX_FDS];         // how it was opened (O_READ, O_WRITE, ...)
 
-    // Scheduling, decided by cpu_management/core/priority.
-    int      priority;              // 0 = idle task only, 1 (low) .. 7 (high)
+    // Family, set by cpu_management/core/task when the process is made.
+    uint32_t ppid;                  // the process that created it (0 = none)
+    uint32_t tgid;                  // thread group: its own pid, or the pid of
+                                    // the thread that clone()d it (cpu_management syscalls/clone)
+    uint32_t start_tick;            // timer tick it was created at
+
+    // Scheduling, decided by cpu_management/core/priority and core/policy.
+    int      priority;              // 0 = idle task only, 1 (low) .. 7 (high); follows nice
+    int      nice;                  // -20 (most CPU) .. 19 (least CPU); 0 = normal
+    int      policy;                // SCHED_OTHER, SCHED_FIFO, ... (core/policy)
+    int      rt_priority;           // 1..99 for SCHED_FIFO / SCHED_RR, else 0
+    int      reset_on_fork;         // 1 = its children start as SCHED_OTHER, nice 0
     uint32_t slice_left;            // ticks left of its current turn
     uint32_t waited_ticks;          // ticks READY without the CPU (aging)
+    uint32_t cpu_mask;              // CPUs it may run on: bit n = CPU n (core/affinity)
 
-    // CPU time, counted by cpu_management/core/accounting on every tick.
+    // CPU time, counted by cpu_management/core/accounting.
     uint32_t user_ticks;            // ticks it was running in ring 3
     uint32_t kernel_ticks;          // ticks it was running in ring 0
     uint32_t window_ticks;          // ticks so far in the current second
     uint32_t cpu_percent;           // its share of the CPU in the last second
+    uint32_t ready_ticks;           // ticks it was READY but someone else ran
+    uint32_t nvcsw;                 // context switches: it gave the CPU up (slept, ended)
+    uint32_t nivcsw;                // context switches: it was preempted
+    uint64_t cycles;                // TSC cycles it had the CPU (exact, not sampled)
+    uint64_t cycles_since;          // TSC value when it last got the CPU
+
+    // What its finished children used (added by core/task when they are freed).
+    uint32_t child_user_ticks, child_kernel_ticks;
+    uint32_t child_nvcsw, child_nivcsw;
+    uint64_t child_cycles;
+
+    // Resource limits (cpu_management/core/rlimit): soft (cur) and hard (max).
+    uint32_t rlim_cur[PROCESS_RLIMITS];
+    uint32_t rlim_max[PROCESS_RLIMITS];
+
+    // Memory placement (cpu_management/core/numa).
+    int      mempolicy;             // MPOL_DEFAULT, MPOL_BIND, ...
+    uint32_t mempolicy_nodes;       // bit n = NUMA node n
+
+    int      membarrier_registered; // membarrier(): private expedited allowed
 } process_t;
 
 // Mark every slot FREE. Called by scheduler_init().

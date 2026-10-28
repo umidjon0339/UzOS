@@ -13,15 +13,15 @@
  *   the fault came from ring 0   the KERNEL has a bug: nothing can be
  *                                trusted any more, so stop (isr_panic)
  *
- * That rule is the defence fault_isolation (security/defence/). This
+ * That rule is the defence fault_isolation (security/user_exception/defence/). This
  * file registers a handler for every exception and applies it. Page
  * faults (14) keep their own handler in memory_management/core/vmm,
  * which uses the same rule and the same record.
  */
 
 #include <stdint.h>
-#include "isr.h"
-#include "process.h"
+#include "arch/x86/isr/isr.h"
+#include "modules/process_management/core/process/process.h"
 
 #define CPU_FAULT_LOG_SIZE 8        // the newest faults `faults` shows
 

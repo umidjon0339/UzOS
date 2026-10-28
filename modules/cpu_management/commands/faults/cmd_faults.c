@@ -12,12 +12,12 @@
  *       timer_frequency (device_management), box_* / ui_* (ui module).
  */
 
-#include "cpu_commands.h"
-#include "cpu_faults.h"
-#include "timer.h"
-#include "string.h"
-#include "ui.h"
-#include "box.h"
+#include "modules/cpu_management/commands/faults/cmd_faults.h"     // this command
+#include "modules/cpu_management/core/faults/cpu_faults.h"        // cpu_fault_*
+#include "modules/device_management/timer/timer.h"                // timer_frequency
+#include "lib/string/string.h"                                    // strcmp
+#include "modules/ui/core/style/ui.h"                             // ui_*
+#include "modules/ui/core/box/box.h"                              // box_*
 
 #define WIDTH          66
 #define LIST_WIDTH     78       // the whole 80-column screen

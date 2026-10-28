@@ -17,6 +17,7 @@
 #include "scheduler.h"
 #include "def_descriptor_bounds.h"
 #include "def_transfer_bounds.h"
+#include "modules/cpu_management/core/rlimit/rlimit.h"     // rlimit_fsize_ok
 
 int sys_write(int fd, const void *buf, uint32_t count) {
     process_t *self = scheduler_get_current_process();
@@ -38,6 +39,10 @@ int sys_write(int fd, const void *buf, uint32_t count) {
     vfs_node_t *file = self->fd_table[fd];
     if (self->fd_flags[fd] & O_APPEND)
         self->fd_offset[fd] = file->size;   // always add at the end
+
+    // RLIMIT_FSIZE (cpu_management/core/rlimit): no file past the limit.
+    if (!rlimit_fsize_ok(self, self->fd_offset[fd] + count))
+        return -1;
 
     uint32_t n = vfs_write(file, self->fd_offset[fd], count, (uint8_t *)buf);
     self->fd_offset[fd] += n;

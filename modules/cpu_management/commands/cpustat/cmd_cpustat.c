@@ -18,13 +18,13 @@
  *       (device_management), box_* / ui_* (ui module).
  */
 
-#include "cpu_commands.h"
-#include "cpu_account.h"
-#include "tsc.h"
-#include "scheduler.h"
-#include "timer.h"
-#include "ui.h"
-#include "box.h"
+#include "modules/cpu_management/commands/cpustat/cmd_cpustat.h"   // this command
+#include "modules/cpu_management/core/accounting/cpu_account.h"   // cpu_load, cpu_*_ms
+#include "modules/cpu_management/core/tsc/tsc.h"                  // tsc_mhz
+#include "modules/process_management/core/scheduler/scheduler.h"  // process table, idle task
+#include "modules/device_management/timer/timer.h"                // timer_frequency
+#include "modules/ui/core/style/ui.h"                             // ui_*
+#include "modules/ui/core/box/box.h"                              // box_*
 
 #define WIDTH      62
 #define NAME_WIDTH 18
@@ -81,6 +81,7 @@ void cmd_cpustat(const char *args) {
     ui_printf(" %3u%%", load->busy);
     box_row_end();
     share_row("ring 3", load->user, "user programs");
+    share_row("nice", load->nice, "user programs with nice > 0");
     share_row("ring 0", load->kernel, "the kernel and its tasks");
     share_row("idle", load->idle, "nothing to do: the idle task halts");
 

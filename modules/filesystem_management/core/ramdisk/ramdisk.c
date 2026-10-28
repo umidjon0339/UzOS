@@ -131,8 +131,15 @@ static vfs_node_t *new_node(const char *name, uint32_t type) {
 
 /* ---------- Public ---------- */
 
+// Is 'dir' one of OUR directories? Other drivers (cpu_management's
+// /proc) hang their nodes into the tree too; the RAM disk must never
+// add to, delete from or move their nodes: it did not make them.
+static int ours(const vfs_node_t *dir) {
+    return dir && dir->finddir == ramdisk_finddir;
+}
+
 vfs_node_t *ramdisk_create(vfs_node_t *dir, const char *name, uint32_t type) {
-    if (!dir || !(dir->flags & FS_DIRECTORY))
+    if (!ours(dir) || !(dir->flags & FS_DIRECTORY))
         return 0;
 
     // DEFENCE filename_check: no "", ".", "..", "/" or over-long names.
@@ -150,9 +157,9 @@ vfs_node_t *ramdisk_create(vfs_node_t *dir, const char *name, uint32_t type) {
 }
 
 int ramdisk_delete(vfs_node_t *dir, const char *name) {
-    vfs_node_t *target = dir ? ramdisk_finddir(dir, name) : 0;
-    if (!target)
-        return -1;
+    vfs_node_t *target = ours(dir) ? ramdisk_finddir(dir, name) : 0;
+    if (!target || (target->flags & FS_DIRECTORY && !ours(target)))
+        return -1;                  // missing, or another driver's directory
 
     // DEFENCE busy_check: not while open, not a non-empty directory,
     // not anyone's current directory.
@@ -166,8 +173,10 @@ int ramdisk_delete(vfs_node_t *dir, const char *name) {
 }
 
 int ramdisk_move(vfs_node_t *node, vfs_node_t *new_dir, const char *new_name) {
-    if (!node || node == fs_root || !new_dir || !(new_dir->flags & FS_DIRECTORY))
-        return -1;
+    if (!node || node == fs_root || !ours(new_dir) || !ours(node->parent))
+        return -1;                  // only between the RAM disk's own directories
+    if (node->flags & FS_DIRECTORY && !ours(node))
+        return -1;                  // another driver's directory (/proc) stays put
 
     // DEFENCE filename_check: the new name follows the same rules as a new file.
     if (!def_new_name_ok(new_name))

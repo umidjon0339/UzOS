@@ -18,6 +18,7 @@
 #include "kheap.h"
 #include "cpu.h"
 #include "def_fd_cleanup.h"
+#include "modules/cpu_management/core/task/cpu_task.h"     // cpu_task_exit
 
 // The whole rule, as a pure function so the selftest can try it.
 static int reapable(const process_t *p, const process_t *running) {
@@ -39,6 +40,10 @@ void def_reap_zombies(void) {
 
         // DEFENCE fd_cleanup (io_management): close files it left open.
         def_fd_close_all(p);
+
+        // cpu_management: add what it used to its parent, keep a record
+        // (`time` and `perf stat` read it).
+        cpu_task_exit(p);
 
         if (p->stack_base)
             kfree((void *)p->stack_base);

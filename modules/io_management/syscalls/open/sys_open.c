@@ -11,7 +11,8 @@
  *
  * Uses: vfs_lookup / vfs_lookup_parent (filesystem_management core/vfs),
  *       ramdisk_create / ramdisk_truncate (core/ramdisk), fd_alloc (core/fd),
- *       perm_check (user_management).
+ *       perm_check (user_management), rlimit_nofile (cpu_management/core/rlimit):
+ *       RLIMIT_NOFILE says how many descriptor numbers a process may use.
  */
 
 #include "sys_open.h"
@@ -19,6 +20,7 @@
 #include "ramdisk.h"
 #include "scheduler.h"
 #include "perm.h"
+#include "modules/cpu_management/core/rlimit/rlimit.h"     // rlimit_nofile
 
 int sys_open(const char *path, uint32_t flags) {
     process_t *self = scheduler_get_current_process();
@@ -41,6 +43,10 @@ int sys_open(const char *path, uint32_t flags) {
         return -1;                          // the file's mode says no
 
     int fd = fd_alloc(self, file, flags);
+    if (fd >= rlimit_nofile(self)) {        // RLIMIT_NOFILE: only fds 0 .. limit-1
+        fd_release(self, fd);
+        return -1;
+    }
     if (fd >= 0 && (flags & O_TRUNC) && (flags & O_WRITE))
         ramdisk_truncate(file);
     return fd;

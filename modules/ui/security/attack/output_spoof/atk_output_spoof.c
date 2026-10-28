@@ -13,13 +13,14 @@
  * launch():   start a real process with that name, run the real `ps`,
  *             then stop the process again.
  *
- * Uses: process_create / process_kill (process_management), cmd_ps.
+ * Uses: process_create / process_kill (process_management), cmd_ps
+ *       (cpu_management/commands/ps).
  */
 
 #include "registry.h"
 #include "audit.h"
 #include "process.h"
-#include "proc_commands.h"
+#include "modules/cpu_management/commands/ps/cmd_ps.h"     // cmd_ps
 #include "sys_sleep.h"
 #include "sys_exit.h"
 #include "vga.h"

@@ -2,8 +2,10 @@
  * process.c - Create, kill and end processes.
  *
  * Uses: the scheduler (who is running, build a first stack), kmalloc for
- *       stacks (memory_management), and four defences that guard the
- *       exact moments an attack would strike:
+ *       stacks (memory_management), cpu_management for what a new
+ *       process inherits (core/task: nice, policy, affinity, limits) and
+ *       how many processes a user may have (core/rlimit: RLIMIT_NPROC),
+ *       and four defences that guard the exact moments an attack would strike:
  *         pid_bounds  - a PID is never reused         (create, kill)
  *         slot_quota  - one user cannot fill the table (create)
  *         pcb_wipe    - a reused slot starts empty     (init, create)
@@ -14,7 +16,8 @@
 #include "scheduler.h"
 #include "kheap.h"
 #include "string.h"
-#include "priority.h"
+#include "modules/cpu_management/core/task/cpu_task.h"      // cpu_task_fork
+#include "modules/cpu_management/core/rlimit/rlimit.h"      // rlimit_nproc_ok
 
 #include "def_pid_bounds.h"
 #include "def_slot_quota.h"
@@ -52,6 +55,11 @@ int process_create(const char *name, void (*entry)(void), uint32_t uid) {
     if (!def_slot_quota_check(uid))
         return -1;
 
+    // RLIMIT_NPROC (cpu_management): the creator's own limit for this user.
+    process_t *creator = scheduler_get_current_process();
+    if (!rlimit_nproc_ok(creator, uid))
+        return -1;
+
     process_t *p = find_free_slot();
     if (!p)
         return -1;
@@ -73,8 +81,11 @@ int process_create(const char *name, void (*entry)(void), uint32_t uid) {
     p->pid   = next_pid++;
     p->uid   = uid;
     p->entry = entry;
-    p->priority = PRIORITY_DEFAULT;     // cpu_management/core/priority
     strncpy(p->name, name ? name : "?", PROCESS_NAME_LEN - 1);
+
+    // nice, policy, CPU mask, limits, ppid, ...: from the creator
+    // (cpu_management/core/task), as fork() copies them in Unix.
+    cpu_task_fork(p, creator);
 
     p->state = PROCESS_STATE_READY;     // last: now the scheduler may run it
     return p->pid;

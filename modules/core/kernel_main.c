@@ -45,6 +45,7 @@
 #include "integrity.h"
 
 #include "ramdisk.h"        // filesystem
+#include "modules/filesystem_management/core/procfs/procfs.h"     // /proc (procfs_init)
 
 #include "users.h"          // users
 #include "session.h"
@@ -184,12 +185,12 @@ static void setup_shell(void) {
     // Each module adds its own commands.
     register_shell_commands();      // help, clear, echo, calc, snake, ...
     register_mem_commands();        // meminfo, heapinfo, pagewalk, memtest
-    register_proc_commands();       // ps, top, kill, spawn, exec, ...
+    register_proc_commands();       // kill, spawn, exec, sleep, testuser
     register_fs_commands();         // ls, cd, cat, mkdir, ...
     register_io_commands();         // ioinfo
-    register_cpu_commands();        // cpuinfo, faults, cpustat, nice
+    register_cpu_commands();        // lscpu, ps, top, htop, nice, chrt, perf, ...
     register_user_commands();       // whoami, id, users, ...
-    register_device_commands();     // uptime, date, devices, theme, mode, ...
+    register_device_commands();     // date, devices, theme, mode, ...
     register_ui_commands();         // uzfetch, statusbar
     register_security_commands();   // seclab
     format(detail, sizeof(detail), "%d commands", shell_command_count());
@@ -202,6 +203,10 @@ static void setup_filesystem(void) {
     boot_begin("RAM disk");
     ramdisk_init();                 // in-memory disk with the root "/"
     boot_ok("mounted at /");
+
+    boot_begin("/proc");            // live kernel files (filesystem_management/core/procfs)
+    procfs_init();
+    boot_ok("cpuinfo, stat, <pid>/status");
 
     // Needs the filesystem: every user gets a home directory.
     boot_begin("Users");
@@ -217,7 +222,7 @@ static void setup_processes(void) {
     boot_begin("Scheduler");
     scheduler_init();               // idle task; kernel_main becomes a process too
     scheduler_start();              // the timer now drives task switches
-    boot_ok("priorities 1-7, 50 ms turns, aging");
+    boot_ok("nice -> levels 1-7, FIFO/RR, aging");
 
     session_init();                 // kernel_main is the shell: its uid is "who you are"
 }

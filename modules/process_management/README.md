@@ -16,12 +16,13 @@ process_management/
 │   └── usertask/   usertask.h/.c      run a small .s program in ring 3 (testuser, attacks)
 ├── commands/                     shell commands, one folder each
 │   ├── proc_commands.h/.c             the command table
-│   ├── ps/ top/ kill/ spawn/ sleep/ exec/
+│   ├── kill/ spawn/ sleep/ exec/          (ps and top: cpu_management)
 │   └── testuser/   cmd_testuser.c     run a program in ring 3 (via usertask)
 │                   user_program.s     ...these programs
 ├── syscalls/                     one folder per system call
 │   ├── handler/    syscall_handler.h/.c   int 0x80 -> the right sys_*()
-│   └── exit/ getpid/ sleep/ yield/        sys_<name>.h/.c
+│   └── exit/ sleep/                       sys_<name>.h/.c
+│                                          (getpid, sched_yield: cpu_management)
 └── security/                     attack/defence pairs (see security_management)
     ├── attack/<id>/   atk_<id>.c + README.md    how a guarantee breaks
     └── defence/<id>/  def_<id>.h/.c + README.md  how the kernel stops it
@@ -42,7 +43,7 @@ process_management/
 
 - Every process belongs to a user (`process_t.uid`). A new one gets the
   uid of whoever created it (`process_caller_uid()`); the shell's uid is
-  the logged-in user (user_management). `ps` and `top` show the name.
+  the logged-in user (user_management). `ps` and `top` (cpu_management) show the name.
 - `scheduler_init()` creates two **system** processes: `idle` (PID 1),
   which runs when nobody else can, and `kernel_main` (PID 2), the code
   that was already running, which is the shell. Neither can be killed.
@@ -96,17 +97,19 @@ arch/x86/isr:  isr128 stub -> isr_handler() -> registered handler for 128
                   |
 syscalls/handler:  syscall_handler(regs): switch (regs->eax)
                   |
-syscalls/getpid:   sys_getpid()  ->  regs->eax = PID
+cpu_management/syscalls/getpid:   sys_getpid()  ->  regs->eax = PID
                   |
 iret: back in the program, EAX = its PID
 ```
 
 | # | Syscall | Argument (EBX) | Result (EAX) |
 |---|---------|----------------|--------------|
-| 1 | `exit`   | none          | never returns |
-| 2 | `getpid` | none          | PID |
+| 1 | `exit`   | none          | never returns (ends this thread) |
 | 3 | `sleep`  | milliseconds  | 0 |
-| 4 | `yield`  | none          | 0 |
+
+Numbers 2 (`getpid`) and 4 (`sched_yield`, once called `yield`) moved
+to [cpu_management](../cpu_management/syscalls/) with the other
+scheduling calls; their numbers did not change.
 
 The other numbers live with their own module, and the same handler's
 table routes them all:
@@ -118,7 +121,7 @@ table routes them all:
 | 9–13 | `mkdir`, `unlink`, `chdir`, `getcwd`, `rename`: [filesystem_management](../filesystem_management/syscalls/) |
 | 14–18 | `open`, `read`, `write`, `close`, `seek`: [io_management](../io_management/syscalls/) |
 | 19 | `time`: [device_management](../device_management/syscalls/) |
-| 20–22 | `cputime`, `setpriority`, `getpriority`: [cpu_management](../cpu_management/syscalls/) |
+| 2, 4, 20–22, 26–51 | `getpid`, `sched_yield`, `cputime`, `setpriority`, `getpriority`, the `sched_*` calls, limits, `clone`, NUMA, `perf_event_open`, `membarrier`, `exit_group`: [cpu_management](../cpu_management/README.md#system-calls) |
 | 23–24 | `getuid`, `setuid`: [user_management](../user_management/syscalls/) |
 | 25 | `getcaps`: [security_management](../security_management/syscalls/) |
 
@@ -128,14 +131,14 @@ memory, so a bad pointer fails only that call.
 
 ## Commands
 
+`ps` and `top` moved to [cpu_management](../cpu_management/README.md#commands).
+
 | Command | What it does | Uses |
 |---|---|---|
-| `ps` | list processes, with priority (PRI) and CPU share (CPU%) | process table |
-| `top` | full-screen live view: processes, memory and CPU load, every second; `q` quits and the old screen comes back | `vga_fullscreen`, `sys_sleep`, keyboard, `safe_text` |
 | `kill <pid>` | stop a process | `process_kill` (→ kill_guard) |
 | `spawn` | start a worker that beats 3 times, then exits | `process_create`, `sys_sleep`, `sys_exit` |
 | `sleep <s>` | pause the shell (Ctrl+C ends it) | `sys_sleep_interruptible` |
-| `exec <file> [&]` | load and run an ELF program, e.g. `exec hello`: in the foreground (Ctrl+C stops it), or with `&` in the background; refused if the kernel's code changed (integrity_check) | `elf_load_and_run`, `sys_sleep_interruptible`, `process_kill` |
+| `exec <file> [&]` | load and run an ELF program, e.g. `exec /hello`: in the foreground (Ctrl+C stops it), or with `&` in the background; refused if the kernel's code changed (integrity_check) | `elf_load_and_run`, `sys_sleep_interruptible`, `process_kill` |
 | `testuser [null\|badptr]` | run a tiny ring 3 program: `write` (prints hello), `getpid`, `uptime`, `mmap`, `munmap`, `exit`; with `null` it writes to address 0 and only it is killed; with `badptr` it passes `write()` an unmapped buffer and only that call fails | usertask (VMM, `switch_to_user_mode`, user_stack) |
 
 ## Security: attack ↔ defence

@@ -26,8 +26,10 @@ OBJ := $(patsubst %.c,$(BUILD)/%.o,$(C_SOURCES)) \
 DEP := $(OBJ:.o=.d)
 
 # Each feature keeps its header in its own folder, so every folder that
-# holds a .h goes on the include path.
-INC_DIRS := $(sort $(dir $(shell find $(SRC_DIRS) -name '*.h')))
+# holds a .h goes on the include path. The project root (.) is on it too,
+# so a file may also name a header by its full path:
+#     #include "modules/cpu_management/core/tsc/tsc.h"
+INC_DIRS := . $(sort $(dir $(shell find $(SRC_DIRS) -name '*.h')))
 
 # --- Flags -------------------------------------------------------------------
 # -m32 -ffreestanding     32-bit kernel code, no hosted C library
@@ -47,9 +49,25 @@ LDFLAGS := -m32 -nostdlib -no-pie -T boot/linker.ld -Wl,--build-id=none
 # --- Rules -------------------------------------------------------------------
 all: $(KERNEL)
 
-$(KERNEL): $(OBJ) boot/linker.ld
+# The kernel is linked twice, so that it can name its own functions
+# (`perf report` shows "idle_task" instead of "0x00104a2c"):
+#   1. link without names                         build/kernel.nosyms
+#   2. list its functions (nm) as a C table       build/ksyms.c
+#   3. link again, with that table added          kernel.bin
+# The table is only constants (.rodata comes after .text in linker.ld),
+# so no function moves between link 1 and link 3: the addresses in the
+# table are right. The table belongs to `perf report`:
+# see modules/cpu_management/commands/perf_report/ksyms.c.
+KSYMS_GEN := modules/cpu_management/commands/perf_report/ksyms_gen.sh
+
+$(KERNEL): $(OBJ) boot/linker.ld $(KSYMS_GEN)
+	@echo "  LD   $(BUILD)/kernel.nosyms"
+	@$(CC) $(LDFLAGS) $(OBJ) -o $(BUILD)/kernel.nosyms -lgcc
+	@echo "  GEN  $(BUILD)/ksyms.c"
+	@sh $(KSYMS_GEN) $(BUILD)/kernel.nosyms > $(BUILD)/ksyms.c
+	@$(CC) $(CFLAGS) -c $(BUILD)/ksyms.c -o $(BUILD)/ksyms.o
 	@echo "  LD   $@"
-	@$(CC) $(LDFLAGS) $(OBJ) -o $@ -lgcc
+	@$(CC) $(LDFLAGS) $(OBJ) $(BUILD)/ksyms.o -o $@ -lgcc
 
 $(BUILD)/%.o: %.c
 	@mkdir -p $(dir $@)

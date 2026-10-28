@@ -6,19 +6,35 @@ somewhere. UzOS splits that into two layers:
 ```
 VFS (core/vfs)        the tree of nodes, paths, open counts
   driver (core/ramdisk)   where the bytes are kept: here, the kernel heap
+  driver (core/procfs)    /proc: no bytes kept, the text is made on every read
 ```
 
 ```
 filesystem_management/
 ├── core/
 │   ├── vfs/      vfs.h/.c          nodes, open counts, path lookup, path of a node
-│   └── ramdisk/  ramdisk.h/.c      the RAM disk driver: create, delete, move, read, write
-│                 hello_elf.h       the bytes of /hello (userland/hello.elf)
+│   ├── ramdisk/  ramdisk.h/.c      the RAM disk driver: create, delete, move, read, write
+│   │             hello_elf.h       the bytes of /hello (userland/hello.elf)
+│   └── procfs/   procfs.h/.c       the /proc driver: /proc, /proc/self, /proc/<pid>/
+│                 proc_cpuinfo.c    /proc/cpuinfo   (numbers from cpu_management/core)
+│                 proc_stat.c       /proc/stat
+│                 proc_pid_status.c /proc/<pid>/status
 ├── commands/     fs_commands.h/.c + one folder per command:
 │                 ls cd pwd mkdir touch rm cat write cp mv wc grep hexdump
 ├── syscalls/     mkdir/ unlink/ chdir/ getcwd/ rename/   (number + .h + .c)
 └── security/     attack/<id>/  defence/<id>/   (4 pairs, each with a README)
 ```
+
+## /proc: a second driver
+
+`cat /proc/stat` goes through the same VFS as `cat /hello`. The
+difference is the driver: the RAM disk's `read()` copies stored bytes,
+procfs's `read()` WRITES the text right then from the kernel's live
+counters (cpu_management/core: accounting, affinity, numa, ...).
+`ls /proc` lists one directory per process that exists now; they are
+made on lookup, never stored. The RAM disk never creates, deletes or
+moves nodes it did not make (`ours()` in ramdisk.c), so `/proc` cannot
+be broken with `rm` or `mv`.
 
 ## The tree and paths
 
