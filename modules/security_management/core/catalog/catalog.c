@@ -18,6 +18,15 @@ void atk_pid_wrap_register(void);               void def_pid_bounds_register(voi
 void atk_uninit_pcb_register(void);             void def_pcb_wipe_register(void);
 void atk_kernel_stack_to_user_register(void);   void def_user_stack_register(void);
 void atk_malicious_elf_register(void);          void def_elf_validate_register(void);
+/* process_management - new process attacks (signals / sessions / isolation) */
+void atk_signal_abuse_register(void);           void def_signal_permission_register(void);
+void atk_ptrace_abuse_register(void);           void def_ptrace_restrict_register(void);
+void atk_orphan_process_register(void);         void def_orphan_reaping_register(void);
+void atk_toctou_race_register(void);            void def_atomic_check_register(void);
+void atk_process_injection_register(void);      void def_process_isolation_register(void);
+void atk_process_hijacking_register(void);      void def_control_flow_integrity_register(void);
+void atk_container_escape_register(void);       void def_namespace_isolation_register(void);
+void atk_process_dos_register(void);            void def_service_limits_register(void);
 
 /* ---------- memory_management ---------- */
 void atk_user_ptr_wrap_register(void);          void def_user_ptr_bounds_register(void);
@@ -42,6 +51,12 @@ void atk_irq_storm_register(void);              void def_irq_mask_register(void)
 void atk_canvas_overflow_register(void);        void def_canvas_clip_register(void);
 void atk_rtc_garbage_register(void);            void def_rtc_validate_register(void);
 void atk_invisible_text_register(void);         void def_contrast_check_register(void);
+/* device_management - new device attacks */
+void atk_keyboard_flood_register(void);         void def_key_queue_bound_register(void);
+void atk_speaker_abuse_register(void);          void def_speaker_freq_guard_register(void);
+void atk_bga_mode_overflow_register(void);      void def_mode_bounds_register(void);
+void atk_window_exhaustion_register(void);      void def_window_quota_register(void);
+void atk_window_size_overflow_register(void);   void def_window_bounds_register(void);
 
 /* ---------- io_management ---------- */
 void atk_invalid_descriptor_register(void);     void def_descriptor_bounds_register(void);
@@ -100,6 +115,15 @@ void catalog_init(void) {
     atk_uninit_pcb_register();              def_pcb_wipe_register();
     atk_kernel_stack_to_user_register();    def_user_stack_register();
     atk_malicious_elf_register();           def_elf_validate_register();
+    // process_management - new process attacks
+    atk_signal_abuse_register();            def_signal_permission_register();
+    atk_ptrace_abuse_register();            def_ptrace_restrict_register();
+    atk_orphan_process_register();          def_orphan_reaping_register();
+    atk_toctou_race_register();             def_atomic_check_register();
+    atk_process_injection_register();       def_process_isolation_register();
+    atk_process_hijacking_register();       def_control_flow_integrity_register();
+    atk_container_escape_register();         def_namespace_isolation_register();
+    atk_process_dos_register();             def_service_limits_register();
 
     // memory_management
     atk_user_ptr_wrap_register();           def_user_ptr_bounds_register();
@@ -124,6 +148,12 @@ void catalog_init(void) {
     atk_canvas_overflow_register();         def_canvas_clip_register();
     atk_rtc_garbage_register();             def_rtc_validate_register();
     atk_invisible_text_register();          def_contrast_check_register();
+    // device_management - new device attacks
+    atk_keyboard_flood_register();          def_key_queue_bound_register();
+    atk_speaker_abuse_register();           def_speaker_freq_guard_register();
+    atk_bga_mode_overflow_register();       def_mode_bounds_register();
+    atk_window_exhaustion_register();       def_window_quota_register();
+    atk_window_size_overflow_register();    def_window_bounds_register();
 
     // io_management
     atk_invalid_descriptor_register();      def_descriptor_bounds_register();

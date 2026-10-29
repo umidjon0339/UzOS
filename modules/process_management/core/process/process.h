@@ -58,6 +58,8 @@ typedef struct process {
     uint32_t ppid;                  // the process that created it (0 = none)
     uint32_t tgid;                  // thread group: its own pid, or the pid of
                                     // the thread that clone()d it (cpu_management syscalls/clone)
+    uint32_t pgid;                  // process group id (setpgid/getpgid)
+    uint32_t sid;                   // session id (setsid/getsid)
     uint32_t start_tick;            // timer tick it was created at
 
     // Scheduling, decided by cpu_management/core/priority and core/policy.

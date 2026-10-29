@@ -25,9 +25,25 @@
 extern uint8_t user_program[], user_program_end[];
 extern uint8_t user_null_program[], user_null_program_end[];
 extern uint8_t user_badptr_program[], user_badptr_program_end[];
+extern uint8_t procsys_program[], procsys_program_end[];
 
 void cmd_testuser(const char *args) {
     const uint8_t *start = user_program, *end = user_program_end;
+
+    // `testuser procsys`: call the new process syscalls from ring 3 and
+    // print what they returned (left in the usertask mailbox).
+    if (strcmp(args, "procsys") == 0) {
+        volatile uint32_t *mb = usertask_mailbox();
+        int pid = usertask_start("procsys", procsys_program,
+                                 procsys_program_end, USER_UID);
+        if (pid < 0) { ui_error("testuser", "could not start procsys"); return; }
+        usertask_wait(pid, 500);
+        ui_start(UI_OK, "testuser");
+        ui_printf("procsys PID %d: ppid=%u pgrp=%u setsid=%u getsid=%u pgid=%u",
+                  pid, mb[0], mb[1], mb[2], mb[3], mb[4]);
+        ui_end();
+        return;
+    }
 
     if (strcmp(args, "null") == 0) {
         start = user_null_program;

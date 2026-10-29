@@ -53,8 +53,8 @@ typedef struct {
     int (*selftest)(void);      // 1 = the attack is blocked
 } defence_t;
 
-#define REGISTRY_MAX_ATTACKS  64
-#define REGISTRY_MAX_DEFENCES 64
+#define REGISTRY_MAX_ATTACKS  80
+#define REGISTRY_MAX_DEFENCES 80
 
 // Each pair's <id>_register() function calls these (see core/catalog).
 void registry_add_attack(const attack_t *a);

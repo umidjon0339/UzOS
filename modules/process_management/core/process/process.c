@@ -87,6 +87,11 @@ int process_create(const char *name, void (*entry)(void), uint32_t uid) {
     // (cpu_management/core/task), as fork() copies them in Unix.
     cpu_task_fork(p, creator);
 
+    // process group and session: inherit from the creator, or (no
+    // creator, e.g. a session leader) default to the process's own pid.
+    p->pgid = creator ? creator->pgid : p->pid;
+    p->sid  = creator ? creator->sid  : p->pid;
+
     p->state = PROCESS_STATE_READY;     // last: now the scheduler may run it
     return p->pid;
 }

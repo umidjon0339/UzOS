@@ -11,6 +11,8 @@
 #include "window_manager.h"
 #include "kheap.h"
 #include "string.h"
+#include "def_window_bounds.h"   // DEFENCE window_bounds
+#include "def_window_quota.h"    // DEFENCE window_quota
 
 typedef struct {
     int used;
@@ -32,6 +34,18 @@ void wm_init(void) {
 }
 
 int wm_create_window(int x, int y, int width, int height, const char *title) {
+    // DEFENCE window_bounds: kmalloc(width*height*4) must not overflow.
+    if (!def_window_size_ok(width, height))
+        return -1;
+
+    // DEFENCE window_quota: refuse once every slot is already in use.
+    int used = 0;
+    for (int i = 0; i < MAX_WINDOWS; i++)
+        if (windows[i].used)
+            used++;
+    if (!def_window_quota_ok(used))
+        return -1;
+
     for (int id = 0; id < MAX_WINDOWS; id++) {
         window_t *w = &windows[id];
         if (w->used)

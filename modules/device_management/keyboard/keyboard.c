@@ -15,6 +15,7 @@
 #include "isr.h"
 #include "io.h"
 #include "pic.h"
+#include "def_key_queue_bound.h"   // DEFENCE key_queue_bound
 
 #define KEYBOARD_IRQ   1
 #define KEYBOARD_DATA  0x60
@@ -66,11 +67,11 @@ static char queue[QUEUE_SIZE];
 static volatile int head, tail;
 
 static void enqueue(char c) {
-    int next = (head + 1) % QUEUE_SIZE;
-    if (next == tail)
-        return;                 // full: drop the key rather than overwrite
+    // DEFENCE key_queue_bound: drop the newest key when the ring is full.
+    if (!def_key_queue_has_room(head, tail, QUEUE_SIZE))
+        return;
     queue[head] = c;
-    head = next;
+    head = (head + 1) % QUEUE_SIZE;
     last_key = c;
 }
 

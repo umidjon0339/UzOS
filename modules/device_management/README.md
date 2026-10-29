@@ -30,8 +30,12 @@ device_management/
 ├── commands/  device_commands.h/.c + date/ devices/ startx/ beep/ play/
 │                                    theme/ font/ mode/
 ├── syscalls/  uptime/ time/       milliseconds since boot; seconds since 1970
-└── security/  attack/<id>/  defence/<id>/   (7 pairs, each with a README)
+└── security/  <attack>/  (defence/<defence>/ inside each)  (12 pairs + README)
 ```
+
+Each security pair lives in one folder named for the attack, with its
+defence nested inside it (`security/<attack>/defence/<defence>/`), the
+same clean shape as cpu_management. See [security/README.md](security/README.md).
 
 ## From key press to shell
 
@@ -151,6 +155,15 @@ The `uptime` COMMAND moved to [cpu_management](../cpu_management/README.md#comma
 | `canvas_overflow` | isolation | `canvas_clip` | `canvas_fill_rect`, `canvas_blit` |
 | `rtc_garbage` | trust | `rtc_validate` | `rtc_decode` |
 | `invisible_text` | trust | `contrast_check` | `palette_use`, the shell's `color` |
+| `keyboard_flood` | resource | `key_queue_bound` | `enqueue` (keyboard IRQ) |
+| `speaker_abuse` | trust | `speaker_freq_guard` | `speaker_on` |
+| `bga_mode_overflow` | trust | `mode_bounds` | `bga_set_video_mode` |
+| `window_exhaustion` | resource | `window_quota` | `wm_create_window` |
+| `window_size_overflow` | trust | `window_bounds` | `wm_create_window` |
 
-The mouse attacks feed crafted bytes into the **real** packet decoder
-with interrupts off, then put the pointer back where it was.
+Each pair lives in `security/<attack>/`, with its defence nested inside
+(`security/<attack>/defence/<defence>/`); see
+[security/README.md](security/README.md). The mouse attacks feed crafted
+bytes into the **real** packet decoder with interrupts off, then put the
+pointer back where it was. `bga_mode_overflow` and `window_size_overflow`
+added a size check their driver was missing.

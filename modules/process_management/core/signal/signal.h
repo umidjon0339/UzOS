@@ -20,6 +20,9 @@
 #include "process.h"
 
 #define SIGINT 2        // "interrupt", sent by Ctrl+C (the same number as Linux)
+#define SIGKILL 9       // forced termination: cannot be caught or ignored
+#define SIGTERM 15      // polite request to terminate (may be caught)
+#define SIGHUP  1       // the controlling terminal went away
 
 // Mark 'sig' pending on 'p', and wake it if it is in an interruptible
 // sleep. Safe to call from an interrupt handler.

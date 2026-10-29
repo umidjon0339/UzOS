@@ -7,6 +7,7 @@
 #include "speaker.h"
 #include "io.h"
 #include "timer.h"
+#include "def_speaker_freq_guard.h"   // DEFENCE speaker_freq_guard
 
 #define PIT_CHANNEL2   0x42
 #define PIT_COMMAND    0x43
@@ -15,7 +16,9 @@
 #define SPEAKER_BITS   0x03     // bit 0: let PIT 2 run, bit 1: connect the speaker
 
 void speaker_on(uint32_t hz) {
-    if (hz < SPEAKER_MIN_HZ || hz > SPEAKER_MAX_HZ)
+    // DEFENCE speaker_freq_guard: 0 divides by zero; the divisor must
+    // fit 16 bits, and only 20 Hz..20 kHz is audible.
+    if (!def_speaker_freq_ok(hz))
         return;
 
     uint32_t divisor = PIT_INPUT_HZ / hz;

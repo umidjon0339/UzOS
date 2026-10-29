@@ -19,13 +19,17 @@ process_management/
 │   ├── kill/ spawn/ sleep/ exec/          (ps and top: cpu_management)
 │   └── testuser/   cmd_testuser.c     run a program in ring 3 (via usertask)
 │                   user_program.s     ...these programs
-├── syscalls/                     one folder per system call
+├── syscalls/                     one folder per system call: sys_<name>.h/.c
 │   ├── handler/    syscall_handler.h/.c   int 0x80 -> the right sys_*()
-│   └── exit/ sleep/                       sys_<name>.h/.c
-│                                          (getpid, sched_yield: cpu_management)
-└── security/                     attack/defence pairs (see security_management)
-    ├── attack/<id>/   atk_<id>.c + README.md    how a guarantee breaks
-    └── defence/<id>/  def_<id>.h/.c + README.md  how the kernel stops it
+│   ├── exit/ sleep/
+│   ├── getppid/ setpgid/ getpgid/ getpgrp/ setsid/ getsid/   identity, groups, sessions
+│   ├── kill/ tkill/ tgkill/ pidfd_send_signal/               signals (signal_permission gate)
+│   ├── wait/ waitpid/ waitid/                                 wait for a child
+│   └── fork/ vfork/ execve/ execveat/   STUBS: need per-process address spaces
+│                                          (getpid, sched_yield, clone: cpu_management)
+└── security/                     one folder per ATTACK; its DEFENCE nested inside
+    └── <attack>/   atk_<attack>.c + README + defence/<defence>/def_<defence>.h/.c
+                    (16 pairs; see security/README.md)
 ```
 
 ## Life of a process
@@ -153,8 +157,20 @@ memory, so a bad pointer fails only that call.
 | `uninit_pcb` | disclosure | `pcb_wipe` | `process_init`, `process_create` |
 | `kernel_stack_to_user` | privilege | `user_stack` | usertask (`testuser`, cpu attacks) |
 | `malicious_elf` | trust | `elf_validate` | `elf_load_and_run` |
+| `signal_abuse` | privilege | `signal_permission` | signal-sending paths |
+| `orphan_process` | consistency | `orphan_reaping` | the global reaper |
+| `ptrace_abuse` | disclosure | `ptrace_restrict` | the gate a future `ptrace()` needs |
+| `toctou_race` | trust | `atomic_check` | illustration (check-then-use gap) |
+| `process_injection` | isolation | `process_isolation` | concept (needs per-process AS) |
+| `process_hijacking` | integrity | `control_flow_integrity` | concept (CFI is compiler+hw) |
+| `container_escape` | isolation | `namespace_isolation` | concept (no namespaces) |
+| `process_dos` | liveness | `service_limits` | umbrella over slot_quota + CPU quotas |
 
-Each folder has a README. Try `seclab list`, `seclab attack <id> live`
+The pairs are nested as `security/<attack>/defence/<defence>/`; see
+[security/README.md](security/README.md). The last eight were added in
+the restructure — some are honest illustrations/concepts because UzOS is
+a single-address-space kernel (see Known limits). Each folder has a
+README. Try `seclab list`, `seclab attack <id> live`
 and `seclab verify all`. The lab itself lives in [`modules/security_management`](../security_management/).
 
 ## Known limits

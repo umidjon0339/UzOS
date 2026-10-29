@@ -8,6 +8,7 @@
 #include "bga.h"
 #include "io.h"
 #include "memory_layout.h"
+#include "def_mode_bounds.h"   // DEFENCE mode_bounds
 
 #define BGA_INDEX_PORT  0x01CE
 #define BGA_DATA_PORT   0x01CF
@@ -39,6 +40,10 @@ int bga_is_available(void) {
 }
 
 void bga_set_video_mode(uint16_t width, uint16_t height, uint16_t bpp) {
+    // DEFENCE mode_bounds: a huge or zero mode overflows framebuffer math.
+    if (!def_bga_mode_ok(width, height, bpp))
+        return;
+
     write_reg(REG_ENABLE, 0);           // registers may only change while off
     write_reg(REG_XRES, width);
     write_reg(REG_YRES, height);

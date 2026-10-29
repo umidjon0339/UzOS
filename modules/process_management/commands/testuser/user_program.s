@@ -15,6 +15,12 @@ SYS_UPTIME equ 8
 SYS_WRITE  equ 16
 STDOUT     equ 1
 PAGE_SIZE  equ 4096
+SYS_GETPPID equ 52
+SYS_GETPGID equ 54
+SYS_GETPGRP equ 55
+SYS_SETSID  equ 56
+SYS_GETSID  equ 57
+MAILBOX     equ 0x40000F00      ; = USERTASK_MAILBOX (usertask.h)
 
 global user_program
 global user_program_end
@@ -22,6 +28,8 @@ global user_null_program
 global user_null_program_end
 global user_badptr_program
 global user_badptr_program_end
+global procsys_program
+global procsys_program_end
 
 section .text
 
@@ -91,3 +99,29 @@ user_badptr_program:
 .hang:
     jmp .hang
 user_badptr_program_end:
+
+; --- `testuser procsys`: exercise the new process syscalls -------------------
+; Leaves five results in the usertask mailbox for the kernel to print.
+procsys_program:
+    mov eax, SYS_GETPPID
+    int 0x80
+    mov [MAILBOX + 0], eax      ; our parent's pid
+    mov eax, SYS_GETPGRP
+    int 0x80
+    mov [MAILBOX + 4], eax      ; our process group
+    mov eax, SYS_SETSID
+    int 0x80
+    mov [MAILBOX + 8], eax      ; new session id (becomes our pid)
+    mov eax, SYS_GETSID
+    xor ebx, ebx                ; pid 0 = self
+    int 0x80
+    mov [MAILBOX + 12], eax     ; session id read back
+    mov eax, SYS_GETPGID
+    xor ebx, ebx
+    int 0x80
+    mov [MAILBOX + 16], eax     ; process group after setsid
+    mov eax, SYS_EXIT
+    int 0x80
+.hang:
+    jmp .hang
+procsys_program_end:

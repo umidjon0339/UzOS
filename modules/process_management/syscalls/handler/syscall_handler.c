@@ -79,6 +79,23 @@
 #include "modules/cpu_management/syscalls/migrate_pages/sys_migrate_pages.h"
 #include "modules/cpu_management/syscalls/membarrier/sys_membarrier.h"
 #include "modules/cpu_management/syscalls/exit_group/sys_exit_group.h"
+#include "modules/process_management/syscalls/getppid/sys_getppid.h"
+#include "modules/process_management/syscalls/setpgid/sys_setpgid.h"
+#include "modules/process_management/syscalls/getpgid/sys_getpgid.h"
+#include "modules/process_management/syscalls/getpgrp/sys_getpgrp.h"
+#include "modules/process_management/syscalls/setsid/sys_setsid.h"
+#include "modules/process_management/syscalls/getsid/sys_getsid.h"
+#include "modules/process_management/syscalls/kill/sys_kill.h"
+#include "modules/process_management/syscalls/tkill/sys_tkill.h"
+#include "modules/process_management/syscalls/tgkill/sys_tgkill.h"
+#include "modules/process_management/syscalls/pidfd_send_signal/sys_pidfd_send_signal.h"
+#include "modules/process_management/syscalls/wait/sys_wait.h"
+#include "modules/process_management/syscalls/waitpid/sys_waitpid.h"
+#include "modules/process_management/syscalls/waitid/sys_waitid.h"
+#include "modules/process_management/syscalls/fork/sys_fork.h"
+#include "modules/process_management/syscalls/vfork/sys_vfork.h"
+#include "modules/process_management/syscalls/execve/sys_execve.h"
+#include "modules/process_management/syscalls/execveat/sys_execveat.h"
 // user_management
 #include "sys_getuid.h"
 #include "sys_setuid.h"
@@ -285,6 +302,28 @@ static uint32_t do_setuid(registers_t *r) { return (uint32_t)sys_setuid(r->ebx);
 
 static uint32_t do_getcaps(registers_t *r) { (void)r; return sys_getcaps(); }
 
+/* process_management: identity, groups, sessions */
+static uint32_t do_getppid(registers_t *r) { (void)r; return sys_getppid(); }
+static uint32_t do_setpgid(registers_t *r) { return (uint32_t)sys_setpgid(r->ebx, r->ecx); }
+static uint32_t do_getpgid(registers_t *r) { return (uint32_t)sys_getpgid(r->ebx); }
+static uint32_t do_getpgrp(registers_t *r) { (void)r; return sys_getpgrp(); }
+static uint32_t do_setsid(registers_t *r)  { (void)r; return (uint32_t)sys_setsid(); }
+static uint32_t do_getsid(registers_t *r)  { return (uint32_t)sys_getsid(r->ebx); }
+/* process_management: signals */
+static uint32_t do_kill(registers_t *r)    { return (uint32_t)sys_kill(r->ebx, (int)r->ecx); }
+static uint32_t do_tkill(registers_t *r)   { return (uint32_t)sys_tkill(r->ebx, (int)r->ecx); }
+static uint32_t do_tgkill(registers_t *r)  { return (uint32_t)sys_tgkill(r->ebx, r->ecx, (int)r->edx); }
+static uint32_t do_pidfd_send_signal(registers_t *r) { return (uint32_t)sys_pidfd_send_signal((int)r->ebx, (int)r->ecx); }
+/* process_management: wait */
+static uint32_t do_wait(registers_t *r)    { (void)r; return (uint32_t)sys_wait(); }
+static uint32_t do_waitpid(registers_t *r) { return (uint32_t)sys_waitpid(r->ebx); }
+static uint32_t do_waitid(registers_t *r)  { return (uint32_t)sys_waitid((int)r->ebx, r->ecx); }
+/* process_management: fork/exec (stubs: need per-process address spaces) */
+static uint32_t do_fork(registers_t *r)     { (void)r; return (uint32_t)sys_fork(); }
+static uint32_t do_vfork(registers_t *r)    { (void)r; return (uint32_t)sys_vfork(); }
+static uint32_t do_execve(registers_t *r)   { return (uint32_t)sys_execve((const char *)r->ebx, (char *const *)r->ecx, (char *const *)r->edx); }
+static uint32_t do_execveat(registers_t *r) { return (uint32_t)sys_execveat((int)r->ebx, (const char *)r->ecx, (char *const *)r->edx, (char *const *)r->esi, (int)r->edi); }
+
 /* ---------- The table ---------- */
 
 static const struct {
@@ -343,6 +382,27 @@ static const struct {
     { SYS_MIGRATE_PAGES,          "migrate_pages",          do_migrate_pages          },
     { SYS_MEMBARRIER,             "membarrier",             do_membarrier             },
     { SYS_EXIT_GROUP,             "exit_group",             do_exit_group             },
+    /* process_management: identity, groups, sessions */
+    { SYS_GETPPID,            "getppid",            do_getppid            },
+    { SYS_SETPGID,            "setpgid",            do_setpgid            },
+    { SYS_GETPGID,            "getpgid",            do_getpgid            },
+    { SYS_GETPGRP,            "getpgrp",            do_getpgrp            },
+    { SYS_SETSID,             "setsid",             do_setsid             },
+    { SYS_GETSID,             "getsid",             do_getsid             },
+    /* process_management: signals */
+    { SYS_KILL,               "kill",               do_kill               },
+    { SYS_TKILL,              "tkill",              do_tkill              },
+    { SYS_TGKILL,             "tgkill",             do_tgkill             },
+    { SYS_PIDFD_SEND_SIGNAL,  "pidfd_send_signal",  do_pidfd_send_signal  },
+    /* process_management: wait */
+    { SYS_WAIT,               "wait",               do_wait               },
+    { SYS_WAITPID,            "waitpid",            do_waitpid            },
+    { SYS_WAITID,             "waitid",             do_waitid             },
+    /* process_management: fork/exec (stubs) */
+    { SYS_FORK,               "fork",               do_fork               },
+    { SYS_VFORK,              "vfork",              do_vfork              },
+    { SYS_EXECVE,             "execve",             do_execve             },
+    { SYS_EXECVEAT,           "execveat",           do_execveat           },
 };
 #define TABLE_SIZE (sizeof(table) / sizeof(table[0]))
 
