@@ -16,9 +16,6 @@
 
 #include <stdint.h>
 
-#define MOUSE_SCREEN_MAX_X 1023     // the GUI is 1024 x 768
-#define MOUSE_SCREEN_MAX_Y 767
-
 typedef struct {
     int x, y;                       // pointer position on the GUI screen
     int left, right, middle;        // 1 = button held
@@ -29,6 +26,14 @@ int init_mouse(void);
 int mouse_is_available(void);
 
 void mouse_get_state(mouse_state_t *out);
+
+// The screen is now 'width' x 'height' pixels: keep the pointer on it.
+// (bga_set_video_mode calls this whenever the size changes.)
+void mouse_set_screen(int width, int height);
+
+// The last pixel the pointer may reach (1023 and 767 at 1024 x 768).
+int mouse_max_x(void);
+int mouse_max_y(void);
 
 /* ---------- For tests (seclab) ---------- */
 

@@ -29,7 +29,7 @@
 
 static void sleeper(void) {
     sys_sleep(2000);
-    sys_exit();
+    sys_exit(0);
 }
 
 static int simulate(void) {

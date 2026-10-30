@@ -9,10 +9,12 @@
 ## The rule
 
 ```
-0 <= x <= 1023        0 <= y <= 767
+0 <= x <= width - 1        0 <= y <= height - 1
 ```
 
-Anything outside is moved to the nearest edge ("clamped").
+for the current screen (1023 and 767 at 1024 x 768). Anything outside is
+moved to the nearest edge ("clamped"). When the screen gets smaller
+(Ctrl+Down, `mode 800x600`) the pointer is clamped to the new edge at once.
 
 ## Why
 
@@ -26,7 +28,7 @@ logged as an attack. `seclab` judges this defence by its selftest.
 
 ## Uses
 
-- `MOUSE_SCREEN_MAX_X` / `MOUSE_SCREEN_MAX_Y` from mouse/
+- nothing: the mouse driver passes the current screen edge in (`max_x`, `max_y`, set by `mouse_set_screen()` whenever the size changes)
 
 ## Try it
 

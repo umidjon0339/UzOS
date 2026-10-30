@@ -8,11 +8,11 @@
  *       (core/process); signal_send, SIGKILL (core/signal);
  *       def_signal_allowed (signal_permission); process_t.tgid.
  */
-#include "sys_tgkill.h"
-#include "process.h"
-#include "scheduler.h"
-#include "signal.h"
-#include "def_signal_permission.h"
+#include "modules/process_management/syscalls/tgkill/sys_tgkill.h"                                             // this file
+#include "modules/process_management/core/process/process.h"                                                   // process_t, process_get_by_pid, process_kill
+#include "modules/process_management/core/scheduler/scheduler.h"                                               // scheduler_get_current_process
+#include "modules/process_management/core/signal/signal.h"                                                     // SIGKILL, signal_send
+#include "modules/process_management/security/signal_abuse/defence/signal_permission/def_signal_permission.h"  // def_signal_allowed
 
 int sys_tgkill(uint32_t tgid, uint32_t tid, int sig) {
     process_t *self = scheduler_get_current_process();

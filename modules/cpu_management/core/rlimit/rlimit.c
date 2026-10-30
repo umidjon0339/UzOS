@@ -27,6 +27,7 @@ static const struct {
     [RLIMIT_DATA]   = { "data seg size","bytes",   'd', "sbrk() (memory_management)",   RLIM_INFINITY, RLIM_INFINITY },
     [RLIMIT_STACK]  = { "stack size",   "bytes",   's', "fixed: one 4 KiB page",        STACK_BYTES,   STACK_BYTES   },
     [RLIMIT_NPROC]  = { "max user processes", "processes", 'u', "process_create()",     MAX_PROCESSES, MAX_PROCESSES },
+    [RLIMIT_SIGPENDING] = { "pending signals", "signals", 'i', "rt_sigqueueinfo() (sigqueue_limit)", 16, 16 },
     [RLIMIT_NOFILE] = { "open files",   "files",   'n', "open(), perf_event_open()",    MAX_FDS,       MAX_FDS       },
     [RLIMIT_NICE]   = { "scheduling priority", "20 - nice", 'e', "setpriority() (priority_bounds)", 0, 0 },
     [RLIMIT_RTPRIO] = { "real-time priority",  "1..99",     'r', "sched_setscheduler() (priority_bounds)", 0, 0 },

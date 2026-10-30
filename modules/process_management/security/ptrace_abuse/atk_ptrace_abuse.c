@@ -7,8 +7,9 @@
  * A debugging interface like ptrace() reads and writes another process's
  * registers and memory. If any user could attach to any process, ptrace
  * would be a window into everyone's secrets - keys, passwords, tokens.
- * UzOS has no ptrace() yet; this shows the gate one would have to pass:
- * ownership (or a debug capability), and never a system process.
+ * UzOS's ptrace() (syscalls/ptrace) asks ptrace_restrict before every
+ * attach: ownership (or CAP_PTRACE), never a system process, and only
+ * an ancestor (Yama). `proccalls debug` attaches for real from ring 3.
  *
  * simulate(): explain what a debugger can see, and why it needs rights.
  * launch():   as user 1, ask to attach to user 2's process and a system
@@ -18,10 +19,10 @@
  * Uses: ptrace_restrict (its defence), vga.
  */
 
-#include "registry.h"
-#include "audit.h"
-#include "def_ptrace_restrict.h"
-#include "vga.h"
+#include "modules/security_management/core/registry/registry.h"                                            // attack_t, registry_add_attack
+#include "modules/security_management/core/audit/audit.h"                                                  // audit_total
+#include "modules/process_management/security/ptrace_abuse/defence/ptrace_restrict/def_ptrace_restrict.h"  // def_ptrace_allowed
+#include "modules/device_management/vga/vga.h"                                                             // vga_print_str, vga_print_int
 
 static int simulate(void) {
     vga_print_str("  a debugger reads/writes a process's registers + memory\n");

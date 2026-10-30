@@ -12,7 +12,8 @@
  *             a real packet "move right 10, left button down", then an
  *             overflowed packet. Check what came out; put the pointer back.
  *
- * Uses: mouse_handle_byte / mouse_get_state / mouse_set_state (mouse/).
+ * Uses: mouse_handle_byte / mouse_get_state / mouse_set_state and
+ *       mouse_max_x: the current right edge (mouse/).
  */
 
 #include "registry.h"
@@ -54,7 +55,7 @@ static int launch(void) {
     send(&stray, 1);                        // the stray byte
     send(click_right, 3);                   // a real packet right after it
     mouse_get_state(&after);
-    int expected_x = saved.x + 10 > MOUSE_SCREEN_MAX_X ? MOUSE_SCREEN_MAX_X : saved.x + 10;
+    int expected_x = saved.x + 10 > mouse_max_x() ? mouse_max_x() : saved.x + 10;
     int ok = after.left == 1 && after.x == expected_x;
     vga_print_str("  stray byte, then 'left click + 10 right' -> ");
     vga_print_str(ok ? "read correctly\n" : "MISREAD (out of step)\n");

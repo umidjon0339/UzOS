@@ -1,10 +1,19 @@
 /*
- * sys_execveat.c - execveat() STUB: same as execve (see .h).
+ * sys_execveat.c - execveat(dirfd, path, argv, envp, flags).
+ *
+ * execve() with the path looked up from a directory descriptor. UzOS
+ * descriptors name files, never directories, so the only dirfd it can
+ * use is AT_FDCWD (the current directory) - or an absolute path, which
+ * ignores dirfd anyway, as in Linux. Then it IS execve(). flags must be 0.
+ *
+ * Uses: sys_execve (syscalls/execve).
  */
-#include "sys_execveat.h"
+#include "modules/process_management/syscalls/execveat/sys_execveat.h"   // this file
+#include "modules/process_management/syscalls/execve/sys_execve.h"       // sys_execve
 
-int sys_execveat(int dirfd, const char *path, char *const argv[],
+int sys_execveat(registers_t *regs, int dirfd, const char *path, char *const argv[],
                  char *const envp[], int flags) {
-    (void)dirfd; (void)path; (void)argv; (void)envp; (void)flags;
-    return -1;      // unsupported: see sys_execveat.h
+    if (flags || !path || (path[0] != '/' && dirfd != AT_FDCWD))
+        return -1;                      // EINVAL / ENOTDIR: no directory descriptors
+    return sys_execve(regs, path, argv, envp);
 }

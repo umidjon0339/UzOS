@@ -28,6 +28,7 @@
 #include "cpu.h"
 #include "ui.h"
 #include "scheduler.h"
+#include "signal.h"          // SIGSEGV
 #include "def_null_page.h"
 #include "cpu_faults.h"
 #include "def_fault_isolation.h"
@@ -159,7 +160,7 @@ static void page_fault_handler(registers_t *regs) {
         vga_set_color(VGA_COLOR_LIGHT_RED, VGA_COLOR_BLACK);
         print_fault(addr, regs);
         ui_reset();
-        process_exit();
+        process_exit_with(SIGSEGV | 0x80);  // as wait() reports it: SIGSEGV, core dumped
     }
 
     // A fault in kernel code is a kernel bug: stop everything.

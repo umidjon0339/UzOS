@@ -2,9 +2,9 @@
 
 | | |
 |---|---|
-| **Stops** | [`delete_open_file`](../../attack/delete_open_file/) |
+| **Stops** | [`delete_open_file`](../../) |
 | **Protects** | consistency: no pointer to freed memory |
-| **Called from** | `ramdisk_delete()` in [core/ramdisk](../../../core/ramdisk/ramdisk.c) |
+| **Called from** | `ramdisk_delete()` in [core/ramdisk](../../../../core/ramdisk/ramdisk.c) |
 
 ## The rules
 

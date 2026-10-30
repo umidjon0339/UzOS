@@ -47,6 +47,11 @@ const char *isr_exception_name(uint8_t n);
 // (cpu_management/core/faults decides which faults those are).
 void isr_panic(registers_t *regs) __attribute__((noreturn));
 
+// Run 'hook' at the end of every interrupt that came from ring 3, right
+// before the CPU goes back there. process_management delivers signals
+// here: it is the last moment the kernel can change where ring 3 resumes.
+void isr_on_return_to_user(isr_t hook);
+
 // Called by the assembly stub for every interrupt.
 void isr_handler(registers_t *regs);
 

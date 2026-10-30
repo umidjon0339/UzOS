@@ -11,14 +11,16 @@
  *         later, from a different stack. That someone is the reaper.
  */
 
-#include "def_reaper.h"
-#include "registry.h"
-#include "scheduler.h"
-#include "process.h"
-#include "kheap.h"
-#include "cpu.h"
-#include "def_fd_cleanup.h"
-#include "modules/cpu_management/core/task/cpu_task.h"     // cpu_task_exit
+#include "modules/process_management/security/zombie_leak/defence/reaper/def_reaper.h"  // this file
+#include "modules/security_management/core/registry/registry.h"                         // defence_t, registry_add_defence
+#include "modules/process_management/core/scheduler/scheduler.h"                        // scheduler_get_current_process
+#include "modules/process_management/core/process/process.h"                            // process_t, process_get_table
+#include "modules/memory_management/core/kheap/kheap.h"                                 // kfree
+#include "arch/x86/cpu/cpu.h"                                                           // cpu_irq_save, cpu_irq_restore
+#include "modules/io_management/security/defence/fd_cleanup/def_fd_cleanup.h"           // def_fd_close_all
+#include "modules/process_management/core/exitlog/exitlog.h"  // exitlog_add
+#include "modules/process_management/core/signal/signal.h"                              // sigqueue_release
+#include "modules/cpu_management/core/task/cpu_task.h"                                  // cpu_task_exit
 
 // The whole rule, as a pure function so the selftest can try it.
 static int reapable(const process_t *p, const process_t *running) {
@@ -44,6 +46,12 @@ void def_reap_zombies(void) {
         // cpu_management: add what it used to its parent, keep a record
         // (`time` and `perf stat` read it).
         cpu_task_exit(p);
+
+        // core/signal: queued signals for it can never be delivered now.
+        sigqueue_release(p);
+
+        // core/exitlog: keep its exit status until its parent wait()s.
+        exitlog_add(p);
 
         if (p->stack_base)
             kfree((void *)p->stack_base);

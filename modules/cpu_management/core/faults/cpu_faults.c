@@ -20,6 +20,7 @@
 
 #include "modules/cpu_management/core/faults/cpu_faults.h"
 #include "modules/process_management/core/scheduler/scheduler.h"
+#include "modules/process_management/core/signal/signal.h"           // SIGSEGV, SIGFPE, ...
 #include "modules/device_management/timer/timer.h"
 #include "lib/string/string.h"
 #include "modules/ui/core/style/ui.h"
@@ -168,6 +169,17 @@ const cpu_fault_t *cpu_fault_log_get(int index) {
 
 /* ---------- The handler ---------- */
 
+// The signal Linux sends for this exception: how the process "ended".
+static int fault_signal(uint32_t vector) {
+    switch (vector) {
+        case 0: case 16: case 19: return SIGFPE;    // divide error, x87, SIMD
+        case 6:                   return SIGILL;    // invalid opcode
+        case 1: case 3:           return SIGTRAP;   // debug, breakpoint
+        case 17:                  return SIGBUS;    // alignment check
+        default:                  return SIGSEGV;   // #GP, #PF, #SS, ...
+    }
+}
+
 static void fault_handler(registers_t *regs) {
     // DEFENCE fault_isolation: a fault in a ring 3 program is that
     // program's problem. End it, keep the OS running.
@@ -177,7 +189,7 @@ static void fault_handler(registers_t *regs) {
         // DEFENCE tsc_restrict: a ring 3 rdtsc faults on purpose; say so.
         def_tsc_restrict_note(regs->int_no, cpu_fault_log_get(0)->instruction);
 
-        process_exit();             // never returns: the reaper frees it
+        process_exit_with(fault_signal(regs->int_no) | 0x80);  // never returns: the reaper frees it
     }
 
     // A fault in the kernel itself (or a broken machine): stop.

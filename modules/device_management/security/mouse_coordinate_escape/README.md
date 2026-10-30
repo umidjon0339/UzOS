@@ -17,8 +17,8 @@ outside the screen buffer.
 
 | Mode | What happens |
 |---|---|
-| `simulate` | shows where 6 big moves left would end without a check |
-| `live` | feeds 6 × 255 moves in each of the 4 directions to the **real** packet decoder (interrupts off), prints the pointer after each, then puts it back |
+| `simulate` | shows where 10 big moves left would end without a check |
+| `live` | feeds 10 × 255 moves in each of the 4 directions to the **real** packet decoder (interrupts off), prints the pointer after each, then puts it back |
 
 ## Uses
 

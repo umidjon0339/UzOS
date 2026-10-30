@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Stopped by** | [`filename_check`](../../defence/filename_check/) |
+| **Stopped by** | [`filename_check`](defence/filename_check/) |
 | **Breaks** | trust: names are checked before use |
 | **Severity** | high |
 

@@ -15,16 +15,17 @@
  *         reaper      - free the slots of finished processes (tick)
  */
 
-#include "scheduler.h"
-#include "process.h"
-#include "tss.h"
-#include "cpu.h"
-#include "modules/cpu_management/core/priority/priority.h"        // priority_*
-#include "modules/cpu_management/core/accounting/cpu_account.h"   // cpu_account_switch
-#include "modules/cpu_management/core/power/power.h"              // power_idle
+#include "modules/process_management/core/scheduler/scheduler.h"                                     // this file
+#include "modules/process_management/core/process/process.h"                                         // process_t, process_get_by_pid
+#include "modules/process_management/core/signal/signal.h"                                           // signal_init, signal_tick
+#include "arch/x86/tss/tss.h"                                                                        // set_kernel_stack
+#include "arch/x86/cpu/cpu.h"                                                                        // EFLAGS_IF
+#include "modules/cpu_management/core/priority/priority.h"                                           // priority_*
+#include "modules/cpu_management/core/accounting/cpu_account.h"                                      // cpu_account_switch
+#include "modules/cpu_management/core/power/power.h"                                                 // power_idle
 
-#include "def_stack_guard.h"
-#include "def_reaper.h"
+#include "modules/process_management/security/stack_overflow/defence/stack_guard/def_stack_guard.h"  // def_stack_guard_check
+#include "modules/process_management/security/zombie_leak/defence/reaper/def_reaper.h"               // def_reap_zombies
 
 #define EFLAGS_RESERVED 0x2     // bit 1 of EFLAGS is always 1
 
@@ -51,6 +52,7 @@ static process_t *mark_system(int pid) {
 
 void scheduler_init(void) {
     process_init();
+    signal_init();                      // deliver signals on every return to ring 3
 
     idle = mark_system(process_create("idle", idle_task, 0));
     idle->priority = PRIORITY_IDLE;     // runs only when nobody else can
@@ -105,6 +107,7 @@ static void wake_sleepers(void) {
 
 void scheduler_tick(void) {
     wake_sleepers();            // even before start, so early sleeps end
+    signal_tick();              // alarm() countdowns
 
     if (!started)
         return;

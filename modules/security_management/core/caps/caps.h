@@ -31,6 +31,7 @@ typedef enum {
     CAP_PRIORITY,       // raise priorities, renice others       priority_bounds
     CAP_RESOURCE,       // no process quota, use the reserve     slot_quota
     CAP_SECLAB,         // run live attacks and repair           seclab
+    CAP_PTRACE,         // look inside other users' processes    hidepid, kptr_hide, ptrace
     CAP_COUNT
 } cap_t;
 

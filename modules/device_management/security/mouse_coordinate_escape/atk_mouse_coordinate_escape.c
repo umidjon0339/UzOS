@@ -9,11 +9,12 @@
  * left at x = 0 and the sum goes negative; the GUI then uses a negative
  * number as a pixel index.
  *
- * simulate(): say where 6 big moves in each direction would end up.
+ * simulate(): say where 10 big moves in each direction would end up.
  * launch():   feed those packets to the real decoder (interrupts off),
  *             check the pointer after each burst, then put it back.
  *
- * Uses: mouse_handle_byte / mouse_get_state / mouse_set_state (mouse/),
+ * Uses: mouse_handle_byte / mouse_get_state / mouse_set_state and
+ *       mouse_max_x / mouse_max_y: the current screen's edges (mouse/),
  *       cpu_irq_save (arch/x86/cpu).
  */
 
@@ -22,7 +23,7 @@
 #include "cpu.h"
 #include "vga.h"
 
-#define PUSHES  6               // 6 x 255 = 1530: far past any edge
+#define PUSHES  10              // 10 x 255 = 2550: past any edge (1920 is the widest)
 #define STEP    255
 
 // Feed one movement packet to the decoder, exactly as the mouse would.
@@ -47,7 +48,7 @@ static int simulate(void) {
     vga_print_int(m.x);
     vga_print_str(", ");
     vga_print_int(m.y);
-    vga_print_str("\n  6 pushes left without a check would reach x = ");
+    vga_print_str("\n  10 pushes left without a check would reach x = ");
     vga_print_int(m.x - PUSHES * STEP);
     vga_print_str("\n");
     return 4;
@@ -66,10 +67,10 @@ static int launch(void) {
             send_move(directions[d].dx, directions[d].dy);
         mouse_get_state(&now);
 
-        int off = now.x < 0 || now.x > MOUSE_SCREEN_MAX_X ||
-                  now.y < 0 || now.y > MOUSE_SCREEN_MAX_Y;
+        int off = now.x < 0 || now.x > mouse_max_x() ||
+                  now.y < 0 || now.y > mouse_max_y();
         escaped += off;
-        vga_print_str("  6 x 255 ");
+        vga_print_str("  10 x 255 ");
         vga_print_str(directions[d].name);
         vga_print_str(" -> ");
         vga_print_int(now.x);

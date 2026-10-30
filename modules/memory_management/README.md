@@ -44,7 +44,8 @@ All processes share one address space for now
 | ` ` `0x40000000` | `testuser` code + stack | |
 | ` ` `0x50000000` | `sbrk` heap | |
 | ` ` `0x60000000` | `mmap` regions | |
-| `0xFD000000` | GUI framebuffer | the same physical address |
+| `0xFB000000`–`0xFBFFFFFF` | desktop back buffer (`startx`) | free frames, only while the desktop runs |
+| `0xFD000000`–`0xFDFFFFFF` | GUI framebuffer (16 MiB) | the same physical address |
 | `0xFFC00000` | the page tables themselves | recursive mapping |
 
 ## How an address is translated

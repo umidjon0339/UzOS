@@ -13,15 +13,15 @@
  *       sys_sleep (syscalls/sleep), ui_error (ui).
  */
 
-#include "usertask.h"
-#include "process.h"
-#include "pmm.h"
-#include "vmm.h"
-#include "string.h"
-#include "usermode.h"
-#include "sys_sleep.h"
-#include "ui.h"
-#include "def_user_stack.h"
+#include "modules/process_management/core/usertask/usertask.h"                                           // this file
+#include "modules/process_management/core/process/process.h"                                             // process_create, process_t
+#include "modules/memory_management/core/pmm/pmm.h"                                                      // pmm_alloc_block
+#include "modules/memory_management/core/vmm/vmm.h"                                                      // vmm_map_page, PAGE_WRITABLE, PAGE_USER
+#include "lib/string/string.h"                                                                           // memcpy, memset
+#include "arch/x86/usermode/usermode.h"                                                                  // switch_to_user_mode
+#include "modules/process_management/syscalls/sleep/sys_sleep.h"                                         // sys_sleep
+#include "modules/ui/core/style/ui.h"                                                                    // ui_error
+#include "modules/process_management/security/kernel_stack_to_user/defence/user_stack/def_user_stack.h"  // def_user_stack_ok
 
 #define WAIT_STEP_MS 10
 

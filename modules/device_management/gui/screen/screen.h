@@ -12,13 +12,19 @@
 
 #include "canvas.h"
 
-#define SCREEN_WIDTH  1024
-#define SCREEN_HEIGHT 768
 #define SCREEN_BPP    32
 
-// Switch to graphics. Returns 0 (and stays in text mode) if there is no
-// BGA card or no memory for the back buffer.
-int screen_open(void);
+// Switch to graphics at 'width' x 'height' (e.g. 1024 x 768). Returns 0
+// (and stays in text mode) if there is no BGA card, the size is refused,
+// or there is no RAM for the back buffer.
+int screen_open(int width, int height);
+
+// Change the size while open (a new back buffer). Returns 0 if the new
+// size did not work; the old size is then kept.
+int screen_resize(int width, int height);
+
+int screen_width(void);
+int screen_height(void);
 
 // Back to text mode; frees the back buffer.
 void screen_close(void);

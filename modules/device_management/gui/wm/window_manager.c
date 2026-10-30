@@ -103,6 +103,24 @@ canvas_t *wm_window_canvas(int id) {
     return &windows[id].canvas;
 }
 
+void wm_keep_on_screen(int width, int height) {
+    for (int id = 0; id < MAX_WINDOWS; id++) {
+        window_t *w = &windows[id];
+        if (!w->used)
+            continue;
+        // Pull it back from the right and bottom edges...
+        if (w->x + w->canvas.width > width)
+            w->x = width - w->canvas.width;
+        if (w->y + w->canvas.height > height)
+            w->y = height - w->canvas.height;
+        // ...but a window bigger than the screen keeps its title bar visible.
+        if (w->x < 0)
+            w->x = 0;
+        if (w->y < TITLE_BAR_HEIGHT)
+            w->y = TITLE_BAR_HEIGHT;
+    }
+}
+
 static void raise_to_top(int position) {
     int id = order[position];
     for (int i = position; i < count - 1; i++)

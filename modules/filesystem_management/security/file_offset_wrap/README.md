@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Stopped by** | [`file_range`](../../defence/file_range/) |
+| **Stopped by** | [`file_range`](defence/file_range/) |
 | **Breaks** | consistency: a write stays inside its own file |
 | **Severity** | high |
 

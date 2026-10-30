@@ -13,9 +13,9 @@
  *         paging first.
  */
 
-#include "def_stack_guard.h"
-#include "registry.h"
-#include "audit.h"
+#include "modules/process_management/security/stack_overflow/defence/stack_guard/def_stack_guard.h"  // this file
+#include "modules/security_management/core/registry/registry.h"                                      // defence_t, registry_add_defence
+#include "modules/security_management/core/audit/audit.h"                                            // audit_log
 
 // The whole rule, as a pure function so the selftest can try it.
 static int stack_pointer_ok(uint32_t esp, uint32_t base) {

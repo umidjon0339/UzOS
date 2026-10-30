@@ -17,13 +17,15 @@
  * Uses: process_create / process_get_by_pid / the process table and the
  *       current process (process_management), vfs_open
  *       (filesystem_management), cpu_irq_save (arch/x86/cpu),
+ *       def_thread_quota_ok (process_management defence thread_quota),
  *       clone3_enter_user (clone3_enter.s, this folder).
  */
 
-#include "modules/cpu_management/syscalls/clone3/sys_clone3.h"      // this syscall, CLONE_*
-#include "modules/process_management/core/scheduler/scheduler.h"    // the current process
-#include "modules/filesystem_management/core/vfs/vfs.h"             // vfs_open
-#include "arch/x86/cpu/cpu.h"                                       // cpu_irq_save
+#include "modules/cpu_management/syscalls/clone3/sys_clone3.h"                                            // this syscall, CLONE_*
+#include "modules/process_management/core/scheduler/scheduler.h"                                          // the current process
+#include "modules/filesystem_management/core/vfs/vfs.h"                                                   // vfs_open
+#include "arch/x86/cpu/cpu.h"                                                                             // cpu_irq_save
+#include "modules/process_management/security/thread_exhaustion/defence/thread_quota/def_thread_quota.h"  // def_thread_quota_ok
 
 #define SUPPORTED (CLONE_VM | CLONE_SIGHAND | CLONE_THREAD | \
                    CLONE_PARENT_SETTID | CLONE_CHILD_SETTID)
@@ -69,6 +71,10 @@ int sys_clone3(const registers_t *regs, const clone_args_t *args, uint32_t size)
     uint32_t stack_top = (uint32_t)(args->stack + args->stack_size);
     uint32_t *parent_tid = (uint32_t *)(uint32_t)args->parent_tid;
     uint32_t *child_tid  = (uint32_t *)(uint32_t)args->child_tid;
+
+    // DEFENCE thread_quota (process_management): a program has at most 4 threads.
+    if ((flags & CLONE_THREAD) && !def_thread_quota_ok(parent))
+        return -1;
 
     // Interrupts off: the child must not run before its frame is ready.
     uint32_t irq = cpu_irq_save();

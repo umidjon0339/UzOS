@@ -14,10 +14,10 @@
  *         reading the "file" reads, or writes, that something else.
  */
 
-#include "def_busy_check.h"
-#include "registry.h"
-#include "audit.h"
-#include "process.h"
+#include "modules/filesystem_management/security/delete_open_file/defence/busy_check/def_busy_check.h"  // this file
+#include "modules/security_management/core/registry/registry.h"                                         // defence_t, registry_add_defence
+#include "modules/security_management/core/audit/audit.h"                                               // audit_log
+#include "modules/process_management/core/process/process.h"                                            // process_t, process_get_table, MAX_PROCESSES
 
 static int is_some_cwd(vfs_node_t *node) {
     process_t *table = process_get_table();

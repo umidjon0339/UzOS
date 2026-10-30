@@ -15,6 +15,8 @@
 #define O_CREATE 0x04   // create the file if it does not exist
 #define O_TRUNC  0x08   // empty the file first (needs O_WRITE)
 #define O_APPEND 0x10   // every write() goes to the end
+#define O_CLOEXEC 0x80000   // closed by execve() (defence close_on_exec, process_management)
+#define O_DIRECTORY 0x10000 // it must be a directory (opened read-only, for getdents / *at)
 
 // The new descriptor (3 or more), or -1.
 int sys_open(const char *path, uint32_t flags);

@@ -14,9 +14,9 @@
  * Uses: control_flow_integrity (its defence), vga.
  */
 
-#include "registry.h"
-#include "def_control_flow_integrity.h"
-#include "vga.h"
+#include "modules/security_management/core/registry/registry.h"                                                               // attack_t, registry_add_attack
+#include "modules/process_management/security/process_hijacking/defence/control_flow_integrity/def_control_flow_integrity.h"  // def_entry_is_kernel_set
+#include "modules/device_management/vga/vga.h"                                                                                // vga_print_str
 
 static int simulate(void) {
     vga_print_str("  overwrite a return address or function pointer\n");

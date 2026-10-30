@@ -34,6 +34,7 @@ static const struct {
     [CAP_PRIORITY] = { "CAP_PRIORITY", "raise priorities, renice others",  "refused: needs CAP_PRIORITY" },
     [CAP_RESOURCE] = { "CAP_RESOURCE", "no process quota, use the reserve", "refused: needs CAP_RESOURCE" },
     [CAP_SECLAB]   = { "CAP_SECLAB",   "run live attacks and repair",      "refused: needs CAP_SECLAB"   },
+    [CAP_PTRACE]   = { "CAP_PTRACE",   "look inside other users' processes", "refused: needs CAP_PTRACE" },
 };
 
 static int valid(cap_t cap) {

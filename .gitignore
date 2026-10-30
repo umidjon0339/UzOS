@@ -1,5 +1,6 @@
 # Build output (see Makefile)
 build/
 kernel.bin
+UzOS.iso
 *.o
 *.d

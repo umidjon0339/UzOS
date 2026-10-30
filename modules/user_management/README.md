@@ -121,7 +121,7 @@ sys_open("/home/root/notes", O_READ)            io_management
 | # | Syscall | Arguments | Result |
 |---|---|---|---|
 | 23 | `getuid` | none | the caller's uid |
-| 24 | `setuid` | EBX = uid | 0 / -1 (setuid_guard: only CAP_SETUID may change the uid) |
+| 24 | `setuid` | EBX = uid | 0 / -1 (setuid_guard: only CAP_SETUID may change the uid); a real change makes the process non-dumpable (process_management defence dumpable_flag) |
 
 ## Commands
 

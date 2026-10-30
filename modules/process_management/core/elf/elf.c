@@ -20,16 +20,16 @@
  * Running the same program twice maps fresh pages over the first copy.
  */
 
-#include "elf.h"
-#include "vfs.h"
-#include "perm.h"
-#include "pmm.h"
-#include "vmm.h"
-#include "ui.h"
-#include "string.h"
-#include "process.h"
-#include "def_elf_validate.h"
-#include "integrity.h"
+#include "modules/process_management/core/elf/elf.h"                                                  // this file
+#include "modules/filesystem_management/core/vfs/vfs.h"                                               // vfs_node_t, vfs_read
+#include "modules/user_management/core/perm/perm.h"                                                   // perm_check, PERM_READ
+#include "modules/memory_management/core/pmm/pmm.h"                                                   // pmm_alloc_block
+#include "modules/memory_management/core/vmm/vmm.h"                                                   // vmm_map_page, PAGE_WRITABLE, PAGE_USER
+#include "modules/ui/core/style/ui.h"                                                                 // ui_error
+#include "lib/string/string.h"                                                                        // memset
+#include "modules/process_management/core/process/process.h"                                          // process_create, process_caller_uid
+#include "modules/process_management/security/malicious_elf/defence/elf_validate/def_elf_validate.h"  // def_elf_check_header, def_elf_check_segments
+#include "modules/security_management/core/integrity/integrity.h"                                     // integrity_verify
 
 
 static int fail(const char *reason) {

@@ -14,12 +14,12 @@
  *       users_name (user_management), ui_* / ui_cell (ui module).
  */
 
-#include "fs_commands.h"
-#include "vfs.h"
-#include "ui.h"
-#include "box.h"
-#include "perm.h"
-#include "users.h"
+#include "modules/filesystem_management/commands/ls/cmd_ls.h"  // this file
+#include "modules/filesystem_management/core/vfs/vfs.h"        // vfs_node_t, FS_DIRECTORY, FS_NAME_MAX
+#include "modules/ui/core/style/ui.h"                          // ui_color, UI_LINK, UI_GOOD
+#include "modules/ui/core/box/box.h"                           // ui_cell
+#include "modules/user_management/core/perm/perm.h"            // perm_format, perm_check, PERM_READ
+#include "modules/user_management/core/users/users.h"          // USER_NAME_MAX, users_name
 
 #define NAME_WIDTH 24
 
@@ -28,9 +28,12 @@ static int is_program(vfs_node_t *n) {
            n->data[1] == 'E' && n->data[2] == 'L' && n->data[3] == 'F';
 }
 
-static void print_entry(vfs_node_t *n) {
+// 'entry' is the name; its inode (a hard link's file) has the facts.
+static void print_entry(vfs_node_t *entry) {
+    vfs_node_t *n = vfs_inode(entry);
     int dir = n->flags & FS_DIRECTORY;
-    int program = !dir && is_program(n);
+    int link = (n->flags & FS_LINK) != 0;
+    int program = !dir && !link && is_program(n);
 
     vga_print_str("  ");
     ui_color(dir ? UI_LINK : program ? UI_GOOD : ui_text_fg());
@@ -38,8 +41,8 @@ static void print_entry(vfs_node_t *n) {
 
     char name[FS_NAME_MAX + 2];
     int len = 0;
-    while (n->name[len] && len < FS_NAME_MAX) {
-        name[len] = n->name[len];
+    while (entry->name[len] && len < FS_NAME_MAX) {
+        name[len] = entry->name[len];
         len++;
     }
     if (dir)
@@ -61,6 +64,16 @@ static void print_entry(vfs_node_t *n) {
     ui_color(UI_DIM);
     if (program)
         vga_print_str(" program");
+    if (link) {                                 // where a symbolic link points
+        char target[FS_PATH_MAX];
+        uint32_t t = n->size < FS_PATH_MAX - 1 ? n->size : FS_PATH_MAX - 1;
+        for (uint32_t i = 0; i < t; i++)
+            target[i] = (char)n->data[i];
+        target[t] = '\0';
+        ui_printf(" -> %s", target);
+    }
+    if (n->nlink > 1)
+        ui_printf(" (%u names)", n->nlink);
     if (n->open_count)
         vga_print_str(" (open)");
     ui_end();
@@ -68,12 +81,14 @@ static void print_entry(vfs_node_t *n) {
 
 void cmd_ls(const char *args) {
     vfs_node_t *node = vfs_lookup(vfs_cwd(), args[0] ? args : ".");
+    if (node && !(node->flags & FS_DIRECTORY))  // one file (or link): show the name given
+        node = vfs_lookup_nofollow(vfs_cwd(), args);
     if (!node) {
         ui_error("ls", "no such file or directory");
         return;
     }
 
-    if (node->flags & FS_FILE) {
+    if (!(node->flags & FS_DIRECTORY)) {
         print_entry(node);
         return;
     }

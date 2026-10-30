@@ -42,6 +42,7 @@ void cmd_chmod(const char *args) {
     }
 
     node->mode = mode;
+    node->ctime = vfs_now();            // a change of the inode, not of the bytes
     char shown[6];
     perm_format(mode, shown);
     ui_start(UI_OK, "chmod");

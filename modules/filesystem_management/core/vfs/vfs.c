@@ -3,31 +3,47 @@
  *
  * Walking a path needs read permission on every directory passed
  * through: without it, a private directory's files could still be
- * reached by their full name.
+ * reached by their full name. Symbolic links on the way are followed
+ * (at most 8: link_depth; in shared directories only trusted ones:
+ * protected_symlinks); a hard link entry leads to its inode.
+ *
+ * It also keeps the clock files are stamped with (vfs_now) and turns a
+ * node into the struct stat programs read (vfs_stat).
  *
  * Uses: the driver's function pointers (core/ramdisk), the current
  *       process (process_management) for its working directory,
- *       cpu_irq_save (arch/x86/cpu), perm_check (user_management) for
- *       each directory on the way, and the defence filename_check for
- *       every path component.
+ *       cpu_irq_save (arch/x86/cpu), the defence search_check for each
+ *       directory on the way, and the defence filename_check for
+ *       every path component, link_depth + protected_symlinks for each
+ *       symbolic link, inode_refcount when a descriptor closes, kmalloc
+ *       (memory_management) for a link's target while it is walked,
+ *       sys_time + timer_ticks (device_management) for the clock.
  */
 
-#include "vfs.h"
-#include "scheduler.h"
-#include "string.h"
-#include "cpu.h"
-#include "def_filename_check.h"
-#include "perm.h"
+#include "modules/filesystem_management/core/vfs/vfs.h"                                                             // this file
+#include "modules/process_management/core/scheduler/scheduler.h"                                                    // scheduler_get_current_process
+#include "modules/device_management/syscalls/time/sys_time.h"                                                       // sys_time
+#include "modules/device_management/timer/timer.h"                                                                  // timer_ticks, TIMER_HZ
+#include "lib/string/string.h"                                                                                      // memcpy, strcmp, strlen
+#include "arch/x86/cpu/cpu.h"                                                                                       // cpu_irq_save, cpu_irq_restore
+#include "modules/filesystem_management/security/bad_filename/defence/filename_check/def_filename_check.h"          // def_component_ok
+#include "modules/filesystem_management/security/symlink_loop/defence/link_depth/def_link_depth.h"                  // def_link_hop_ok
+#include "modules/filesystem_management/security/symlink_race/defence/protected_symlinks/def_protected_symlinks.h"  // def_follow_ok
+#include "modules/filesystem_management/security/use_after_unlink/defence/inode_refcount/def_inode_refcount.h"      // def_inode_free_ok
+#include "modules/memory_management/core/kheap/kheap.h"                                                             // kmalloc, kfree
+#include "modules/filesystem_management/security/path_walk_bypass/defence/search_check/def_search_check.h"          // def_search_ok
 
 vfs_node_t *fs_root;
 
 /* ---------- Using a node ---------- */
 
 uint32_t vfs_read(vfs_node_t *node, uint32_t offset, uint32_t size, uint8_t *buf) {
+    node = vfs_inode(node);
     return node && node->read ? node->read(node, offset, size, buf) : 0;
 }
 
 uint32_t vfs_write(vfs_node_t *node, uint32_t offset, uint32_t size, uint8_t *buf) {
+    node = vfs_inode(node);
     return node && node->write ? node->write(node, offset, size, buf) : 0;
 }
 
@@ -56,10 +72,69 @@ void vfs_close(vfs_node_t *node) {
     uint32_t irq = cpu_irq_save();
     if (node && node->open_count > 0)
         node->open_count--;
+    // DEFENCE inode_refcount: a file whose names are all gone dies with
+    // its last descriptor - not one moment earlier.
+    int free_it = node && !node->parent && node->release && def_inode_free_ok(node);
     cpu_irq_restore(irq);
+    if (free_it)
+        node->release(node);
+}
+
+/* ---------- Times and stat ---------- */
+
+uint32_t vfs_now(void) {
+    static uint32_t boot_time, boot_tick;
+    if (!boot_time) {
+        boot_time = sys_time();             // once: the RTC is slow to read
+        boot_tick = timer_ticks;
+    }
+    return boot_time + (timer_ticks - boot_tick) / TIMER_HZ;
+}
+
+uint32_t vfs_new_ino(void) {
+    static uint32_t next = 1;
+    uint32_t irq = cpu_irq_save();
+    uint32_t ino = next++;
+    cpu_irq_restore(irq);
+    return ino;
+}
+
+// One octal digit of UzOS (4 read, 2 write) as rwx bits; x for a readable directory.
+static uint32_t bits(uint32_t digit, int dir) {
+    return ((digit & 4) ? 4 : 0) | ((digit & 2) ? 2 : 0) | (dir && (digit & 4) ? 1 : 0);
+}
+
+void vfs_stat(const vfs_node_t *node, vfs_stat_t *st) {
+    node = vfs_inode((vfs_node_t *)node);
+    int dir = (node->flags & FS_DIRECTORY) != 0;
+    uint32_t owner = (node->mode >> 3) & 7, others = node->mode & 7;
+
+    memset(st, 0, sizeof(*st));
+    st->dev   = node->dev;
+    st->ino   = node->ino;
+    st->mode  = (node->flags & FS_LINK ? S_IFLNK : dir ? S_IFDIR : S_IFREG) |
+                bits(owner, dir) << 6 | bits(others, dir) << 3 | bits(others, dir);
+    st->nlink = node->nlink ? node->nlink : 1;
+    st->uid   = st->gid = node->owner;
+    st->size  = node->size;
+    st->blksize = 4096;
+    st->blocks  = (node->size + 511) / 512;
+    st->atime = node->atime;
+    st->mtime = node->mtime;
+    st->ctime = node->ctime;
 }
 
 /* ---------- Paths ---------- */
+
+vfs_node_t *vfs_start_dir(int dirfd) {
+    if (dirfd == AT_FDCWD)
+        return vfs_cwd();
+    process_t *self = scheduler_get_current_process();
+    if (!self || dirfd < 0 || dirfd >= MAX_FDS)
+        return 0;
+    vfs_node_t *node = self->fd_table[dirfd];
+    return node && (node->flags & FS_DIRECTORY) ? node : 0;
+}
 
 vfs_node_t *vfs_cwd(void) {
     process_t *self = scheduler_get_current_process();
@@ -96,7 +171,33 @@ static vfs_node_t *step(vfs_node_t *dir, const char *name) {
     return vfs_finddir(dir, name);
 }
 
-vfs_node_t *vfs_lookup(vfs_node_t *start, const char *path) {
+// Is there another name after this point of a path? ("a/", "a//": no)
+static int more_names(const char *path) {
+    while (*path == '/')
+        path++;
+    return *path != '\0';
+}
+
+static vfs_node_t *walk(vfs_node_t *start, const char *path, int follow_last, int *hops);
+
+// Follow symbolic link 'link' found in 'dir': walk its target from there.
+static vfs_node_t *follow(vfs_node_t *dir, vfs_node_t *link, int *hops) {
+    // DEFENCE link_depth: a -> b -> a ends here (ELOOP).
+    // DEFENCE protected_symlinks: no stranger's link in a shared directory.
+    if (!def_link_hop_ok(++*hops) || !def_follow_ok(dir, link) || !link->data)
+        return 0;
+    char *target = kmalloc(FS_PATH_MAX);    // not on the stack: walks nest
+    if (!target)
+        return 0;
+    uint32_t n = link->size < FS_PATH_MAX - 1 ? link->size : FS_PATH_MAX - 1;
+    memcpy(target, link->data, n);
+    target[n] = '\0';
+    vfs_node_t *node = walk(dir, target, 1, hops);
+    kfree(target);
+    return node;
+}
+
+static vfs_node_t *walk(vfs_node_t *start, const char *path, int follow_last, int *hops) {
     if (!path || !fs_root)
         return 0;
 
@@ -107,13 +208,41 @@ vfs_node_t *vfs_lookup(vfs_node_t *start, const char *path) {
     while ((len = next_component(&path, name)) > 0) {
         if (!(node->flags & FS_DIRECTORY))
             return 0;                       // "file/x": a file has no children
-        if (!perm_check(node, PERM_READ))
-            return 0;                       // may not look inside this directory
+        // DEFENCE search_check: every directory passed through, the first too.
+        if (!def_search_ok(node))
+            return 0;
+        vfs_node_t *dir = node;
         node = step(node, name);
+        if (!node)
+            return 0;
+        if ((node->flags & FS_LINK) && (follow_last || more_names(path)))
+            node = follow(dir, node, hops); // a symbolic link: go where it points
+        node = vfs_inode(node);             // a hard link: the file itself
         if (!node)
             return 0;
     }
     return len < 0 ? 0 : node;
+}
+
+vfs_node_t *vfs_lookup(vfs_node_t *start, const char *path) {
+    int hops = 0;
+    return walk(start, path, 1, &hops);
+}
+
+vfs_node_t *vfs_lookup_nofollow(vfs_node_t *start, const char *path) {
+    int hops = 0;
+    return walk(start, path, 0, &hops);
+}
+
+vfs_node_t *vfs_lookup_entry(vfs_node_t *start, const char *path) {
+    char name[FS_NAME_MAX + 1];
+    vfs_node_t *dir = vfs_lookup_parent(start, path, name);
+    if (dir && strcmp(name, ".") != 0 && strcmp(name, "..") != 0) {
+        if (!def_search_ok(dir))
+            return 0;
+        return vfs_finddir(dir, name);
+    }
+    return vfs_lookup_nofollow(start, path);        // "/", ".", ".."
 }
 
 vfs_node_t *vfs_lookup_parent(vfs_node_t *start, const char *path, char *name_out) {
@@ -158,7 +287,9 @@ int vfs_path_of(vfs_node_t *node, char *buf, int max) {
     int pos = FS_PATH_MAX - 1;
     tmp[pos] = '\0';
 
-    for (; node && node != fs_root; node = node->parent) {
+    for (; node != fs_root; node = node->parent) {
+        if (!node)
+            return -1;                      // a file with no name left (deleted, still open)
         int len = strlen(node->name);
         if (pos - len - 1 < 0)
             return -1;

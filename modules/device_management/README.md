@@ -19,10 +19,11 @@ device_management/
 ├── vga/       vga.h/.c            the console: text, colours, scroll-back, status row
 │   │          display.h           what a display must do (an interface)
 │   ├── text/    vga_text.h/.c     display: VGA text mode, 80x25 and 80x50
+│   ├── modes/   modes.h/.c        every display, smallest first: `mode`, Ctrl+Up/Down
 │   └── palette/ palette.h/.c      colour themes, programmed into the VGA DAC
 ├── gui/
-│   ├── fbcon/   fbcon.h/.c        display: the 1024x768 graphics console
-│   ├── bga/     bga.h/.c          the video card: graphics mode on/off
+│   ├── fbcon/   fbcon.h/.c        display: the graphics console, 800x600 .. 1920x1080
+│   ├── bga/     bga.h/.c          the video card: graphics mode on/off, any size
 │   ├── canvas/  canvas.h/.c       draw rectangles/text/copies, always clipped
 │   │            font8x8.h/.c      8x8 pixel font for the desktop
 │   ├── screen/  screen.h/.c       back buffer + present (double buffering)
@@ -80,13 +81,42 @@ vga_print_str("hi")     every module prints through the console
     palette/            what the 16 colour numbers really look like
 ```
 
-`mode` switches between the three displays without losing the text:
+`mode` switches between the displays without losing the text:
 
 | Mode | Characters | How |
 |---|---|---|
 | `80x25` | 80 × 25 | text mode, 16-row font |
 | `80x50` | 80 × 50 | text mode, 8-row font (same 400 pixel lines) |
-| `1024x768` | 128 × 48 | graphics mode, wallpaper behind the text |
+| `800x600` | 100 × 37 | graphics mode, wallpaper behind the text |
+| `1024x768` | 128 × 48 | graphics mode |
+| `1280x720` | 160 × 45 | graphics mode |
+| `1600x900` | 200 × 56 | graphics mode |
+| `1920x1080` | 240 × 67 | graphics mode |
+
+## Changing the screen size
+
+```
+Ctrl+Up / Ctrl+Down     one step bigger / smaller in the list above
+mode 1280x720           jump straight to one
+```
+
+The keyboard driver turns Ctrl+Up / Ctrl+Down into `KEY_CTRL_UP` /
+`KEY_CTRL_DOWN`; the shell (and the `startx` desktop) step through
+`vga/modes/`. A graphics size is just numbers for the BGA card, so QEMU's
+window grows or shrinks to match. Every part follows the new size:
+
+| Part | What it does on a new size |
+|---|---|
+| `bga` | programs the card, then tells the mouse (`mouse_set_screen`) |
+| `fbcon` | paints the wallpaper for `width` x `height`, `cols` x `rows` cells |
+| `vga.c` | fits its history to the new number of rows and columns |
+| `mouse` | clamps the pointer to the new edge (`mouse_bounds`) |
+| `screen` | a new back buffer (`screen_resize`) for the desktop |
+| `wm` | moves windows back onto a smaller screen (`wm_keep_on_screen`) |
+
+`make run` also uses `-display gtk,zoom-to-fit=on`: drag QEMU's window
+to any size and it stretches the picture. That is QEMU scaling, not
+UzOS: for sharp text change UzOS's own size with Ctrl+Up / Ctrl+Down.
 
 A **cell** is 2 bytes: the character (code page 437) and its colour
 (low 4 bits text, high 4 bits background). Colours are only numbers; a
@@ -115,8 +145,15 @@ startx (commands/)     reads mouse + keys, refreshes windows, ~30 frames/s
   window_manager       windows, z-order, dragging, draws the desktop
     canvas             rectangles, text, copies: clipped to the buffer
       screen           back buffer -> framebuffer (no flicker)
-        bga            video card: 1024x768x32 on, off
+        bga            video card: any size up to 2560x1600, 32 bits
 ```
+
+The desktop starts at the console's size (or 1024x768 from a text
+mode); Ctrl+Up / Ctrl+Down resize it while it runs. Its back buffer is
+`width * height * 4` bytes, 8.3 MB at 1920x1080: more than the whole
+8 MiB kernel heap. So `screen` maps free RAM frames at its own addresses
+(`BACKBUFFER_START`, 16 MiB) while the desktop runs, and gives them back
+on resize and on exit.
 
 ESC leaves the desktop. Graphics overwrites the text font and the
 card's text settings, so `vga_restore_display()` opens the console's
@@ -132,12 +169,12 @@ The `uptime` COMMAND moved to [cpu_management](../cpu_management/README.md#comma
 |---|---|---|
 | `date` | date and time, and the Unix time | `rtc_*` |
 | `devices` | IRQ lines: vector, masked/open, handler, count; hardware found | `isr_*`, `pic_get_mask` |
-| `startx` | graphical desktop with a live System Monitor; ESC returns | `gui/*`, `mouse`, `keyboard` |
+| `startx` | graphical desktop with a live System Monitor; Ctrl+Up/Down resize, ESC returns | `gui/*`, `mouse`, `keyboard` |
 | `beep [hz]` | a 200 ms tone | `speaker_beep` |
 | `play` | a short melody | `speaker_beep`, `timer_wait` |
 | `theme [name]` | list the colour themes, or switch | `palette_*`, `vga_reload` |
 | `font [uzos\|bios]` | list the fonts with a sample, or switch | `font_*`, `vga_reload` |
-| `mode [name]` | list the displays, or switch | `vga_set_display` |
+| `mode [name]` | list the displays, or switch (Ctrl+Up/Down step) | `modes_*`, `vga_set_display` |
 
 | # | Syscall | Result (EAX) |
 |---|---|---|

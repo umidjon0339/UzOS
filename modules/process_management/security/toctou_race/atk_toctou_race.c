@@ -18,9 +18,9 @@
  * Uses: atomic_check (its defence), vga.
  */
 
-#include "registry.h"
-#include "def_atomic_check.h"
-#include "vga.h"
+#include "modules/security_management/core/registry/registry.h"                                     // attack_t, registry_add_attack
+#include "modules/process_management/security/toctou_race/defence/atomic_check/def_atomic_check.h"  // def_check_is_atomic
+#include "modules/device_management/vga/vga.h"                                                      // vga_print_str
 
 static int simulate(void) {
     vga_print_str("  1. check: is /tmp/x mine?        (yes)\n");

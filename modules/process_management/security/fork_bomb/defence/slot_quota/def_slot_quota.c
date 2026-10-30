@@ -10,11 +10,11 @@
  *         root can always still start a process to clean up.
  */
 
-#include "def_slot_quota.h"
-#include "registry.h"
-#include "audit.h"
-#include "process.h"
-#include "caps.h"
+#include "modules/process_management/security/fork_bomb/defence/slot_quota/def_slot_quota.h"  // this file
+#include "modules/security_management/core/registry/registry.h"                               // defence_t, registry_add_defence
+#include "modules/security_management/core/audit/audit.h"                                     // audit_log
+#include "modules/process_management/core/process/process.h"                                  // process_t, process_get_table, MAX_PROCESSES
+#include "modules/security_management/core/caps/caps.h"                                       // caps_has
 
 #define MAX_PER_USER      8
 #define RESERVED_FOR_ROOT 5

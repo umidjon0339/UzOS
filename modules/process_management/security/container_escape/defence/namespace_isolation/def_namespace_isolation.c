@@ -11,8 +11,8 @@
  *         what a real system uses to isolate them.
  */
 
-#include "def_namespace_isolation.h"
-#include "registry.h"
+#include "modules/process_management/security/container_escape/defence/namespace_isolation/def_namespace_isolation.h"  // this file
+#include "modules/security_management/core/registry/registry.h"                                                        // defence_t, registry_add_defence
 
 int def_namespaces_present(void) { return 1; }   // documented concept
 

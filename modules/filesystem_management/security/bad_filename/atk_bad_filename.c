@@ -12,11 +12,11 @@
  * Uses: ramdisk_create / ramdisk_delete (core/ramdisk), vfs_lookup (core/vfs).
  */
 
-#include "registry.h"
-#include "audit.h"
-#include "ramdisk.h"
-#include "string.h"
-#include "vga.h"
+#include "modules/security_management/core/registry/registry.h"  // attack_t, registry_add_attack
+#include "modules/security_management/core/audit/audit.h"        // audit_total
+#include "modules/filesystem_management/core/ramdisk/ramdisk.h"  // ramdisk_create, ramdisk_delete
+#include "lib/string/string.h"                                   // memset
+#include "modules/device_management/vga/vga.h"                   // vga_print_str
 
 static const struct { const char *name; const char *problem; } bad[] = {
     { "..",      "can never be opened: '..' means parent" },

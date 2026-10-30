@@ -4,9 +4,9 @@
  * Uses: sys_mkdir (syscalls/mkdir), ui_* (ui module).
  */
 
-#include "fs_commands.h"
-#include "sys_mkdir.h"
-#include "ui.h"
+#include "modules/filesystem_management/commands/mkdir/cmd_mkdir.h"  // this file
+#include "modules/filesystem_management/syscalls/mkdir/sys_mkdir.h"  // sys_mkdir
+#include "modules/ui/core/style/ui.h"                                // ui_usage, ui_error
 
 void cmd_mkdir(const char *args) {
     if (!args[0]) {

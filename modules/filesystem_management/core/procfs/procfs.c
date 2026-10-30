@@ -19,14 +19,14 @@
  *       proc_pid_status.c.
  */
 
-#include "modules/filesystem_management/core/procfs/procfs.h"              // this part
-#include "modules/filesystem_management/core/procfs/proc_cpuinfo.h"       // proc_cpuinfo
-#include "modules/filesystem_management/core/procfs/proc_stat.h"             // proc_stat
-#include "modules/filesystem_management/core/procfs/proc_pid_status.h" // proc_pid_status
-#include "modules/memory_management/core/kheap/kheap.h"             // kmalloc
-#include "modules/process_management/core/scheduler/scheduler.h"    // the current process
-#include "lib/format/format.h"                                      // vformat, format
-#include "lib/string/string.h"                                      // memset, strcpy
+#include "modules/filesystem_management/core/procfs/procfs.h"           // this part
+#include "modules/filesystem_management/core/procfs/proc_cpuinfo.h"     // proc_cpuinfo
+#include "modules/filesystem_management/core/procfs/proc_stat.h"        // proc_stat
+#include "modules/filesystem_management/core/procfs/proc_pid_status.h"  // proc_pid_status
+#include "modules/memory_management/core/kheap/kheap.h"                 // kmalloc
+#include "modules/process_management/core/scheduler/scheduler.h"        // the current process
+#include "lib/format/format.h"                                          // vformat, format
+#include "lib/string/string.h"                                          // memset, strcpy
 #include <stdarg.h>
 
 #define MODE_READ_ONLY 044      // owner r, others r (user_management/core/perm)
@@ -160,6 +160,10 @@ static vfs_node_t *new_node(const char *name, uint32_t type, vfs_node_t *parent)
     memset(node, 0, sizeof(*node));
     strcpy(node->name, name);
     node->flags  = type;
+    node->dev    = VFS_DEV_PROC;
+    node->ino    = vfs_new_ino();
+    node->nlink  = 1;
+    node->atime  = node->mtime = node->ctime = vfs_now();
     node->mode   = MODE_READ_ONLY;
     node->owner  = 0;
     node->parent = parent;

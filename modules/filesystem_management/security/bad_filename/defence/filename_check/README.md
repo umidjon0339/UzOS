@@ -2,9 +2,9 @@
 
 | | |
 |---|---|
-| **Stops** | [`bad_filename`](../../attack/bad_filename/) |
+| **Stops** | [`bad_filename`](../../) |
 | **Protects** | trust: names from outside are checked before use |
-| **Called from** | `vfs_lookup()` / `vfs_lookup_parent()` in [core/vfs](../../../core/vfs/vfs.c), `ramdisk_create()` / `ramdisk_move()` in [core/ramdisk](../../../core/ramdisk/ramdisk.c) |
+| **Called from** | `vfs_lookup()` / `vfs_lookup_parent()` in [core/vfs](../../../../core/vfs/vfs.c), `ramdisk_create()` / `ramdisk_move()` in [core/ramdisk](../../../../core/ramdisk/ramdisk.c) |
 
 ## The rules
 

@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Stopped by** | [`no_cycle`](../../defence/no_cycle/) |
+| **Stopped by** | [`no_cycle`](defence/no_cycle/) |
 | **Breaks** | consistency: the directory tree stays a tree |
 | **Severity** | high |
 
@@ -26,7 +26,7 @@ the parents to `/`) never finishes.
 
 ## Uses
 
-`sys_mkdir()`, `sys_rename()`, `sys_unlink()` from syscalls/.
+`sys_mkdir()`, `sys_rename()`, `sys_rmdir()` from syscalls/.
 
 ## Try it
 

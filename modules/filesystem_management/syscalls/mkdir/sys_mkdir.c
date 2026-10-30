@@ -10,10 +10,10 @@
  *       perm_check (user_management).
  */
 
-#include "sys_mkdir.h"
-#include "vfs.h"
-#include "ramdisk.h"
-#include "perm.h"
+#include "modules/filesystem_management/syscalls/mkdir/sys_mkdir.h"  // this file
+#include "modules/filesystem_management/core/vfs/vfs.h"              // FS_NAME_MAX, vfs_node_t, vfs_lookup_parent
+#include "modules/filesystem_management/core/ramdisk/ramdisk.h"      // ramdisk_create
+#include "modules/user_management/core/perm/perm.h"                  // perm_check, PERM_WRITE
 
 int sys_mkdir(const char *path) {
     char name[FS_NAME_MAX + 1];

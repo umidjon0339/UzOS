@@ -9,19 +9,19 @@
  * you must be allowed to remove it from the first (own it, write on the
  * directory) and to write into the second (core/perm).
  *
- * Uses: vfs_lookup / vfs_lookup_parent (core/vfs), ramdisk_move
+ * Uses: vfs_lookup / vfs_lookup_entry / vfs_lookup_parent (core/vfs), ramdisk_move
  *       (core/ramdisk), which checks the new name and refuses loops,
  *       perm_may_remove / perm_check (user_management).
  */
 
-#include "sys_rename.h"
-#include "vfs.h"
-#include "ramdisk.h"
-#include "string.h"
-#include "perm.h"
+#include "modules/filesystem_management/syscalls/rename/sys_rename.h"  // this file
+#include "modules/filesystem_management/core/vfs/vfs.h"                // vfs_node_t, vfs_lookup, vfs_cwd
+#include "modules/filesystem_management/core/ramdisk/ramdisk.h"        // ramdisk_move
+#include "lib/string/string.h"                                         // strcpy
+#include "modules/user_management/core/perm/perm.h"                    // perm_may_remove, perm_check, PERM_WRITE
 
 int sys_rename(const char *from, const char *to) {
-    vfs_node_t *node = vfs_lookup(vfs_cwd(), from);
+    vfs_node_t *node = vfs_lookup_entry(vfs_cwd(), from);   // the name itself: a link moves, not its file
     if (!node || !perm_may_remove(node->parent, node))
         return -1;
 

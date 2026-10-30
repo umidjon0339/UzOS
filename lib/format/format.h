@@ -8,7 +8,7 @@
  *     format(line, sizeof(line), "%s: %d MB (%3u%%)", "RAM", 127, 7);
  *     // "RAM: 127 MB (  7%)"
  *
- * Supported:   %s  %c  %d  %u  %x  %%
+ * Supported:   %s  %c  %d  %u  %x  %o  %%
  * Width:       %5d  pads with spaces on the left    "   42"
  *              %-5d pads on the right               "42   "
  *              %05d pads with zeros                 "00042"

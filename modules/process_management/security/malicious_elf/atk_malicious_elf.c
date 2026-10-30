@@ -16,10 +16,10 @@
  *       (defence/elf_validate), Elf32_* types (core/elf).
  */
 
-#include "registry.h"
-#include "vga.h"
-#include "elf.h"
-#include "def_elf_validate.h"
+#include "modules/security_management/core/registry/registry.h"                                       // attack_t, registry_add_attack
+#include "modules/device_management/vga/vga.h"                                                        // vga_print_str, vga_print_int
+#include "modules/process_management/core/elf/elf.h"                                                  // ELF_CLASS_32, ELF_DATA_LSB, ELF_TYPE_EXEC
+#include "modules/process_management/security/malicious_elf/defence/elf_validate/def_elf_validate.h"  // def_elf_check_segments, def_elf_check_header
 
 // A valid header and segment (like userland/hello.elf) to start from.
 static Elf32_Ehdr good_header(void) {

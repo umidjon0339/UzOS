@@ -127,6 +127,8 @@ And what other modules call here:
 | `process_management/.../reaper` | `cpu_task_exit()` | a finished process's usage goes to its parent |
 | `io_management` open / write | `rlimit_nofile()`, `rlimit_fsize_ok()` | RLIMIT_NOFILE, RLIMIT_FSIZE |
 | `memory_management` sbrk | `rlimit_data_ok()` | RLIMIT_DATA |
+| `process_management/core/signal` (sigqueue) | `rlim_cur[RLIMIT_SIGPENDING]` | queued signals per user (`ulimit -i`, sigqueue_limit) |
+| `process_management/core/signal` (signal_tick) | `user_ticks`, `kernel_ticks` | ITIMER_VIRTUAL / ITIMER_PROF count the CPU charged here |
 | `filesystem_management/core/procfs` | `cpu_account_*`, `affinity_*`, `numa_*`, `cpu_info()` | the numbers in /proc |
 
 `arch/x86` only runs instructions. Everything that **decides** something
@@ -249,7 +251,9 @@ calls every one of them and checks each answer.
 
 What is honest about a one-CPU, one-node PC: affinity masks must contain
 CPU 0; memory policies may only name node 0; `clone()` needs `CLONE_VM`
-(there is no `fork()` yet: one address space); hardware counters other
+(there is no `fork()` yet: one address space; process_management's
+`vfork()` + `execve()` start programs); `CLONE_THREAD` is capped at 4
+threads per program (process_management defence thread_quota); hardware counters other
 than the TSC are "not supported" (no PMU driver). Everything else is
 real.
 

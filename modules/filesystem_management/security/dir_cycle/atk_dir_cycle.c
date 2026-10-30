@@ -11,15 +11,15 @@
  * launch():   build /seclab_a/b, try to move seclab_a into b, and into
  *             itself under a new name, then remove both directories.
  *
- * Uses: sys_mkdir / sys_rename / sys_unlink (syscalls/).
+ * Uses: sys_mkdir / sys_rename / sys_rmdir (syscalls/).
  */
 
-#include "registry.h"
-#include "audit.h"
-#include "sys_mkdir.h"
-#include "sys_rename.h"
-#include "sys_unlink.h"
-#include "vga.h"
+#include "modules/security_management/core/registry/registry.h"        // attack_t, registry_add_attack
+#include "modules/security_management/core/audit/audit.h"              // audit_total
+#include "modules/filesystem_management/syscalls/mkdir/sys_mkdir.h"    // sys_mkdir
+#include "modules/filesystem_management/syscalls/rename/sys_rename.h"  // sys_rename
+#include "modules/filesystem_management/syscalls/rmdir/sys_rmdir.h"    // sys_rmdir
+#include "modules/device_management/vga/vga.h"                         // vga_print_str
 
 static int simulate(void) {
     vga_print_str("  before: / -> seclab_a -> b\n");
@@ -44,8 +44,8 @@ static int launch(void) {
     try_move("mv seclab_a into seclab_a/b", "/seclab_a", "/seclab_a/b");
     try_move("mv seclab_a seclab_a/inner ", "/seclab_a", "/seclab_a/inner");
 
-    sys_unlink("/seclab_a/b");
-    sys_unlink("/seclab_a");
+    sys_rmdir("/seclab_a/b");
+    sys_rmdir("/seclab_a");
     return audit_total() - denied;
 }
 

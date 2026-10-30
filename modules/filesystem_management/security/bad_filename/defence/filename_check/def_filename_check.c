@@ -12,11 +12,11 @@
  *         by a path, and one with spaces cannot be typed in the shell.
  */
 
-#include "def_filename_check.h"
-#include "registry.h"
-#include "audit.h"
-#include "vfs.h"
-#include "string.h"
+#include "modules/filesystem_management/security/bad_filename/defence/filename_check/def_filename_check.h"  // this file
+#include "modules/security_management/core/registry/registry.h"                                             // defence_t, registry_add_defence
+#include "modules/security_management/core/audit/audit.h"                                                   // audit_log
+#include "modules/filesystem_management/core/vfs/vfs.h"                                                     // FS_NAME_MAX
+#include "lib/string/string.h"                                                                              // strcmp, memset
 
 // The rules, as pure functions so the selftest can try them.
 static int length_ok(int len) {

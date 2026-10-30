@@ -103,6 +103,9 @@ int vformat(char *out, int size, const char *fmt, va_list args) {
         case 'x':
             emit_number(&s, va_arg(args, uint32_t), 16, 0, width, left, pad);
             break;
+        case 'o':                       // octal: file modes ("0644")
+            emit_number(&s, va_arg(args, uint32_t), 8, 0, width, left, pad);
+            break;
         case '%':
             emit(&s, '%');
             break;

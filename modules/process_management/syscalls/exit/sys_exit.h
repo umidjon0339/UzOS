@@ -2,11 +2,11 @@
 #define SYS_EXIT_H
 
 /*
- * sys_exit.h - exit(): end the calling process.
+ * sys_exit.h - exit(code): end the calling process.
  */
 
-#define SYS_EXIT 1      // int 0x80 with EAX = 1
+#define SYS_EXIT 1      // int 0x80 with EAX = 1, EBX = exit code (0 = success)
 
-void sys_exit(void) __attribute__((noreturn));
+void sys_exit(int code) __attribute__((noreturn));
 
 #endif

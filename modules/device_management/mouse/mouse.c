@@ -43,6 +43,7 @@
 #define WAIT_LOOPS       100000
 
 static mouse_state_t state = { 512, 384, 0, 0, 0 };   // start in the middle
+static int max_x = 1023, max_y = 767;   // the last pixel of the screen
 static uint8_t packet[4];
 static int cycle;                   // which byte of the packet comes next
 static int packet_size = 3;
@@ -110,8 +111,8 @@ static void apply_packet(void) {
     int dy = packet[2] - ((packet[0] & 0x20) ? 256 : 0);
 
     // DEFENCE mouse_bounds: the pointer never leaves the screen.
-    state.x = def_mouse_clamp(state.x + dx, MOUSE_SCREEN_MAX_X);
-    state.y = def_mouse_clamp(state.y - dy, MOUSE_SCREEN_MAX_Y);   // PS/2 dy points up
+    state.x = def_mouse_clamp(state.x + dx, max_x);
+    state.y = def_mouse_clamp(state.y - dy, max_y);   // PS/2 dy points up
     state.left   = (packet[0] >> 0) & 1;
     state.right  = (packet[0] >> 1) & 1;
     state.middle = (packet[0] >> 2) & 1;
@@ -170,6 +171,8 @@ int init_mouse(void) {
 
 int mouse_is_available(void) { return available; }
 int mouse_packet_size(void)  { return packet_size; }
+int mouse_max_x(void)        { return max_x; }
+int mouse_max_y(void)        { return max_y; }
 
 void mouse_get_state(mouse_state_t *out) {
     uint32_t irq = cpu_irq_save();      // copy all fields from one moment
@@ -180,6 +183,16 @@ void mouse_get_state(mouse_state_t *out) {
 void mouse_set_state(const mouse_state_t *s) {
     uint32_t irq = cpu_irq_save();
     state = *s;
+    cpu_irq_restore(irq);
+}
+
+void mouse_set_screen(int width, int height) {
+    uint32_t irq = cpu_irq_save();
+    max_x = width - 1;
+    max_y = height - 1;
+    // DEFENCE mouse_bounds: a smaller screen pulls the pointer back onto it.
+    state.x = def_mouse_clamp(state.x, max_x);
+    state.y = def_mouse_clamp(state.y, max_y);
     cpu_irq_restore(irq);
 }
 

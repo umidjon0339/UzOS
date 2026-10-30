@@ -23,13 +23,15 @@
  * Uses: process_create / process_get_by_pid / the process table and the
  *       current process (process_management), vfs_open
  *       (filesystem_management) for the copied files, cpu_irq_save
- *       (arch/x86/cpu), clone_enter_user (clone_enter.s, this folder).
+ *       (arch/x86/cpu), def_thread_quota_ok (process_management defence
+ *       thread_quota), clone_enter_user (clone_enter.s, this folder).
  */
 
-#include "modules/cpu_management/syscalls/clone/sys_clone.h"        // this syscall, CLONE_*
-#include "modules/process_management/core/scheduler/scheduler.h"    // the current process
-#include "modules/filesystem_management/core/vfs/vfs.h"             // vfs_open
-#include "arch/x86/cpu/cpu.h"                                       // cpu_irq_save
+#include "modules/cpu_management/syscalls/clone/sys_clone.h"                                              // this syscall, CLONE_*
+#include "modules/process_management/core/scheduler/scheduler.h"                                          // the current process
+#include "modules/filesystem_management/core/vfs/vfs.h"                                                   // vfs_open
+#include "arch/x86/cpu/cpu.h"                                                                             // cpu_irq_save
+#include "modules/process_management/security/thread_exhaustion/defence/thread_quota/def_thread_quota.h"  // def_thread_quota_ok
 
 #define SUPPORTED (CLONE_VM | CLONE_SIGHAND | CLONE_THREAD | \
                    CLONE_PARENT_SETTID | CLONE_CHILD_SETTID | CSIGNAL)
@@ -69,6 +71,9 @@ int sys_clone(const registers_t *regs, uint32_t flags, uint32_t stack,
         return -1;                                  // only ring 3 programs clone
     if (!flags_ok(flags) || stack == 0)
         return -1;                                  // shared memory needs its own stack
+    // DEFENCE thread_quota (process_management): a program has at most 4 threads.
+    if ((flags & CLONE_THREAD) && !def_thread_quota_ok(parent))
+        return -1;
 
     // Interrupts off: the child must not run before its frame is ready.
     uint32_t irq = cpu_irq_save();

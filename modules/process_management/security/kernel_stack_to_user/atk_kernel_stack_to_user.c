@@ -18,11 +18,11 @@
  *       (arch/x86/cpu), stack_top (boot/boot.s).
  */
 
-#include "registry.h"
-#include "cpu.h"
-#include "memory_layout.h"
-#include "vga.h"
-#include "def_user_stack.h"
+#include "modules/security_management/core/registry/registry.h"                                          // attack_t, registry_add_attack
+#include "arch/x86/cpu/cpu.h"                                                                            // cpu_read_esp
+#include "modules/memory_management/core/layout/memory_layout.h"                                         // KHEAP_START
+#include "modules/device_management/vga/vga.h"                                                           // vga_print_str, vga_print_hex
+#include "modules/process_management/security/kernel_stack_to_user/defence/user_stack/def_user_stack.h"  // def_user_stack_ok
 
 extern uint8_t stack_top[];     // top of the boot stack (boot/boot.s)
 

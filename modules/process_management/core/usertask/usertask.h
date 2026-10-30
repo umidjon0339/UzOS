@@ -23,7 +23,7 @@
  */
 
 #include <stdint.h>
-#include "memory_layout.h"
+#include "modules/memory_management/core/layout/memory_layout.h"  // USER_TEST_CODE, PAGE_SIZE
 
 #define USERTASK_CODE          USER_TEST_CODE               // see memory_layout.h
 #define USERTASK_STACK         (USER_TEST_CODE + PAGE_SIZE)

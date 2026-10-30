@@ -26,7 +26,7 @@ static const command_t hardware[] = {
 static const command_t screen[] = {
     { "theme",   "Colour themes: theme [name]",                cmd_theme   },
     { "font",    "Console font: font [uzos|bios]",             cmd_font    },
-    { "mode",    "Screen size: mode [80x25|80x50|1024x768]",   cmd_mode    },
+    { "mode",    "Screen size: mode [80x25 .. 1920x1080]",     cmd_mode    },
 };
 
 static void add(const char *group, const command_t *list, unsigned count) {

@@ -17,12 +17,12 @@
  *       scheduler_get_current_process (core/scheduler), cpu_read_esp (arch/x86/cpu).
  */
 
-#include "registry.h"
-#include "scheduler.h"
-#include "process.h"
-#include "vga.h"
-#include "cpu.h"
-#include "def_stack_guard.h"
+#include "modules/security_management/core/registry/registry.h"                                      // attack_t, registry_add_attack
+#include "modules/process_management/core/scheduler/scheduler.h"                                     // scheduler_get_current_process
+#include "modules/process_management/core/process/process.h"                                         // process_t, PROCESS_STACK_SIZE
+#include "modules/device_management/vga/vga.h"                                                       // vga_print_str, vga_print_int, vga_print_hex
+#include "arch/x86/cpu/cpu.h"                                                                        // volatile
+#include "modules/process_management/security/stack_overflow/defence/stack_guard/def_stack_guard.h"  // def_stack_guard_check
 
 #define SAFE_DEPTH  8           // far too shallow to reach the bottom
 #define FRAME_WORDS 8           // real local data in every frame

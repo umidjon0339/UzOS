@@ -8,13 +8,13 @@
  *       ui_* (ui module).
  */
 
-#include "fs_commands.h"
-#include "sys_open.h"
-#include "sys_read.h"
-#include "sys_write.h"
-#include "sys_close.h"
-#include "fd.h"
-#include "ui.h"
+#include "modules/filesystem_management/commands/cat/cmd_cat.h"  // this file
+#include "modules/io_management/syscalls/open/sys_open.h"        // sys_open, O_READ
+#include "modules/io_management/syscalls/read/sys_read.h"        // sys_read
+#include "modules/io_management/syscalls/write/sys_write.h"      // sys_write
+#include "modules/io_management/syscalls/close/sys_close.h"      // sys_close
+#include "modules/io_management/core/fd/fd.h"                    // STDOUT
+#include "modules/ui/core/style/ui.h"                            // ui_usage, ui_error
 
 #define CHUNK 256
 

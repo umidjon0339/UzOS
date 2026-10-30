@@ -92,6 +92,7 @@ static char state_letter(const process_t *p) {
         case PROCESS_STATE_READY:    return 'R';
         case PROCESS_STATE_SLEEPING: return 'S';
         case PROCESS_STATE_ZOMBIE:   return 'Z';
+        case PROCESS_STATE_STOPPED:  return 'T';
         default:                     return '?';
     }
 }

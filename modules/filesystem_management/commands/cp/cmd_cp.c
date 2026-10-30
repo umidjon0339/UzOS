@@ -9,15 +9,15 @@
  *       ui_* (ui module).
  */
 
-#include "fs_commands.h"
-#include "sys_open.h"
-#include "sys_read.h"
-#include "sys_write.h"
-#include "sys_close.h"
-#include "args.h"
-#include "string.h"
-#include "vfs.h"
-#include "ui.h"
+#include "modules/filesystem_management/commands/cp/cmd_cp.h"  // this file
+#include "modules/io_management/syscalls/open/sys_open.h"      // sys_open, O_READ, O_WRITE
+#include "modules/io_management/syscalls/read/sys_read.h"      // sys_read
+#include "modules/io_management/syscalls/write/sys_write.h"    // sys_write
+#include "modules/io_management/syscalls/close/sys_close.h"    // sys_close
+#include "lib/args/args.h"                                     // arg_next
+#include "lib/string/string.h"                                 // strlen, strcpy
+#include "modules/filesystem_management/core/vfs/vfs.h"        // vfs_node_t, vfs_path_of, FS_PATH_MAX
+#include "modules/ui/core/style/ui.h"                          // ui_usage, ui_error
 
 #define CHUNK 512
 

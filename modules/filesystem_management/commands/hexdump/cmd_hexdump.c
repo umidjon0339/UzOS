@@ -10,14 +10,14 @@
  *       atoi (lib/stdlib), ui_* (ui module).
  */
 
-#include "fs_commands.h"
-#include "sys_open.h"
-#include "sys_read.h"
-#include "sys_close.h"
-#include "args.h"
-#include "stdlib.h"
-#include "vfs.h"
-#include "ui.h"
+#include "modules/filesystem_management/commands/hexdump/cmd_hexdump.h"  // this file
+#include "modules/io_management/syscalls/open/sys_open.h"                // sys_open, O_READ
+#include "modules/io_management/syscalls/read/sys_read.h"                // sys_read
+#include "modules/io_management/syscalls/close/sys_close.h"              // sys_close
+#include "lib/args/args.h"                                               // arg_next
+#include "lib/stdlib/stdlib.h"                                           // atoi
+#include "modules/filesystem_management/core/vfs/vfs.h"                  // FS_PATH_MAX
+#include "modules/ui/core/style/ui.h"                                    // ui_usage
 
 #define ROW      16
 #define DEFAULT  256

@@ -16,10 +16,10 @@
  * Uses: process_create (core/process), timer_wait (device_management/timer).
  */
 
-#include "registry.h"
-#include "process.h"
-#include "timer.h"
-#include "vga.h"
+#include "modules/security_management/core/registry/registry.h"  // attack_t, registry_add_attack
+#include "modules/process_management/core/process/process.h"     // process_state_t, process_t
+#include "modules/device_management/timer/timer.h"               // timer_wait
+#include "modules/device_management/vga/vga.h"                   // vga_print_str, vga_print_int
 
 #define LEAK_WORKERS 4
 #define WAIT_TICKS   20         // 0.2 s: enough for the workers to end and be reaped

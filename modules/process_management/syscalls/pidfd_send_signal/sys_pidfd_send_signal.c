@@ -1,30 +1,35 @@
 /*
  * sys_pidfd_send_signal.c - pidfd_send_signal(pidfd, sig): send a signal
- * using a file descriptor that refers to a process.
+ * to the process a pidfd (pidfd_open) names.
  *
- * A pidfd is Linux's fix for the kill() race where a pid is reused after
- * the target dies: the fd always names the same process, so you never
- * signal the wrong one. UzOS has no pidfd type yet; here the pidfd is
- * taken as the pid directly (PIDs are never reused, so the race the real
- * pidfd solves cannot happen in UzOS anyway). Same permission rule as kill.
+ * This is Linux's fix for the kill() race: between finding a pid and
+ * killing it, the process may end and the number may come back as
+ * someone else. The pidfd names the process itself, so once it ended
+ * this fails (-1, ESRCH) instead of hitting the next one. Same
+ * permission rule as kill (signal_permission).
  *
- * Uses: scheduler_get_current_process, process_get_by_pid, process_kill
- *       (core/process); signal_send, SIGKILL (core/signal);
- *       def_signal_allowed (signal_permission).
+ * Uses: scheduler_get_current_process (core/scheduler), process_kill
+ *       (core/process), pidfd_target (core/pidfd: pcb_generation inside),
+ *       signal_send, SIGKILL (core/signal), def_signal_allowed
+ *       (security/signal_abuse/defence/signal_permission).
  */
-#include "sys_pidfd_send_signal.h"
-#include "process.h"
-#include "scheduler.h"
-#include "signal.h"
-#include "def_signal_permission.h"
+#include "modules/process_management/syscalls/pidfd_send_signal/sys_pidfd_send_signal.h"  // this file
+#include "modules/process_management/core/scheduler/scheduler.h"                           // scheduler_get_current_process
+#include "modules/process_management/core/pidfd/pidfd.h"                                   // pidfd_target
+#include "modules/process_management/core/signal/signal.h"                                 // signal_send, SIGKILL
+#include "modules/process_management/security/signal_abuse/defence/signal_permission/def_signal_permission.h"  // def_signal_allowed
 
 int sys_pidfd_send_signal(int pidfd, int sig) {
     process_t *self = scheduler_get_current_process();
-    process_t *t = process_get_by_pid((uint32_t)pidfd);   // pidfd == pid in UzOS
-    if (!t) return -1;
-    if (!def_signal_allowed(self ? self->uid : 0, t->uid, t->is_system))
+    process_t *t = pidfd_target(self, pidfd);
+    if (!t || t->state == PROCESS_STATE_ZOMBIE || sig < 0 || sig >= SIGNAL_COUNT)
+        return -1;                                  // ESRCH: it ended
+    if (!def_signal_allowed(self->uid, t->uid, t->is_system))
         return -1;
-    if (sig == SIGKILL) { process_kill((uint32_t)pidfd); return 0; }
+    if (sig == 0)
+        return 0;                                   // only "is it alive and may I?"
+    if (sig == SIGKILL)
+        return process_kill(t->pid) ? 0 : -1;
     signal_send(t, sig);
     return 0;
 }

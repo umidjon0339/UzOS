@@ -12,10 +12,10 @@
  *         goes below it.)
  */
 
-#include "def_user_stack.h"
-#include "registry.h"
-#include "audit.h"
-#include "memory_layout.h"
+#include "modules/process_management/security/kernel_stack_to_user/defence/user_stack/def_user_stack.h"  // this file
+#include "modules/security_management/core/registry/registry.h"                                          // defence_t, registry_add_defence
+#include "modules/security_management/core/audit/audit.h"                                                // audit_log
+#include "modules/memory_management/core/layout/memory_layout.h"                                         // USER_SPACE_START, USER_SPACE_END
 
 // The whole rule, as a pure function so the selftest can try it.
 static int user_stack_ok(uint32_t esp) {

@@ -13,9 +13,9 @@
  * Uses: namespace_isolation (its defence), vga.
  */
 
-#include "registry.h"
-#include "def_namespace_isolation.h"
-#include "vga.h"
+#include "modules/security_management/core/registry/registry.h"                                                        // attack_t, registry_add_attack
+#include "modules/process_management/security/container_escape/defence/namespace_isolation/def_namespace_isolation.h"  // def_namespaces_present
+#include "modules/device_management/vga/vga.h"                                                                         // vga_print_str
 
 static int simulate(void) {
     vga_print_str("  break a container's namespace box to reach the host\n");

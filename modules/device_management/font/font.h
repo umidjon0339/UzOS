@@ -6,7 +6,7 @@
  *
  * A glyph is 8 pixels wide; each pixel row is one byte (bit 7 = left).
  * Every character exists in two heights:
- *   16 rows  80x25 text mode and the 1024x768 graphics console
+ *   16 rows  80x25 text mode and the graphics console (every size)
  *    8 rows  80x50 text mode (twice the lines, half the height)
  *
  * Two fonts to choose from (`font` command):

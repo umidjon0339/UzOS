@@ -6,11 +6,11 @@
  *       ui_* (ui module).
  */
 
-#include "fs_commands.h"
-#include "sys_chdir.h"
-#include "users.h"
-#include "process.h"
-#include "ui.h"
+#include "modules/filesystem_management/commands/cd/cmd_cd.h"        // this file
+#include "modules/filesystem_management/syscalls/chdir/sys_chdir.h"  // sys_chdir
+#include "modules/user_management/core/users/users.h"                // user_t, users_find_uid
+#include "modules/process_management/core/process/process.h"         // process_caller_uid
+#include "modules/ui/core/style/ui.h"                                // ui_error
 
 void cmd_cd(const char *args) {
     const user_t *me = users_find_uid(process_caller_uid());

@@ -10,9 +10,9 @@
  *         crash. "Every field is either mine or zero" is easy to trust.
  */
 
-#include "def_pcb_wipe.h"
-#include "registry.h"
-#include "string.h"
+#include "modules/process_management/security/uninit_pcb/defence/pcb_wipe/def_pcb_wipe.h"  // this file
+#include "modules/security_management/core/registry/registry.h"                            // defence_t, registry_add_defence
+#include "lib/string/string.h"                                                             // memset
 
 void def_pcb_wipe(process_t *p) {
     if (!p)

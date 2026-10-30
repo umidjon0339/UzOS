@@ -19,9 +19,9 @@
  * Uses: orphan_reaping (its defence), vga.
  */
 
-#include "registry.h"
-#include "def_orphan_reaping.h"
-#include "vga.h"
+#include "modules/security_management/core/registry/registry.h"                                            // attack_t, registry_add_attack
+#include "modules/process_management/security/orphan_process/defence/orphan_reaping/def_orphan_reaping.h"  // def_orphan_is_collected
+#include "modules/device_management/vga/vga.h"                                                             // vga_print_str
 
 static int simulate(void) {
     vga_print_str("  a parent exits first; its children become orphans\n");

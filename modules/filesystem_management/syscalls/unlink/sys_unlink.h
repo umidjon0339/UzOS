@@ -2,7 +2,7 @@
 #define SYS_UNLINK_H
 
 /*
- * sys_unlink.h - unlink(): delete a file or an empty directory.
+ * sys_unlink.h - unlink(): delete a file (directories: rmdir).
  */
 
 #include <stdint.h>

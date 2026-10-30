@@ -15,8 +15,9 @@
 // Is a BGA card there? (Reads its ID register.)
 int bga_is_available(void);
 
-// Switch to a graphics mode, e.g. 1024 x 768 x 32 bits.
-void bga_set_video_mode(uint16_t width, uint16_t height, uint16_t bits_per_pixel);
+// Switch to a graphics mode, e.g. 1024 x 768 x 32 bits. The card takes
+// any size up to 2560 x 1600. Returns 0 if the mode was refused.
+int bga_set_video_mode(uint16_t width, uint16_t height, uint16_t bits_per_pixel);
 
 // Switch graphics off again: the card goes back to VGA text mode.
 void bga_disable(void);

@@ -10,12 +10,15 @@
  *   Enter         the line is split into "name args" and the command runs
  *   Ctrl+C        at the prompt: forget the typed line, "^C", a new prompt
  *                 while a command runs: send it SIGINT (it stops early)
+ *   Ctrl+Z        while a command runs: send it SIGTSTP (`exec` and `fg`
+ *                 then stop their program and give the prompt back)
+ *   Ctrl+Up/Down  a bigger / smaller screen (the same list as `mode`)
  *
- * Uses: the line buffer, history, completion and highlight (core/), vga_* and
- *       KEY_* (device_management), sys_getcwd (filesystem_management)
- *       and session_user (user_management) for the prompt, signal_*
- *       and the current process (process_management) for Ctrl+C, ui_* (ui
- *       module), arg_next (lib/args).
+ * Uses: the line buffer, history, completion and highlight (core/), vga_*,
+ *       modes_step and KEY_* (device_management), sys_getcwd
+ *       (filesystem_management) and session_user (user_management) for
+ *       the prompt, signal_* and the current process (process_management)
+ *       for Ctrl+C, ui_* (ui module), arg_next (lib/args).
  */
 
 #include "shell.h"
@@ -25,6 +28,7 @@
 #include "highlight.h"
 #include "vga.h"
 #include "keyboard.h"
+#include "modes.h"
 #include "string.h"
 #include "args.h"
 #include "vfs.h"
@@ -152,6 +156,7 @@ static void run(const char *input) {
     // While the command runs, Ctrl+C becomes SIGINT for this process.
     process_t *self = scheduler_get_current_process();
     signal_clear(self, SIGINT);                 // nothing old may stop it
+    signal_clear(self, SIGTSTP);
     running = self;
     shell_run_command(input);
     running = 0;
@@ -160,6 +165,7 @@ static void run(const char *input) {
         signal_clear(self, SIGINT);
         vga_print_str("^C\n");
     }
+    signal_clear(self, SIGTSTP);                // a command that did not stop anything
 }
 
 // Called by the keyboard interrupt on Ctrl+C. 1 = handled here; 0 = let
@@ -169,6 +175,15 @@ static int ctrl_c_pressed(void) {
     if (!job)
         return 0;
     signal_send(job, SIGINT);
+    return 1;
+}
+
+// Ctrl+Z: the same, with SIGTSTP. At the prompt it does nothing.
+static int ctrl_z_pressed(void) {
+    process_t *job = running;
+    if (!job)
+        return 0;
+    signal_send(job, SIGTSTP);
     return 1;
 }
 
@@ -220,6 +235,8 @@ void shell_handle_key(char c) {
         on_tab();
     } else if (key == KEY_CTRL_C) {
         on_ctrl_c();
+    } else if (key == KEY_CTRL_UP || key == KEY_CTRL_DOWN) {
+        modes_step(key == KEY_CTRL_UP ? 1 : -1);  // a bigger / smaller screen
     } else if (key == KEY_UP) {
         const char *older = history_older();
         if (older)
@@ -240,4 +257,5 @@ void shell_init(void) {
     current_group = "Other";
     line_clear(&line);
     keyboard_on_ctrl_c(ctrl_c_pressed);
+    keyboard_on_ctrl_z(ctrl_z_pressed);
 }

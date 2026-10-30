@@ -1,10 +1,27 @@
-# ptrace_abuse -> ptrace_restrict
+# Attack: ptrace_abuse
 
-**Attack.** Use a debugging interface (`ptrace`) to attach to a process
-you don't own and read its registers and memory - keys, passwords,
-tokens.
+| | |
+|---|---|
+| **Stopped by** | [`ptrace_restrict`](defence/ptrace_restrict/) |
+| **Breaks** | disclosure: a debugger sees all of a process's memory |
+| **Severity** | high |
 
-**Defence (ptrace_restrict).** UzOS has no `ptrace()` yet; this is the
-gate one would need: a system process is off limits, a debug-capable
-user may attach to any other, and otherwise you may only debug a process
-you own (as Linux does with Yama's `ptrace_scope`).
+## What it does
+
+`ptrace()` reads and writes another process's registers and memory.
+If any process could attach to any other, it would be a window into
+everyone's secrets: keys, passwords, tokens.
+
+## In UzOS
+
+`live` asks ptrace_restrict, as user 1, about user 2's process and a
+system process: both refused. `proccalls debug` uses the real
+`ptrace()` from ring 3: it may attach to its own child, not to PID 1.
+
+## Try it
+
+```
+seclab attack ptrace_abuse live
+proccalls debug
+strace -p 1          # refused: a system process
+```

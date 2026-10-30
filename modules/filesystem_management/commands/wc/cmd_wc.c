@@ -6,11 +6,11 @@
  * Uses: sys_open / sys_read / sys_close (io_management), ui_* (ui module).
  */
 
-#include "fs_commands.h"
-#include "sys_open.h"
-#include "sys_read.h"
-#include "sys_close.h"
-#include "ui.h"
+#include "modules/filesystem_management/commands/wc/cmd_wc.h"  // this file
+#include "modules/io_management/syscalls/open/sys_open.h"      // sys_open, O_READ
+#include "modules/io_management/syscalls/read/sys_read.h"      // sys_read
+#include "modules/io_management/syscalls/close/sys_close.h"    // sys_close
+#include "modules/ui/core/style/ui.h"                          // ui_usage
 
 #define CHUNK 512
 

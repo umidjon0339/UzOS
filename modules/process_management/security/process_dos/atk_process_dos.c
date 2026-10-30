@@ -17,9 +17,9 @@
  * Uses: service_limits (its defence), vga.
  */
 
-#include "registry.h"
-#include "def_service_limits.h"
-#include "vga.h"
+#include "modules/security_management/core/registry/registry.h"                                         // attack_t, registry_add_attack
+#include "modules/process_management/security/process_dos/defence/service_limits/def_service_limits.h"  // def_service_limits_apply
+#include "modules/device_management/vga/vga.h"                                                          // vga_print_str
 
 static int simulate(void) {
     vga_print_str("  spawn without end   -> fork_bomb / slot_quota\n");

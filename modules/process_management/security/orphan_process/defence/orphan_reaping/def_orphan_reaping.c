@@ -14,8 +14,8 @@
  *         the "parent never reaped me" angle.)
  */
 
-#include "def_orphan_reaping.h"
-#include "registry.h"
+#include "modules/process_management/security/orphan_process/defence/orphan_reaping/def_orphan_reaping.h"  // this file
+#include "modules/security_management/core/registry/registry.h"                                            // defence_t, registry_add_defence
 
 static int collected(int is_zombie, int parent_alive) {
     (void)parent_alive;             // the reaper does not care

@@ -28,6 +28,10 @@ void wm_destroy_all(void);
 // The window's drawing surface (NULL for a bad id).
 canvas_t *wm_window_canvas(int id);
 
+// The screen is now 'width' x 'height': move every window so it is
+// fully on screen again (or as much as fits), title bar first.
+void wm_keep_on_screen(int width, int height);
+
 // React to the mouse: raise the clicked window, drag by the title bar.
 void wm_handle_mouse(const mouse_state_t *mouse);
 

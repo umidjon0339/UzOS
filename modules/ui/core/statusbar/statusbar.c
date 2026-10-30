@@ -84,7 +84,8 @@ static void shell_path(char *out, int size) {
 /* ---------- The whole bar ---------- */
 
 static void build(row_t *bar, int cols) {
-    row_t right = { .length = 0 };
+    static row_t right;             // static, like 'bar': too big for a 4 KiB stack
+    right.length = 0;
     char text[48];
     int wide = cols > 80;
 
@@ -140,7 +141,7 @@ static void build(row_t *bar, int cols) {
 void statusbar_update(void) {
     if (!shown)
         return;
-    static row_t bar;               // static: 256 bytes is a lot for a 4 KiB stack
+    static row_t bar;               // static: ~480 bytes is a lot for a 4 KiB stack
     uint32_t irq = cpu_irq_save();  // statusd and a command may both call this
     build(&bar, vga_cols());
     vga_status_set(bar.cells);

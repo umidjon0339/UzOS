@@ -8,21 +8,21 @@
  * sys_sleep_interruptible() is the same, except that signal_send()
  * (core/signal) may wake the process early: Ctrl+C ends `sleep 30`.
  *
- * Uses: the scheduler (current process, yield), TIMER_HZ (device_management
- *       timer): at 100 ticks per second, one tick = 10 ms, cpu_irq_save
+ * Uses: the scheduler (current process, yield), def_sleep_ms_ticks
+ *       (security/sleep_overflow/defence/sleep_bounds), cpu_irq_save
  *       (arch/x86/cpu), SIGINT bits (core/signal).
  */
 
-#include "sys_sleep.h"
-#include "scheduler.h"
-#include "timer.h"
-#include "cpu.h"
+#include "modules/process_management/syscalls/sleep/sys_sleep.h"                                       // this file
+#include "modules/process_management/core/signal/signal.h"                                             // signal_deliverable
+#include "modules/process_management/core/scheduler/scheduler.h"                                       // scheduler_get_current_process, scheduler_yield
+#include "modules/process_management/security/sleep_overflow/defence/sleep_bounds/def_sleep_bounds.h"  // def_sleep_ms_ticks
+#include "arch/x86/cpu/cpu.h"                                                                          // cpu_irq_save, cpu_irq_restore
 
-#define MS_PER_TICK (1000 / TIMER_HZ)
-
-// At least one tick, rounded up: sleep(1) still sleeps.
+// At least one tick, rounded up: sleep(1) still sleeps. DEFENCE
+// sleep_bounds: no overflow for huge ms (the old "(ms + 9) / 10" gave 0).
 static uint32_t ms_to_ticks(uint32_t ms) {
-    uint32_t ticks = (ms + MS_PER_TICK - 1) / MS_PER_TICK;
+    uint32_t ticks = def_sleep_ms_ticks(ms);
     return ticks ? ticks : 1;
 }
 
@@ -49,7 +49,7 @@ int sys_sleep_interruptible(uint32_t ms) {
     // a Ctrl+C in between would otherwise find us awake (nothing to wake),
     // and we would then sleep the whole time anyway.
     uint32_t flags = cpu_irq_save();
-    if (self->signals) {
+    if (signal_deliverable(self)) {
         cpu_irq_restore(flags);
         return 0;                       // already interrupted: do not sleep
     }
@@ -62,5 +62,5 @@ int sys_sleep_interruptible(uint32_t ms) {
         scheduler_yield();
 
     self->sleep_interruptible = 0;
-    return self->signals == 0;
+    return signal_deliverable(self) == 0;
 }

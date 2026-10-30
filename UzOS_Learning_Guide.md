@@ -82,10 +82,10 @@ See [modules/device_management/README.md](modules/device_management/README.md) f
 * `timer/`: the PIT at 100 Hz. Every tick is charged to a process (cpu_management) and runs the scheduler.
 * `keyboard/` & `mouse/`: PS/2 input. The mouse decoder resynchronises if a byte is lost; the wheel scrolls terminal history.
 * `rtc/`: the real-time clock chip: the date and time (`date`, the `time` syscall).
-* `vga/`: the console (text, colours, scroll-back, the status row). It draws through a **display** interface: `vga/text/` (80x25, 80x50) or `gui/fbcon/` (1024x768 graphics, 128x48 characters on a wallpaper). `vga/palette/` holds the colour themes.
+* `vga/`: the console (text, colours, scroll-back, the status row). It draws through a **display** interface: `vga/text/` (80x25, 80x50) or `gui/fbcon/` (graphics from 800x600 up to 1920x1080, text on a wallpaper). `vga/modes/` lists them all, smallest first: `mode 1280x720` picks one, Ctrl+Up / Ctrl+Down step bigger / smaller. `vga/palette/` holds the colour themes.
 * `font/`: the UzOS font (based on Terminus) and UzOS's own icons (folder, check, crescent...).
 * `gui/`: video card (`bga`), drawing (`canvas`), double buffering (`screen`) and windows (`wm`).
-* **Commands**: `date`, `devices` (IRQ lines and interrupt counts), `startx` (ESC returns to the shell), `beep`, `play`, and for the screen `theme`, `font`, `mode`.
+* **Commands**: `date`, `devices` (IRQ lines and interrupt counts), `startx` (Ctrl+Up / Ctrl+Down resize it, ESC returns to the shell), `beep`, `play`, and for the screen `theme`, `font`, `mode`.
 
 ### B. I/O Management (`modules/io_management/`)
 See [modules/io_management/README.md](modules/io_management/README.md).
@@ -106,8 +106,14 @@ See [modules/process_management/README.md](modules/process_management/README.md)
 * **Process (`core/process/`)**: The Process Control Block (`process_t`) table: create, kill, exit. Finished processes become zombies and the reaper frees them.
 * **Scheduler (`core/scheduler/`)**: The mechanism of multitasking. When a turn ends, `switch_task.s` saves the registers and EFLAGS of the current process on its stack and resumes the next one (context switching). *Which* process is next is decided by cpu_management.
 * **User tasks (`core/usertask/`)**: copies a small assembly program to a user page and drops it to ring 3. `testuser` and several security lab attacks use it.
-* **ELF Loader (`core/elf/`)**: Reads an ELF file from the filesystem, checks it, maps it into memory, and creates a process for it.
-* **System calls (`syscalls/`)**: `int 0x80` with the number in EAX. `syscalls/handler/` routes every module's syscalls; this module's own are `exit` and `sleep` (`getpid` and `sched_yield` live in cpu_management).
+* **ELF Loader (`core/elf/`)**: Reads an ELF file from the filesystem, checks it, maps it into memory, and creates a process for it (the `exec` command, ring 0).
+* **Signals (`core/signal/`)**: one bit per signal, numbered as in Linux (`kill -l`). On every return to ring 3 the kernel *delivers* the first one that is not blocked: it builds a frame on the program's own stack and makes the `iret` land in the program's **handler**; the handler's `ret` runs `rt_sigreturn`, which puts every register back. No handler: the default action (end, stop, ignore). `SIGSTOP`/`SIGCONT` freeze and thaw any process (state `T`); `rt_sigqueueinfo` sends a value too; `alarm` and `setitimer` (REAL / VIRTUAL / PROF) send signals on time.
+* **Exit records and pidfds (`core/exitlog/`, `core/pidfd/`)**: the reaper keeps how each process ended, so `wait4`/`waitid` can give the parent its exit status later; a **pidfd** is a file descriptor that names one process for ever, so a signal can never reach "the next process with that number".
+* **Jobs**: Ctrl+Z stops the foreground program; `jobs`, `fg`, `bg`, `wait` manage the shell's children; `logout` hangs up the session (SIGHUP) except for `nohup` / `setsid` jobs; `timeout` gives a command a deadline.
+* **Sandboxes and debugging**: `prctl` (name, pdeathsig, subreaper, dumpable, no_new_privs), `seccomp` (strict, or a list of allowed syscalls, checked before every call), `ptrace` (attach, peek, poke, registers; Yama: only an ancestor), `process_vm_readv`, `strace`, `pmap`, `procinfo`, `pstree`, `pgrep`/`pkill`/`killall`/`pidof`.
+* **vfork + execve**: `vfork()` starts a child that borrows the parent's memory and stack while the parent waits; `execve()` replaces the child's program (same pid) with an ELF file, builds `argc / argv / envp` on a new stack the System V way, and always starts it in **ring 3**. `fork()` needs a copy of memory, so it waits for per-process address spaces.
+* **System calls (`syscalls/`)**: `int 0x80` with the number in EAX. `syscalls/handler/` routes every module's syscalls; this module's own are numbers 1, 3 and 52-96 (`getpid` and `sched_yield` live in cpu_management). `proccalls` calls them from ring 3 programs and checks 214 answers.
+* **Security**: 39 attack/defence pairs in `security/<attack>/defence/<defence>/`, from `sigreturn_forgery` (SROP) and `pid_reuse_race` to `syscall_abuse` (seccomp) and `stack_clash`.
 
 ### E. CPU Management (`modules/cpu_management/`)
 See [modules/cpu_management/README.md](modules/cpu_management/README.md) for the full map.

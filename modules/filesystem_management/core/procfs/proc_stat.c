@@ -20,7 +20,7 @@
  *       (device_management), affinity_cpu_count (cpu_management/core/affinity).
  */
 
-#include "modules/filesystem_management/core/procfs/proc_stat.h"
+#include "modules/filesystem_management/core/procfs/proc_stat.h"  // this file
 #include "modules/cpu_management/core/accounting/cpu_account.h"   // cpu_account_*
 #include "modules/cpu_management/core/task/cpu_task.h"            // cpu_task_forks
 #include "modules/cpu_management/core/loadavg/loadavg.h"          // loadavg_runnable

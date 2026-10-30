@@ -14,9 +14,9 @@
  * Uses: process_isolation (its defence), vga.
  */
 
-#include "registry.h"
-#include "def_process_isolation.h"
-#include "vga.h"
+#include "modules/security_management/core/registry/registry.h"                                                     // attack_t, registry_add_attack
+#include "modules/process_management/security/process_injection/defence/process_isolation/def_process_isolation.h"  // def_ring3_isolated
+#include "modules/device_management/vga/vga.h"                                                                      // vga_print_str
 
 static int simulate(void) {
     vga_print_str("  write code into another process, then make it run\n");

@@ -1,7 +1,7 @@
 #ifndef DEF_KILL_GUARD_H
 #define DEF_KILL_GUARD_H
 
-#include "process.h"
+#include "modules/process_management/core/process/process.h"  // process_t
 
 // May 'caller' kill 'target'? 1 = yes, 0 = refused (logged).
 // caller NULL = the kernel itself (treated as root).

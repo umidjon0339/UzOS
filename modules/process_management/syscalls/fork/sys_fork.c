@@ -1,9 +1,9 @@
 /*
- * sys_fork.c - fork() STUB: needs per-process address spaces (see .h).
- * Uses: nothing (returns -1 until UzOS has separate address spaces).
+ * sys_fork.c - fork(): not possible with one address space (see the .h).
+ * Uses: nothing.
  */
-#include "sys_fork.h"
+#include "modules/process_management/syscalls/fork/sys_fork.h"   // this file
 
 int sys_fork(void) {
-    return -1;      // unsupported: see sys_fork.h
+    return -1;      // needs per-process address spaces: use vfork() + execve()
 }

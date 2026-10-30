@@ -13,11 +13,11 @@
  * Uses: usertask_start (core/usertask), sys_sleep, ui_* (ui module).
  */
 
-#include "proc_commands.h"
-#include "usertask.h"
-#include "string.h"
-#include "sys_sleep.h"
-#include "ui.h"
+#include "modules/process_management/commands/testuser/cmd_testuser.h"  // this file
+#include "modules/process_management/core/usertask/usertask.h"          // usertask_mailbox, usertask_wait
+#include "lib/string/string.h"                                          // strcmp
+#include "modules/process_management/syscalls/sleep/sys_sleep.h"        // sys_sleep
+#include "modules/ui/core/style/ui.h"                                   // ui_error, ui_start, ui_printf
 
 #define USER_UID 1
 

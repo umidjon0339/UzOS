@@ -1,13 +1,16 @@
 /*
- * sys_exit.c - exit(): end the calling process.
+ * sys_exit.c - exit(code): end the calling process.
  *
- * Uses: process_exit() (core/process). The process becomes a zombie and
- *       never runs again; the reaper frees its slot and stack later.
+ * The exit code (low 8 bits) is kept as exit_status = code << 8, the
+ * way wait() reports it (WEXITSTATUS).
+ *
+ * Uses: process_exit_with() (core/process). The process becomes a zombie
+ *       and never runs again; the reaper frees its slot and stack later.
  */
 
-#include "sys_exit.h"
-#include "process.h"
+#include "modules/process_management/syscalls/exit/sys_exit.h"  // this file
+#include "modules/process_management/core/process/process.h"    // process_exit_with
 
-void sys_exit(void) {
-    process_exit();
+void sys_exit(int code) {
+    process_exit_with((code & 0xFF) << 8);
 }

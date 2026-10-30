@@ -18,6 +18,35 @@ in clone/clone3/exit_group, perf counters in syscalls/perf_event_open,
 ksyms in commands/perf_report). core/ keeps only what the kernel calls
 or shared state (rule in cpu_management/core/README.md). /proc moved to
 filesystem_management/core/procfs.
+Phase 7: process management, Linux-sized (`modules/process_management/`) -
+**done** (phases 0-9 of the plan). Same clean shape as cpu_management:
+commands/ syscalls/ security/ core/, full-path includes, cmd_x.h per
+command, core/README.md. Added:
+- real signals: handlers run in ring 3 (sigframe on the user stack,
+  rt_sigreturn), masks, SIG_IGN, altstack, queued values (sigqueue.c),
+  stop/continue (state T), alarm + setitimer REAL/VIRTUAL/PROF;
+  delivery = isr_on_return_to_user hook (arch/x86/isr)
+- exit statuses (core/exitlog, written by the reaper) for wait4 /
+  waitpid / waitid / wait; pidfds (core/pidfd: pidfd_open / getfd /
+  send_signal, waitid P_PIDFD); process_ended(): re-parent orphans
+  (subreaper, PID 1), pdeathsig, SIGCHLD, tracees let go
+- job control: Ctrl+Z (keyboard + shell), jobs fg bg wait, nohup setsid
+  timeout; logout hangs up the session (SIGHUP, process_hangup)
+- prctl, seccomp (strict + allow-list filter, checked before every
+  syscall), unshare/setns (honest -1 for namespaces), ptrace (Yama scope
+  1), process_vm_readv/writev, kcmp, strace, pmap, procinfo, pstree,
+  pgrep pkill killall pidof pwdx
+- vfork (child borrows memory + stack) and a real execve (always ring 3,
+  argv/envp System V stack in a per-slot area at 0xB0000000);
+  fork stays -1 (needs per-process page directories)
+- syscalls 69-96; `proccalls` = 8 ring 3 groups, 214 of 214 answers
+  (showargs.s is a whole ELF built in NASM data)
+- 23 new attack/defence pairs (39 in process_management, 93 in all,
+  `seclab verify all` = 93 of 93); 2 are concepts (priority_inversion,
+  tty_hijack)
+- cross-module: RLIMIT_SIGPENDING enforced, CAP_PTRACE added, clone/
+  clone3 call thread_quota, setuid calls dumpable_flag, /proc status
+  shows Sig*/NoNewPrivs/Seccomp (hidepid), O_CLOEXEC in io open
 Phase 7: User management (`modules/user_management/`) - **done**: user
 table with salted SHA-256 passwords, login prompt, su/passwd, file
 owners and modes, useradd/userdel.
@@ -32,7 +61,9 @@ capabilities, audit log with user/PID, kernel integrity (SHA-256 of
 - Build writes objects to `build/` (git-ignored); `lib/string/` is the kernel's C string library
 - `modules/core/`: `kernel_main.c` as a step-by-step table of contents with a Linux-style boot log
 - Console (`device_management/vga/`) over a display interface: VGA text 80x25 / 80x50,
-  1024x768 graphics console (`gui/fbcon/`); status row; full-screen mode
+  graphics console 800x600 .. 1920x1080 (`gui/fbcon/`); status row; full-screen mode
+- Screen size: `mode WxH` or Ctrl+Up / Ctrl+Down (`vga/modes/`); the desktop resizes too,
+  its back buffer is RAM frames mapped at `BACKBUFFER_START`; `make run` uses gtk zoom-to-fit
 - UzOS font (Terminus, OFL) + icons (`device_management/font/`), 6 colour themes (`vga/palette/`)
 - RTC driver (`device_management/rtc/`), `date`, `time` syscall (19)
 - `modules/ui/`: message styles, frames/bars/cells, boot log, logo, status bar + statusd daemon, `uzfetch`
@@ -301,7 +332,10 @@ Still open:
   enough to `exec` a program.
 - `userland/hello.c` (`exec hello`) runs in ring 0 and ends in a `hlt`
   loop instead of exiting: it stays at 100% CPU in `cpustat` until killed.
-  It needs an exit syscall and a ring 3 ELF loader.
+  The `execve()` syscall now loads ELF programs in ring 3 (see
+  proccalls/showargs.s); the `exec` command still uses the ring 0 loader.
+- `fork()` returns -1: it needs per-process page directories (CR3 per
+  process, copied or COW user pages, kernel tables kept in sync).
 - One global `current_directory`: no per-process address space isolation.
 - `def_stack_guard_check` is a software check. The stronger fix is a guard
   page below each stack, which needs per-process paging.

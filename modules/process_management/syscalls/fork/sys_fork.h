@@ -1,14 +1,15 @@
 #ifndef SYS_FORK_H
 #define SYS_FORK_H
 /*
- * sys_fork.h - fork(): duplicate the calling process.
+ * sys_fork.h - fork(): a child with a COPY of my memory. Not in UzOS: -1.
  *
- * STUB. A real fork() copies the caller's whole address space into a new
- * process (the child returns 0, the parent gets the child's pid). UzOS
- * runs every process in ONE shared address space, so there is nothing
- * private to copy - fork() needs a per-process page directory first (see
- * process_management/README "Known limits"). Returns -1 until then; new
- * processes are made with process_create(name, entry, uid) instead.
+ * fork() gives the child its own copy of every user page, so parent and
+ * child can change their memory independently. That needs one page
+ * directory per process (CR3 switched on every task switch, user pages
+ * copied - or shared copy-on-write - kernel pages kept the same in all).
+ * UzOS has ONE address space, so there is nothing to copy into. It
+ * returns -1 instead of pretending. To start a program, use
+ * vfork() + execve(): the child borrows the memory until it execs.
  */
 #define SYS_FORK 65         // EAX=65
 int sys_fork(void);

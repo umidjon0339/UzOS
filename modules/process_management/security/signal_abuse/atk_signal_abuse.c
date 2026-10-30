@@ -18,10 +18,10 @@
  * Uses: signal_permission (its defence), vga.
  */
 
-#include "registry.h"
-#include "audit.h"
-#include "def_signal_permission.h"
-#include "vga.h"
+#include "modules/security_management/core/registry/registry.h"                                                // attack_t, registry_add_attack
+#include "modules/security_management/core/audit/audit.h"                                                      // audit_total
+#include "modules/process_management/security/signal_abuse/defence/signal_permission/def_signal_permission.h"  // def_signal_allowed
+#include "modules/device_management/vga/vga.h"                                                                 // vga_print_str, vga_print_int
 
 static int simulate(void) {
     vga_print_str("  a signal (SIGINT/SIGKILL) stops or disturbs a process\n");

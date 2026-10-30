@@ -77,7 +77,7 @@ void cmd_devices(const char *args) {
     rtc_time_t now;
     found_row("Clock (RTC)", rtc_read(&now), "real-time clock, `date`");
     found_row("Mouse", mouse_is_available(), "PS/2, wheel scrolls the console");
-    found_row("BGA video", bga_is_available(), "graphics: startx, mode 1024x768");
+    found_row("BGA video", bga_is_available(), "graphics: startx, mode 1280x720");
     format(text, sizeof(text), "%s", vga_display()->name);
     found_row("Display", 1, text);
     box_end();

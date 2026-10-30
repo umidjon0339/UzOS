@@ -22,7 +22,6 @@
 void sys_exit_group(int status) {
     process_t *self = scheduler_get_current_process();
     process_t *table = process_get_table();
-    (void)status;                       // UzOS has no wait() to collect it
 
     for (int i = 0; i < MAX_PROCESSES; i++) {
         process_t *p = &table[i];
@@ -30,5 +29,5 @@ void sys_exit_group(int status) {
             p->state != PROCESS_STATE_ZOMBIE)
             process_kill(p->pid);
     }
-    process_exit();
+    process_exit_with((status & 0xFF) << 8);    // what wait() reports
 }

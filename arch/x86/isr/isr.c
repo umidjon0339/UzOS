@@ -8,6 +8,9 @@
  * cpu_management registers a handler for every CPU exception, so in
  * practice isr_panic() runs only when that handler gives up: a fault in
  * kernel code, or one no process can be blamed for.
+ *
+ * Last, if the interrupt came from ring 3, the "return to user" hook
+ * runs (process_management delivers signals there).
  */
 
 #include "isr.h"
@@ -16,6 +19,7 @@
 #include "vga.h"
 
 static isr_t handlers[256];
+static isr_t return_to_user;
 static uint32_t irq_counts[ISR_IRQS];
 static uint32_t spurious_count;
 
@@ -51,6 +55,10 @@ static const char *const exception_names[ISR_EXCEPTIONS] = {
 
 void register_interrupt_handler(uint8_t n, isr_t handler) {
     handlers[n] = handler;
+}
+
+void isr_on_return_to_user(isr_t hook) {
+    return_to_user = hook;
 }
 
 int isr_has_handler(uint8_t n) {
@@ -164,4 +172,7 @@ void isr_handler(registers_t *regs) {
     } else if (n < ISR_EXCEPTIONS) {
         isr_panic(regs);
     }
+
+    if (return_to_user && (regs->cs & 3) == 3)
+        return_to_user(regs);
 }

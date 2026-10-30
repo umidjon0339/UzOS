@@ -13,8 +13,8 @@
  *         one can reach into the kernel's saved frames to redirect them.
  */
 
-#include "def_control_flow_integrity.h"
-#include "registry.h"
+#include "modules/process_management/security/process_hijacking/defence/control_flow_integrity/def_control_flow_integrity.h"  // this file
+#include "modules/security_management/core/registry/registry.h"                                                               // defence_t, registry_add_defence
 
 int def_entry_is_kernel_set(void) { return 1; }
 

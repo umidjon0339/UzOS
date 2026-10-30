@@ -10,10 +10,10 @@
  *         command, so every caller passes through it.
  */
 
-#include "def_kill_guard.h"
-#include "registry.h"
-#include "audit.h"
-#include "caps.h"
+#include "modules/process_management/security/kill_system/defence/kill_guard/def_kill_guard.h"  // this file
+#include "modules/security_management/core/registry/registry.h"                                 // defence_t, registry_add_defence
+#include "modules/security_management/core/audit/audit.h"                                       // audit_log
+#include "modules/security_management/core/caps/caps.h"                                         // caps_has
 
 // The whole rule, as a pure function so the selftest can try it.
 static int kill_allows(int target_exists, int target_is_system,

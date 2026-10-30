@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Stopped by** | [`busy_check`](../../defence/busy_check/) |
+| **Stopped by** | [`busy_check`](defence/busy_check/) |
 | **Breaks** | consistency: nothing points at freed memory |
 | **Severity** | critical |
 
@@ -24,7 +24,7 @@ security holes in real kernels.
 | Mode | What happens |
 |---|---|
 | `simulate` | lists the three cases |
-| `live` | builds each case for real in `/` and calls `sys_unlink()`: an open file, a directory with a file in it, and the current directory. Then cleans up properly. |
+| `live` | builds each case for real in `/` and calls `sys_unlink()` / `sys_rmdir()`: an open file, a directory with a file in it, and the current directory. Then cleans up properly. |
 
 ## Uses
 

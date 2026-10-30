@@ -10,9 +10,9 @@
  *         that walks up to the root, like pwd, would go round forever.
  */
 
-#include "def_no_cycle.h"
-#include "registry.h"
-#include "audit.h"
+#include "modules/filesystem_management/security/dir_cycle/defence/no_cycle/def_no_cycle.h"  // this file
+#include "modules/security_management/core/registry/registry.h"                              // defence_t, registry_add_defence
+#include "modules/security_management/core/audit/audit.h"                                    // audit_log
 
 int def_move_allowed(vfs_node_t *node, vfs_node_t *new_dir) {
     // Walk up from the destination: meeting 'node' means it is below node.

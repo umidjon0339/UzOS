@@ -15,10 +15,10 @@
  *       scheduler_get_current_process (core/scheduler).
  */
 
-#include "registry.h"
-#include "process.h"
-#include "scheduler.h"
-#include "vga.h"
+#include "modules/security_management/core/registry/registry.h"   // attack_t, registry_add_attack
+#include "modules/process_management/core/process/process.h"      // process_t, process_get_table
+#include "modules/process_management/core/scheduler/scheduler.h"  // scheduler_get_current_process
+#include "modules/device_management/vga/vga.h"                    // vga_print_str, vga_print_int
 
 // Call 'visit' for every system process that is not the caller.
 static int for_each_target(void (*visit)(process_t *)) {

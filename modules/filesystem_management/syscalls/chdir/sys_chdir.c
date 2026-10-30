@@ -10,10 +10,10 @@
  *       perm_check (user_management).
  */
 
-#include "sys_chdir.h"
-#include "vfs.h"
-#include "scheduler.h"
-#include "perm.h"
+#include "modules/filesystem_management/syscalls/chdir/sys_chdir.h"  // this file
+#include "modules/filesystem_management/core/vfs/vfs.h"              // vfs_node_t, vfs_lookup, vfs_cwd
+#include "modules/process_management/core/scheduler/scheduler.h"     // scheduler_get_current_process
+#include "modules/user_management/core/perm/perm.h"                  // perm_check, PERM_READ
 
 int sys_chdir(const char *path) {
     process_t *self = scheduler_get_current_process();

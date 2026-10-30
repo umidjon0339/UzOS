@@ -12,8 +12,8 @@
  *         gap and you open theirs. One atomic step removes the gap.
  */
 
-#include "def_atomic_check.h"
-#include "registry.h"
+#include "modules/process_management/security/toctou_race/defence/atomic_check/def_atomic_check.h"  // this file
+#include "modules/security_management/core/registry/registry.h"                                     // defence_t, registry_add_defence
 
 static int atomic(int single_step) {
     return single_step != 0;

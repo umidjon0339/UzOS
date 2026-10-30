@@ -1,7 +1,7 @@
 #ifndef DEF_ELF_VALIDATE_H
 #define DEF_ELF_VALIDATE_H
 
-#include "elf.h"
+#include "modules/process_management/core/elf/elf.h"  // Elf32_Ehdr, Elf32_Phdr
 
 // Is this a well-formed i386 executable we can load? 1 = yes, 0 = refused.
 int def_elf_check_header(const Elf32_Ehdr *h);

@@ -25,10 +25,17 @@
  *               |  0x40000000 testuser      |
  *               |  0x50000000 sbrk heap     |  grows up
  *               |  0x60000000 mmap area     |
+ *               |  0xB0000000 execve stacks |  one 64 KiB area per process slot
  *   0xC0000000  +===========================+  USER SPACE ends
  *               | (not mapped)              |
+ *   0xFB000000  +---------------------------+
+ *               | GUI back buffer (startx)  |  16 MiB, mapped only while
+ *   0xFC000000  +---------------------------+  the desktop runs
+ *               | (not mapped)              |
  *   0xFD000000  +---------------------------+
- *               | BGA framebuffer (GUI)     |  identity mapped, 8 MiB
+ *               | BGA framebuffer (GUI)     |  identity mapped, 16 MiB
+ *   0xFE000000  +---------------------------+
+ *               | (not mapped)              |
  *   0xFFC00000  +---------------------------+
  *               | the page tables themselves|  "recursive" mapping
  *   0xFFFFFFFF  +---------------------------+
@@ -48,10 +55,15 @@
 #define USER_BRK_END        0x60000000
 #define MMAP_START          0x60000000  // mmap regions
 #define MMAP_END            0x80000000
+#define EXEC_STACKS_START   0xB0000000  // execve: a 64 KiB area per process slot,
+#define EXEC_STACKS_END     0xB0400000  //   its user stack at the top (process_management)
 #define USER_SPACE_END      0xC0000000
 
+#define BACKBUFFER_START    0xFB000000  // the desktop's hidden frame (gui/screen)
+#define BACKBUFFER_END      0xFC000000  // 16 MiB: room for 2560 x 1600 x 4 bytes
+
 #define FRAMEBUFFER_START   0xFD000000  // QEMU BGA video memory
-#define FRAMEBUFFER_END     0xFD800000
+#define FRAMEBUFFER_END     0xFE000000  // 16 MiB: all of QEMU's default VRAM
 
 #define PAGE_TABLES_VIRT    0xFFC00000  // page table i is at + i * PAGE_SIZE
 

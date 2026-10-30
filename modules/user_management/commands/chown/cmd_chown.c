@@ -37,6 +37,7 @@ void cmd_chown(const char *args) {
     }
 
     node->owner = user->uid;
+    node->ctime = vfs_now();
     ui_start(UI_OK, "chown");
     ui_printf("%s now belongs to %s", path, user->name);
     ui_end();

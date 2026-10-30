@@ -14,10 +14,10 @@
  * Uses: ramdisk_create / ramdisk_delete (core/ramdisk), vfs_write (core/vfs).
  */
 
-#include "registry.h"
-#include "audit.h"
-#include "ramdisk.h"
-#include "vga.h"
+#include "modules/security_management/core/registry/registry.h"  // attack_t, registry_add_attack
+#include "modules/security_management/core/audit/audit.h"        // audit_total
+#include "modules/filesystem_management/core/ramdisk/ramdisk.h"  // ramdisk_create, RAMDISK_MAX_FILE_SIZE, ramdisk_delete
+#include "modules/device_management/vga/vga.h"                   // vga_print_str, vga_print_hex
 
 #define TEMP_NAME "seclab_wrap"
 

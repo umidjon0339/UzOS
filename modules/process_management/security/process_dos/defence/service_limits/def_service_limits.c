@@ -12,8 +12,8 @@
  *         defence; this pair names the umbrella and points at them.
  */
 
-#include "def_service_limits.h"
-#include "registry.h"
+#include "modules/process_management/security/process_dos/defence/service_limits/def_service_limits.h"  // this file
+#include "modules/security_management/core/registry/registry.h"                                         // defence_t, registry_add_defence
 
 int def_service_limits_apply(void) { return 1; }   // slot_quota + CPU quotas
 

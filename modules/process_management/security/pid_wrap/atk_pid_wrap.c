@@ -14,10 +14,10 @@
  * Uses: def_pid_bounds_check (defence/pid_bounds), the process table.
  */
 
-#include "registry.h"
-#include "process.h"
-#include "vga.h"
-#include "def_pid_bounds.h"
+#include "modules/security_management/core/registry/registry.h"                              // attack_t, registry_add_attack
+#include "modules/process_management/core/process/process.h"                                 // process_t, process_get_table
+#include "modules/device_management/vga/vga.h"                                               // vga_print_str, vga_print_int, vga_print_hex
+#include "modules/process_management/security/pid_wrap/defence/pid_bounds/def_pid_bounds.h"  // PID_LIMIT, def_pid_bounds_check
 
 #define SMALL_PID 32u           // a wrapped counter hits these first
 

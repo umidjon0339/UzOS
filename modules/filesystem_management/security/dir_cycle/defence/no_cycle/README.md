@@ -2,9 +2,9 @@
 
 | | |
 |---|---|
-| **Stops** | [`dir_cycle`](../../attack/dir_cycle/) |
+| **Stops** | [`dir_cycle`](../../) |
 | **Protects** | consistency: the directory tree stays a tree |
-| **Called from** | `ramdisk_move()` in [core/ramdisk](../../../core/ramdisk/ramdisk.c) |
+| **Called from** | `ramdisk_move()` in [core/ramdisk](../../../../core/ramdisk/ramdisk.c) |
 
 ## The rule
 

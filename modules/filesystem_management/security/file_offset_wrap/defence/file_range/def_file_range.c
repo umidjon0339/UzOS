@@ -9,9 +9,9 @@
  *         writes 4 GiB past the file's buffer.
  */
 
-#include "def_file_range.h"
-#include "registry.h"
-#include "audit.h"
+#include "modules/filesystem_management/security/file_offset_wrap/defence/file_range/def_file_range.h"  // this file
+#include "modules/security_management/core/registry/registry.h"                                         // defence_t, registry_add_defence
+#include "modules/security_management/core/audit/audit.h"                                               // audit_log
 
 // The whole rule, as a pure function so the selftest can try it.
 static int in_range(uint32_t offset, uint32_t size, uint32_t limit) {

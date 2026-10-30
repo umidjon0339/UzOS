@@ -18,12 +18,12 @@
  *       (arch/x86/cpuid), cpu_read_cr0 (arch/x86/cpu).
  */
 
-#include "modules/filesystem_management/core/procfs/proc_cpuinfo.h"
-#include "modules/cpu_management/core/info/cpu_info.h"          // cpu_info, cpu_has
-#include "modules/cpu_management/core/tsc/tsc.h"                // tsc_mhz
-#include "modules/cpu_management/core/affinity/affinity.h"      // affinity_cpu_count
-#include "arch/x86/cpuid/cpuid.h"                               // cpuid_leaf
-#include "arch/x86/cpu/cpu.h"                                   // cpu_read_cr0, CR0_WP
+#include "modules/filesystem_management/core/procfs/proc_cpuinfo.h"  // this file
+#include "modules/cpu_management/core/info/cpu_info.h"               // cpu_info, cpu_has
+#include "modules/cpu_management/core/tsc/tsc.h"                     // tsc_mhz
+#include "modules/cpu_management/core/affinity/affinity.h"           // affinity_cpu_count
+#include "arch/x86/cpuid/cpuid.h"                                    // cpuid_leaf
+#include "arch/x86/cpu/cpu.h"                                        // cpu_read_cr0, CR0_WP
 
 void proc_cpuinfo(proc_buf_t *buf) {
     const cpu_info_t *cpu = cpu_info();

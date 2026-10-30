@@ -5,7 +5,9 @@
  *   open("/docs/log", O_WRITE|O_CREATE|O_APPEND) add to the end, create if new
  *   open("out", O_WRITE|O_CREATE|O_TRUNC)        start the file from empty
  *
- * Directories cannot be opened like files. Reading needs read
+ * A directory opens read-only only (O_READ, or O_READ | O_DIRECTORY):
+ * that descriptor is for getdents() and the "*at" calls; read() on it
+ * gives nothing. O_DIRECTORY on a file fails. Reading needs read
  * permission on the file, writing needs write permission, and creating
  * needs write permission on its directory (user_management core/perm).
  *
@@ -35,8 +37,14 @@ int sys_open(const char *path, uint32_t flags) {
             return -1;                      // may not add files there
         file = ramdisk_create(dir, name, FS_FILE);
     }
-    if (!file || !(file->flags & FS_FILE))
-        return -1;                          // missing, or a directory
+    if (!file)
+        return -1;                          // missing
+    if (file->flags & FS_DIRECTORY) {       // a directory: read-only, for getdents / *at
+        if ((flags & O_WRITE) || (flags & O_CREATE))
+            return -1;                      // EISDIR
+    } else if (!(file->flags & FS_FILE) || (flags & O_DIRECTORY)) {
+        return -1;                          // ENOTDIR (or not a file at all)
+    }
 
     int want = (flags & O_READ ? PERM_READ : 0) | (flags & O_WRITE ? PERM_WRITE : 0);
     if (!perm_check(file, want))

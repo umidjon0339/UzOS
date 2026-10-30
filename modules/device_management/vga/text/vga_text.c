@@ -183,10 +183,10 @@ static void reload(void) {
 
 const display_t vga_text_80x25 = {
     "80x25", "text mode, 16-pixel font (the classic PC screen)",
-    80, 25, open_25, close_text, put, cursor, reload
+    80, 25, 0, 0, open_25, close_text, put, cursor, reload
 };
 
 const display_t vga_text_80x50 = {
     "80x50", "text mode, 8-pixel font: twice the lines",
-    80, 50, open_50, close_text, put, cursor, reload
+    80, 50, 0, 0, open_50, close_text, put, cursor, reload
 };

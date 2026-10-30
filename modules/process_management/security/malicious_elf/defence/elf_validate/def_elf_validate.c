@@ -14,10 +14,10 @@
  *         wrap around the end of memory, or overflow the loader's array.
  */
 
-#include "def_elf_validate.h"
-#include "registry.h"
-#include "audit.h"
-#include "memory_layout.h"
+#include "modules/process_management/security/malicious_elf/defence/elf_validate/def_elf_validate.h"  // this file
+#include "modules/security_management/core/registry/registry.h"                                       // defence_t, registry_add_defence
+#include "modules/security_management/core/audit/audit.h"                                             // audit_log
+#include "modules/memory_management/core/layout/memory_layout.h"                                      // USER_SPACE_START, USER_SPACE_END
 
 // The first 4 bytes of every ELF file: 0x7F 'E' 'L' 'F'.
 static int has_elf_magic(const uint8_t *ident) {

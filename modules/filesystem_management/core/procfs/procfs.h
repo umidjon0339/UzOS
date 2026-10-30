@@ -27,8 +27,8 @@
  */
 
 #include <stdint.h>
-#include "modules/filesystem_management/core/vfs/vfs.h"         // vfs_node_t
-#include "modules/process_management/core/process/process.h"    // process_t
+#include "modules/filesystem_management/core/vfs/vfs.h"       // vfs_node_t
+#include "modules/process_management/core/process/process.h"  // process_t
 
 #define PROC_TEXT_MAX 2048      // the longest file /proc makes
 

@@ -12,7 +12,7 @@
  */
 
 #include <stdint.h>
-#include "process.h"
+#include "modules/process_management/core/process/process.h"  // process_t
 
 // Set up the process table, the idle task, and turn the running
 // kernel_main into a process. Called once from kernel_main.

@@ -2,9 +2,9 @@
 
 | | |
 |---|---|
-| **Stops** | [`file_offset_wrap`](../../attack/file_offset_wrap/) |
+| **Stops** | [`file_offset_wrap`](../../) |
 | **Protects** | consistency: a write stays inside its own file |
-| **Called from** | `ramdisk_write()` in [core/ramdisk](../../../core/ramdisk/ramdisk.c) |
+| **Called from** | `ramdisk_write()` in [core/ramdisk](../../../../core/ramdisk/ramdisk.c) |
 
 ## The rule
 

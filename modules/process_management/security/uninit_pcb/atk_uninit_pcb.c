@@ -15,9 +15,9 @@
  * Uses: process_create / process_kill / the process table (core/process).
  */
 
-#include "registry.h"
-#include "process.h"
-#include "vga.h"
+#include "modules/security_management/core/registry/registry.h"  // attack_t, registry_add_attack
+#include "modules/process_management/core/process/process.h"     // process_t, MAX_FDS
+#include "modules/device_management/vga/vga.h"                   // vga_print_str, vga_print_int
 
 #define FAKE_POINTER ((struct vfs_node *)0xDEADBEEF)
 

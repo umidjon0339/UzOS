@@ -5,7 +5,8 @@
  * Arrow keys and friends first send 0xE0, then their key number.
  *
  * Ctrl is held like Shift. With Ctrl down, C becomes KEY_CTRL_C and
- * goes to the Ctrl+C handler (the shell); other letters type nothing.
+ * goes to the Ctrl+C handler (the shell), Z the same to the Ctrl+Z
+ * handler; other letters type nothing.
  *
  * Uses: inb (arch/x86/io), register_interrupt_handler (arch/x86/isr),
  *       pic_unmask (pic/).
@@ -52,11 +53,13 @@ static const char shift_map[128] = {
 #define CAPS_LOCK   0x3A
 #define CTRL        0x1D        // left Ctrl; right Ctrl is 0xE0 0x1D
 #define KEY_C       0x2E
+#define KEY_Z       0x2C
 
 static int shift_down;          // bit 0: left shift, bit 1: right shift
 static int caps_lock;
 static int ctrl_down;           // bit 0: left ctrl, bit 1: right ctrl
 static keyboard_ctrl_c_handler_t ctrl_c_handler;
+static keyboard_ctrl_c_handler_t ctrl_z_handler;
 static int extended;            // the last byte was 0xE0
 static volatile char last_key;
 
@@ -90,6 +93,15 @@ void keyboard_on_ctrl_c(keyboard_ctrl_c_handler_t handler) {
 static void press_ctrl_c(void) {
     if (!ctrl_c_handler || !ctrl_c_handler())
         enqueue((char)KEY_CTRL_C);  // nobody took it: the reader of the queue will
+}
+
+void keyboard_on_ctrl_z(keyboard_ctrl_c_handler_t handler) {
+    ctrl_z_handler = handler;
+}
+
+static void press_ctrl_z(void) {
+    if (!ctrl_z_handler || !ctrl_z_handler())
+        enqueue((char)KEY_CTRL_Z);
 }
 
 static char extended_key(uint8_t scancode) {
@@ -129,8 +141,12 @@ static void keyboard_callback(registers_t *regs) {
         extended = 0;
         if (scancode == CTRL)              { ctrl_down |= 2;  return; }
         if (scancode == (CTRL | RELEASED)) { ctrl_down &= ~2; return; }
-        if (!(scancode & RELEASED) && extended_key(scancode))
-            enqueue(extended_key(scancode));
+        if (!(scancode & RELEASED) && extended_key(scancode)) {
+            char key = extended_key(scancode);
+            if (ctrl_down && key == (char)KEY_UP)   key = (char)KEY_CTRL_UP;
+            if (ctrl_down && key == (char)KEY_DOWN) key = (char)KEY_CTRL_DOWN;
+            enqueue(key);
+        }
         return;
     }
 
@@ -147,6 +163,8 @@ static void keyboard_callback(registers_t *regs) {
     if (ctrl_down) {
         if (scancode == KEY_C)
             press_ctrl_c();
+        else if (scancode == KEY_Z)
+            press_ctrl_z();
         return;                     // Ctrl + any other key: nothing to type
     }
 

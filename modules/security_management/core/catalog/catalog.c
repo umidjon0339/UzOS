@@ -27,6 +27,38 @@ void atk_process_injection_register(void);      void def_process_isolation_regis
 void atk_process_hijacking_register(void);      void def_control_flow_integrity_register(void);
 void atk_container_escape_register(void);       void def_namespace_isolation_register(void);
 void atk_process_dos_register(void);            void def_service_limits_register(void);
+/* process_management - signals with handlers (phase 1) */
+void atk_signal_flood_register(void);           void def_sigqueue_limit_register(void);
+void atk_sigreturn_forgery_register(void);      void def_sigframe_check_register(void);
+void atk_handler_hijack_register(void);         void def_handler_bounds_register(void);
+/* process_management - looking at processes (phase 2) */
+void atk_process_masquerade_register(void);     void def_name_guard_register(void);
+void atk_proc_info_leak_register(void);         void def_hidepid_register(void);
+void atk_kernel_pointer_leak_register(void);    void def_kptr_hide_register(void);
+/* process_management - waiting and handles (phase 3) */
+void atk_pid_reuse_race_register(void);         void def_pidfd_handle_register(void);
+void atk_wait_steal_register(void);             void def_child_only_register(void);
+void atk_use_after_exit_register(void);         void def_pcb_generation_register(void);
+/* process_management - jobs and sessions (phase 4) */
+void atk_pgid_hijack_register(void);            void def_session_check_register(void);
+/* process_management - sleeping and timers (phase 5) */
+void atk_sleep_overflow_register(void);         void def_sleep_bounds_register(void);
+void atk_timer_flood_register(void);            void def_timer_limits_register(void);
+/* process_management - sandboxes (phase 6) */
+void atk_syscall_abuse_register(void);          void def_seccomp_filter_register(void);
+void atk_no_new_privs_bypass_register(void);    void def_no_new_privs_register(void);
+/* process_management - debugging (phase 7) */
+void atk_memory_peek_register(void);            void def_vm_access_check_register(void);
+/* process_management - execve (phase 8) */
+void atk_argv_overflow_register(void);          void def_arg_limits_register(void);
+void atk_env_injection_register(void);          void def_env_sanitize_register(void);
+void atk_fd_leak_on_exec_register(void);        void def_close_on_exec_register(void);
+/* process_management - the last five (phase 9) */
+void atk_thread_exhaustion_register(void);      void def_thread_quota_register(void);
+void atk_stack_clash_register(void);            void def_guard_gap_register(void);
+void atk_core_dump_leak_register(void);         void def_dumpable_flag_register(void);
+void atk_priority_inversion_register(void);     void def_priority_inheritance_register(void);
+void atk_tty_hijack_register(void);             void def_tty_guard_register(void);
 
 /* ---------- memory_management ---------- */
 void atk_user_ptr_wrap_register(void);          void def_user_ptr_bounds_register(void);
@@ -42,6 +74,21 @@ void atk_bad_filename_register(void);           void def_filename_check_register
 void atk_file_offset_wrap_register(void);       void def_file_range_register(void);
 void atk_delete_open_file_register(void);       void def_busy_check_register(void);
 void atk_dir_cycle_register(void);              void def_no_cycle_register(void);
+/* filesystem_management - metadata (phase 1) */
+void atk_umask_weak_register(void);             void def_secure_umask_register(void);
+void atk_huge_file_register(void);              void def_size_cap_register(void);
+void atk_timestamp_forgery_register(void);      void def_time_owner_register(void);
+/* filesystem_management - directories (phase 2) */
+void atk_dirent_leak_register(void);            void def_dir_read_check_register(void);
+void atk_long_path_register(void);              void def_path_length_register(void);
+void atk_deep_nesting_register(void);           void def_depth_limit_register(void);
+void atk_path_walk_bypass_register(void);       void def_search_check_register(void);
+/* filesystem_management - links (phase 3) */
+void atk_symlink_race_register(void);           void def_protected_symlinks_register(void);
+void atk_symlink_loop_register(void);           void def_link_depth_register(void);
+void atk_hardlink_abuse_register(void);         void def_protected_hardlinks_register(void);
+void atk_nlink_overflow_register(void);         void def_nlink_bounds_register(void);
+void atk_use_after_unlink_register(void);       void def_inode_refcount_register(void);
 
 /* ---------- device_management ---------- */
 void atk_timer_divide_by_zero_register(void);   void def_timer_frequency_register(void);
@@ -124,6 +171,29 @@ void catalog_init(void) {
     atk_process_hijacking_register();       def_control_flow_integrity_register();
     atk_container_escape_register();         def_namespace_isolation_register();
     atk_process_dos_register();             def_service_limits_register();
+    atk_signal_flood_register();            def_sigqueue_limit_register();
+    atk_sigreturn_forgery_register();       def_sigframe_check_register();
+    atk_handler_hijack_register();          def_handler_bounds_register();
+    atk_process_masquerade_register();      def_name_guard_register();
+    atk_proc_info_leak_register();          def_hidepid_register();
+    atk_kernel_pointer_leak_register();     def_kptr_hide_register();
+    atk_pid_reuse_race_register();          def_pidfd_handle_register();
+    atk_wait_steal_register();              def_child_only_register();
+    atk_use_after_exit_register();          def_pcb_generation_register();
+    atk_pgid_hijack_register();             def_session_check_register();
+    atk_sleep_overflow_register();          def_sleep_bounds_register();
+    atk_timer_flood_register();             def_timer_limits_register();
+    atk_syscall_abuse_register();           def_seccomp_filter_register();
+    atk_no_new_privs_bypass_register();     def_no_new_privs_register();
+    atk_memory_peek_register();             def_vm_access_check_register();
+    atk_argv_overflow_register();           def_arg_limits_register();
+    atk_env_injection_register();           def_env_sanitize_register();
+    atk_fd_leak_on_exec_register();         def_close_on_exec_register();
+    atk_thread_exhaustion_register();       def_thread_quota_register();
+    atk_stack_clash_register();             def_guard_gap_register();
+    atk_core_dump_leak_register();          def_dumpable_flag_register();
+    atk_priority_inversion_register();      def_priority_inheritance_register();
+    atk_tty_hijack_register();              def_tty_guard_register();
 
     // memory_management
     atk_user_ptr_wrap_register();           def_user_ptr_bounds_register();
@@ -139,6 +209,18 @@ void catalog_init(void) {
     atk_file_offset_wrap_register();        def_file_range_register();
     atk_delete_open_file_register();        def_busy_check_register();
     atk_dir_cycle_register();               def_no_cycle_register();
+    atk_umask_weak_register();              def_secure_umask_register();
+    atk_huge_file_register();               def_size_cap_register();
+    atk_timestamp_forgery_register();       def_time_owner_register();
+    atk_dirent_leak_register();             def_dir_read_check_register();
+    atk_long_path_register();               def_path_length_register();
+    atk_deep_nesting_register();            def_depth_limit_register();
+    atk_path_walk_bypass_register();        def_search_check_register();
+    atk_symlink_race_register();            def_protected_symlinks_register();
+    atk_symlink_loop_register();            def_link_depth_register();
+    atk_hardlink_abuse_register();          def_protected_hardlinks_register();
+    atk_nlink_overflow_register();          def_nlink_bounds_register();
+    atk_use_after_unlink_register();        def_inode_refcount_register();
 
     // device_management
     atk_timer_divide_by_zero_register();    def_timer_frequency_register();

@@ -2,6 +2,7 @@
 # UzOS build
 #
 #   make         build kernel.bin
+#   make iso     build a bootable GRUB ISO for VirtualBox
 #   make run     boot it in QEMU
 #   make check   check that GRUB/QEMU can find the multiboot header
 #   make clean   delete everything the build made
@@ -14,6 +15,8 @@ CC     := gcc
 AS     := nasm
 BUILD  := build
 KERNEL := kernel.bin
+ISO    := UzOS.iso
+ISO_ROOT := $(BUILD)/iso
 
 SRC_DIRS := boot arch lib modules
 
@@ -80,15 +83,27 @@ $(BUILD)/%.o: %.s
 	@$(AS) $(ASFLAGS) $< -o $@
 
 # -rtc base=localtime: the clock chip shows your local time, not UTC.
+# -display gtk,zoom-to-fit=on: drag the window to any size and the picture
+#     is stretched to fill it (Ctrl+Alt+'+' / '-' zoom, Ctrl+Alt+0 = 1:1).
+#     For sharp pixels change UzOS's own size: Ctrl+Up / Ctrl+Down.
 run: $(KERNEL)
-	qemu-system-i386 -kernel $(KERNEL) -rtc base=localtime
+	qemu-system-i386 -kernel $(KERNEL) -rtc base=localtime -display gtk,zoom-to-fit=on
 
 check: $(KERNEL)
 	@grub-file --is-x86-multiboot $(KERNEL) && echo "$(KERNEL): valid multiboot kernel"
 
-clean:
-	rm -rf $(BUILD) $(KERNEL)
+$(ISO): $(KERNEL) boot/grub.cfg
+	@mkdir -p $(ISO_ROOT)/boot/grub
+	@cp $(KERNEL) $(ISO_ROOT)/boot/kernel.bin
+	@cp boot/grub.cfg $(ISO_ROOT)/boot/grub/grub.cfg
+	@grub-mkrescue -o $@ $(ISO_ROOT)
+	@echo "Created $@"
 
-.PHONY: all run check clean
+iso: $(ISO)
+
+clean:
+	rm -rf $(BUILD) $(KERNEL) $(ISO)
+
+.PHONY: all iso run check clean
 
 -include $(DEP)

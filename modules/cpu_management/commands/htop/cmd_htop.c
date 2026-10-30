@@ -200,7 +200,8 @@ static void draw_list(htop_state_t *st, process_t **rows, int count) {
         uint32_t cs = (p->user_ticks + p->kernel_ticks) * (100 / (timer_frequency() ? timer_frequency() : 100));
         uint32_t mem = total_kb ? STACK_KB * 1000 / total_kb : 0;
         char state = p->state == PROCESS_STATE_SLEEPING ? 'S' :
-                     p->state == PROCESS_STATE_ZOMBIE ? 'Z' : 'R';
+                     p->state == PROCESS_STATE_ZOMBIE ? 'Z' :
+                     p->state == PROCESS_STATE_STOPPED ? 'T' : 'R';
 
         users_name(p->uid, user, sizeof(user));
         def_safe_text(p->name, name, NAME_WIDTH);

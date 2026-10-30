@@ -14,15 +14,16 @@
  *             each. Then clean everything up properly.
  *
  * Uses: ramdisk_* (core/ramdisk), vfs_open / vfs_close (core/vfs),
- *       sys_unlink (syscalls/unlink), the current process (process_management).
+ *       sys_unlink / sys_rmdir (syscalls/), the current process (process_management).
  */
 
-#include "registry.h"
-#include "audit.h"
-#include "ramdisk.h"
-#include "scheduler.h"
-#include "sys_unlink.h"
-#include "vga.h"
+#include "modules/security_management/core/registry/registry.h"        // attack_t, registry_add_attack
+#include "modules/security_management/core/audit/audit.h"              // audit_total
+#include "modules/filesystem_management/core/ramdisk/ramdisk.h"        // ramdisk_create
+#include "modules/process_management/core/scheduler/scheduler.h"       // scheduler_get_current_process
+#include "modules/filesystem_management/syscalls/unlink/sys_unlink.h"  // sys_unlink
+#include "modules/filesystem_management/syscalls/rmdir/sys_rmdir.h"    // sys_rmdir
+#include "modules/device_management/vga/vga.h"                         // vga_print_str
 
 static int simulate(void) {
     vga_print_str("  delete a file that is still open (fd points at freed memory)\n");
@@ -31,10 +32,12 @@ static int simulate(void) {
     return 3;
 }
 
-static void try_delete(const char *what, const char *path) {
+// unlink() for a file, rmdir() for a directory: either way busy_check decides.
+static void try_delete(const char *what, const char *path, int is_dir) {
     vga_print_str("  ");
     vga_print_str(what);
-    vga_print_str(sys_unlink(path) == 0 ? " -> DELETED\n" : " -> refused\n");
+    int deleted = (is_dir ? sys_rmdir(path) : sys_unlink(path)) == 0;
+    vga_print_str(deleted ? " -> DELETED\n" : " -> refused\n");
 }
 
 static int launch(void) {
@@ -45,7 +48,7 @@ static int launch(void) {
     vfs_node_t *file = ramdisk_create(fs_root, "seclab_open", FS_FILE);
     if (file) {
         vfs_open(file);
-        try_delete("open file          ", "/seclab_open");
+        try_delete("open file          ", "/seclab_open", 0);
         vfs_close(file);
         sys_unlink("/seclab_open");
     }
@@ -53,7 +56,7 @@ static int launch(void) {
     // 2. A directory that is not empty.
     vfs_node_t *dir = ramdisk_create(fs_root, "seclab_dir", FS_DIRECTORY);
     if (dir && ramdisk_create(dir, "inside", FS_FILE)) {
-        try_delete("non-empty directory", "/seclab_dir");
+        try_delete("non-empty directory", "/seclab_dir", 1);
         sys_unlink("/seclab_dir/inside");
     }
 
@@ -61,10 +64,10 @@ static int launch(void) {
     if (dir && self) {
         vfs_node_t *old_cwd = self->cwd;
         self->cwd = dir;
-        try_delete("our current dir    ", "/seclab_dir");
+        try_delete("our current dir    ", "/seclab_dir", 1);
         self->cwd = old_cwd;
     }
-    sys_unlink("/seclab_dir");
+    sys_rmdir("/seclab_dir");
 
     return audit_total() - denied;
 }

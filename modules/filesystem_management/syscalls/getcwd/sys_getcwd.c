@@ -7,8 +7,8 @@
  * Uses: vfs_cwd / vfs_path_of (core/vfs).
  */
 
-#include "sys_getcwd.h"
-#include "vfs.h"
+#include "modules/filesystem_management/syscalls/getcwd/sys_getcwd.h"  // this file
+#include "modules/filesystem_management/core/vfs/vfs.h"                // vfs_path_of, vfs_cwd
 
 int sys_getcwd(char *buf, uint32_t size) {
     if (!buf)

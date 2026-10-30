@@ -19,34 +19,73 @@
  *       the trace.
  */
 
-#include "syscall_handler.h"
-#include "isr.h"
-#include "ui.h"
-#include "vfs.h"
-#include "def_user_ptr_bounds.h"
+#include "modules/process_management/syscalls/handler/syscall_handler.h"                     // this file
+#include "arch/x86/isr/isr.h"                                                                // registers_t, register_interrupt_handler
+#include "modules/ui/core/style/ui.h"                                                        // ui_color, UI_DIM, ui_printf
+#include "modules/filesystem_management/core/vfs/vfs.h"                                      // FS_PATH_MAX
+#include "modules/memory_management/security/defence/user_ptr_bounds/def_user_ptr_bounds.h"  // def_user_range_ok, def_user_string_ok
 
 // process_management
-#include "sys_exit.h"
-#include "sys_sleep.h"
+#include "modules/process_management/syscalls/exit/sys_exit.h"                               // sys_exit, SYS_EXIT
+#include "modules/process_management/syscalls/sleep/sys_sleep.h"                             // sys_sleep, SYS_SLEEP
 // memory_management
-#include "sys_sbrk.h"
-#include "sys_mmap.h"
-#include "sys_munmap.h"
+#include "modules/memory_management/syscalls/sbrk/sys_sbrk.h"                                // SYS_SBRK
+#include "modules/memory_management/syscalls/mmap/sys_mmap.h"                                // sys_mmap, SYS_MMAP
+#include "modules/memory_management/syscalls/munmap/sys_munmap.h"                            // sys_munmap, SYS_MUNMAP
 // device_management
-#include "sys_uptime.h"
-#include "sys_time.h"
+#include "modules/device_management/syscalls/uptime/sys_uptime.h"                            // sys_uptime, SYS_UPTIME
+#include "modules/device_management/syscalls/time/sys_time.h"                                // sys_time, SYS_TIME
 // filesystem_management
-#include "sys_mkdir.h"
-#include "sys_unlink.h"
-#include "sys_chdir.h"
-#include "sys_getcwd.h"
-#include "sys_rename.h"
+#include "modules/filesystem_management/syscalls/mkdir/sys_mkdir.h"                          // sys_mkdir, SYS_MKDIR
+#include "modules/filesystem_management/syscalls/unlink/sys_unlink.h"                        // sys_unlink, SYS_UNLINK
+#include "modules/filesystem_management/syscalls/chdir/sys_chdir.h"                          // sys_chdir, SYS_CHDIR
+#include "modules/filesystem_management/syscalls/getcwd/sys_getcwd.h"                        // sys_getcwd, SYS_GETCWD
+#include "modules/filesystem_management/syscalls/rename/sys_rename.h"                        // sys_rename, SYS_RENAME
+// filesystem_management: metadata (stat, rights, size, times)
+#include "modules/filesystem_management/syscalls/stat/sys_stat.h"
+#include "modules/filesystem_management/syscalls/lstat/sys_lstat.h"
+#include "modules/filesystem_management/syscalls/fstat/sys_fstat.h"
+#include "modules/filesystem_management/syscalls/fstatat/sys_fstatat.h"
+#include "modules/filesystem_management/syscalls/statx/sys_statx.h"
+#include "modules/filesystem_management/syscalls/access/sys_access.h"
+#include "modules/filesystem_management/syscalls/faccessat/sys_faccessat.h"
+#include "modules/filesystem_management/syscalls/faccessat2/sys_faccessat2.h"
+#include "modules/filesystem_management/syscalls/chmod/sys_chmod.h"
+#include "modules/filesystem_management/syscalls/fchmod/sys_fchmod.h"
+#include "modules/filesystem_management/syscalls/fchmodat/sys_fchmodat.h"
+#include "modules/filesystem_management/syscalls/chown/sys_chown.h"
+#include "modules/filesystem_management/syscalls/fchown/sys_fchown.h"
+#include "modules/filesystem_management/syscalls/lchown/sys_lchown.h"
+#include "modules/filesystem_management/syscalls/fchownat/sys_fchownat.h"
+#include "modules/filesystem_management/syscalls/umask/sys_umask.h"
+#include "modules/filesystem_management/syscalls/truncate/sys_truncate.h"
+#include "modules/filesystem_management/syscalls/ftruncate/sys_ftruncate.h"
+#include "modules/filesystem_management/syscalls/fallocate/sys_fallocate.h"
+#include "modules/filesystem_management/syscalls/utime/sys_utime.h"
+#include "modules/filesystem_management/syscalls/utimes/sys_utimes.h"
+#include "modules/filesystem_management/syscalls/utimensat/sys_utimensat.h"
+// filesystem_management: directories
+#include "modules/filesystem_management/syscalls/rmdir/sys_rmdir.h"
+#include "modules/filesystem_management/syscalls/mkdirat/sys_mkdirat.h"
+#include "modules/filesystem_management/syscalls/unlinkat/sys_unlinkat.h"
+#include "modules/filesystem_management/syscalls/renameat/sys_renameat.h"
+#include "modules/filesystem_management/syscalls/renameat2/sys_renameat2.h"
+#include "modules/filesystem_management/syscalls/fchdir/sys_fchdir.h"
+#include "modules/filesystem_management/syscalls/getdents/sys_getdents.h"
+#include "modules/filesystem_management/syscalls/getdents64/sys_getdents64.h"
+// filesystem_management: links
+#include "modules/filesystem_management/syscalls/link/sys_link.h"
+#include "modules/filesystem_management/syscalls/linkat/sys_linkat.h"
+#include "modules/filesystem_management/syscalls/symlink/sys_symlink.h"
+#include "modules/filesystem_management/syscalls/symlinkat/sys_symlinkat.h"
+#include "modules/filesystem_management/syscalls/readlink/sys_readlink.h"
+#include "modules/filesystem_management/syscalls/readlinkat/sys_readlinkat.h"
 // io_management
-#include "sys_open.h"
-#include "sys_read.h"
-#include "sys_write.h"
-#include "sys_close.h"
-#include "sys_seek.h"
+#include "modules/io_management/syscalls/open/sys_open.h"                                    // sys_open, SYS_OPEN
+#include "modules/io_management/syscalls/read/sys_read.h"                                    // sys_read, SYS_READ
+#include "modules/io_management/syscalls/write/sys_write.h"                                  // sys_write, SYS_WRITE
+#include "modules/io_management/syscalls/close/sys_close.h"                                  // sys_close, SYS_CLOSE
+#include "modules/io_management/syscalls/seek/sys_seek.h"                                    // sys_seek, SYS_SEEK
 // cpu_management (modules/cpu_management/syscalls/<name>/)
 #include "modules/cpu_management/syscalls/getpid/sys_getpid.h"
 #include "modules/cpu_management/syscalls/gettid/sys_gettid.h"
@@ -96,11 +135,43 @@
 #include "modules/process_management/syscalls/vfork/sys_vfork.h"
 #include "modules/process_management/syscalls/execve/sys_execve.h"
 #include "modules/process_management/syscalls/execveat/sys_execveat.h"
+#include "modules/process_management/syscalls/rt_sigaction/sys_rt_sigaction.h"
+#include "modules/process_management/syscalls/rt_sigprocmask/sys_rt_sigprocmask.h"
+#include "modules/process_management/syscalls/rt_sigpending/sys_rt_sigpending.h"
+#include "modules/process_management/syscalls/rt_sigsuspend/sys_rt_sigsuspend.h"
+#include "modules/process_management/syscalls/rt_sigtimedwait/sys_rt_sigtimedwait.h"
+#include "modules/process_management/syscalls/rt_sigqueueinfo/sys_rt_sigqueueinfo.h"
+#include "modules/process_management/syscalls/rt_tgsigqueueinfo/sys_rt_tgsigqueueinfo.h"
+#include "modules/process_management/syscalls/rt_sigreturn/sys_rt_sigreturn.h"
+#include "modules/process_management/syscalls/sigaltstack/sys_sigaltstack.h"
+#include "modules/process_management/syscalls/pause/sys_pause.h"
+#include "modules/process_management/syscalls/alarm/sys_alarm.h"
+#include "modules/process_management/syscalls/prctl/sys_prctl.h"
+#include "modules/process_management/syscalls/wait4/sys_wait4.h"
+#include "modules/process_management/syscalls/getrusage/sys_getrusage.h"
+#include "modules/process_management/syscalls/times/sys_times.h"
+#include "modules/process_management/syscalls/pidfd_open/sys_pidfd_open.h"
+#include "modules/process_management/syscalls/pidfd_getfd/sys_pidfd_getfd.h"
+#include "modules/process_management/syscalls/nanosleep/sys_nanosleep.h"
+#include "modules/process_management/syscalls/clock_nanosleep/sys_clock_nanosleep.h"
+#include "modules/process_management/syscalls/setitimer/sys_setitimer.h"
+#include "modules/process_management/syscalls/getitimer/sys_getitimer.h"
+#include "modules/process_management/syscalls/seccomp/sys_seccomp.h"
+#include "modules/process_management/syscalls/unshare/sys_unshare.h"
+#include "modules/process_management/syscalls/setns/sys_setns.h"
+#include "modules/process_management/syscalls/ptrace/sys_ptrace.h"
+#include "modules/process_management/syscalls/process_vm_readv/sys_process_vm_readv.h"
+#include "modules/process_management/syscalls/process_vm_writev/sys_process_vm_writev.h"
+#include "modules/process_management/syscalls/kcmp/sys_kcmp.h"
+#include "modules/process_management/security/syscall_abuse/defence/seccomp_filter/def_seccomp_filter.h"  // def_seccomp_allowed
+#include "modules/process_management/core/process/process.h"  // process_exit_with
+#include "modules/process_management/core/scheduler/scheduler.h"  // scheduler_get_current_process
+#include "modules/process_management/core/signal/signal.h"  // SIGSYS
 // user_management
-#include "sys_getuid.h"
-#include "sys_setuid.h"
+#include "modules/user_management/syscalls/getuid/sys_getuid.h"                              // sys_getuid, SYS_GETUID
+#include "modules/user_management/syscalls/setuid/sys_setuid.h"                              // sys_setuid, SYS_SETUID
 // security_management
-#include "sys_getcaps.h"
+#include "modules/security_management/syscalls/getcaps/sys_getcaps.h"                        // sys_getcaps, SYS_GETCAPS
 
 #define SYSCALL_ERROR ((uint32_t)-1)
 
@@ -127,7 +198,7 @@ static int path_ok(registers_t *r, uint32_t addr) {
 
 /* ---------- One wrapper per syscall ---------- */
 
-static uint32_t do_exit(registers_t *r)   { (void)r; sys_exit(); }
+static uint32_t do_exit(registers_t *r)   { sys_exit((int)r->ebx); }
 static uint32_t do_sleep(registers_t *r)  { sys_sleep(r->ebx); return 0; }
 
 static uint32_t do_sbrk(registers_t *r)   { return (uint32_t)sys_sbrk((int32_t)r->ebx); }
@@ -159,6 +230,142 @@ static uint32_t do_getcwd(registers_t *r) {
 static uint32_t do_rename(registers_t *r) {
     if (!path_ok(r, r->ebx) || !path_ok(r, r->ecx)) return SYSCALL_ERROR;
     return sys_rename((const char *)r->ebx, (const char *)r->ecx);
+}
+
+/* filesystem_management: metadata (stat, rights, size, times) */
+static uint32_t do_stat(registers_t *r) {
+    if (!path_ok(r, r->ebx) || !buffer_ok(r, r->ecx, sizeof(vfs_stat_t))) return SYSCALL_ERROR;
+    return (uint32_t)sys_stat((const char *)r->ebx, (vfs_stat_t *)r->ecx);
+}
+static uint32_t do_lstat(registers_t *r) {
+    if (!path_ok(r, r->ebx) || !buffer_ok(r, r->ecx, sizeof(vfs_stat_t))) return SYSCALL_ERROR;
+    return (uint32_t)sys_lstat((const char *)r->ebx, (vfs_stat_t *)r->ecx);
+}
+static uint32_t do_fstat(registers_t *r) {
+    if (!buffer_ok(r, r->ecx, sizeof(vfs_stat_t))) return SYSCALL_ERROR;
+    return (uint32_t)sys_fstat((int)r->ebx, (vfs_stat_t *)r->ecx);
+}
+static uint32_t do_fstatat(registers_t *r) {
+    if (!path_ok(r, r->ecx) || !buffer_ok(r, r->edx, sizeof(vfs_stat_t))) return SYSCALL_ERROR;
+    return (uint32_t)sys_fstatat((int)r->ebx, (const char *)r->ecx, (vfs_stat_t *)r->edx, (int)r->esi);
+}
+static uint32_t do_statx(registers_t *r) {
+    if (!path_ok(r, r->ecx) || !buffer_ok(r, r->edi, sizeof(statx_t))) return SYSCALL_ERROR;
+    return (uint32_t)sys_statx((int)r->ebx, (const char *)r->ecx, (int)r->edx, r->esi, (statx_t *)r->edi);
+}
+static uint32_t do_access(registers_t *r) {
+    if (!path_ok(r, r->ebx)) return SYSCALL_ERROR;
+    return (uint32_t)sys_access((const char *)r->ebx, (int)r->ecx);
+}
+static uint32_t do_faccessat(registers_t *r) {
+    if (!path_ok(r, r->ecx)) return SYSCALL_ERROR;
+    return (uint32_t)sys_faccessat((int)r->ebx, (const char *)r->ecx, (int)r->edx);
+}
+static uint32_t do_faccessat2(registers_t *r) {
+    if (!path_ok(r, r->ecx)) return SYSCALL_ERROR;
+    return (uint32_t)sys_faccessat2((int)r->ebx, (const char *)r->ecx, (int)r->edx, (int)r->esi);
+}
+static uint32_t do_chmod(registers_t *r) {
+    if (!path_ok(r, r->ebx)) return SYSCALL_ERROR;
+    return (uint32_t)sys_chmod((const char *)r->ebx, r->ecx);
+}
+static uint32_t do_fchmod(registers_t *r) { return (uint32_t)sys_fchmod((int)r->ebx, r->ecx); }
+static uint32_t do_fchmodat(registers_t *r) {
+    if (!path_ok(r, r->ecx)) return SYSCALL_ERROR;
+    return (uint32_t)sys_fchmodat((int)r->ebx, (const char *)r->ecx, r->edx);
+}
+static uint32_t do_chown(registers_t *r) {
+    if (!path_ok(r, r->ebx)) return SYSCALL_ERROR;
+    return (uint32_t)sys_chown((const char *)r->ebx, r->ecx, r->edx);
+}
+static uint32_t do_fchown(registers_t *r) { return (uint32_t)sys_fchown((int)r->ebx, r->ecx, r->edx); }
+static uint32_t do_lchown(registers_t *r) {
+    if (!path_ok(r, r->ebx)) return SYSCALL_ERROR;
+    return (uint32_t)sys_lchown((const char *)r->ebx, r->ecx, r->edx);
+}
+static uint32_t do_fchownat(registers_t *r) {
+    if (!path_ok(r, r->ecx)) return SYSCALL_ERROR;
+    return (uint32_t)sys_fchownat((int)r->ebx, (const char *)r->ecx, r->edx, r->esi, (int)r->edi);
+}
+static uint32_t do_umask(registers_t *r) { return sys_umask(r->ebx); }
+static uint32_t do_truncate(registers_t *r) {
+    if (!path_ok(r, r->ebx)) return SYSCALL_ERROR;
+    return (uint32_t)sys_truncate((const char *)r->ebx, r->ecx);
+}
+static uint32_t do_ftruncate(registers_t *r) { return (uint32_t)sys_ftruncate((int)r->ebx, r->ecx); }
+static uint32_t do_fallocate(registers_t *r) {
+    return (uint32_t)sys_fallocate((int)r->ebx, (int)r->ecx, r->edx, r->esi);
+}
+static uint32_t do_utime(registers_t *r) {
+    if (!path_ok(r, r->ebx) || !optional_ok(r, r->ecx, sizeof(utimbuf_t))) return SYSCALL_ERROR;
+    return (uint32_t)sys_utime((const char *)r->ebx, (const utimbuf_t *)r->ecx);
+}
+static uint32_t do_utimes(registers_t *r) {
+    if (!path_ok(r, r->ebx) || !optional_ok(r, r->ecx, 2 * sizeof(utimes_timeval_t))) return SYSCALL_ERROR;
+    return (uint32_t)sys_utimes((const char *)r->ebx, (const utimes_timeval_t *)r->ecx);
+}
+static uint32_t do_utimensat(registers_t *r) {
+    if (!path_ok(r, r->ecx) || !optional_ok(r, r->edx, 2 * sizeof(utimensat_ts_t))) return SYSCALL_ERROR;
+    return (uint32_t)sys_utimensat((int)r->ebx, (const char *)r->ecx, (const utimensat_ts_t *)r->edx, (int)r->esi);
+}
+
+/* filesystem_management: directories */
+static uint32_t do_rmdir(registers_t *r) {
+    if (!path_ok(r, r->ebx)) return SYSCALL_ERROR;
+    return (uint32_t)sys_rmdir((const char *)r->ebx);
+}
+static uint32_t do_mkdirat(registers_t *r) {
+    if (!path_ok(r, r->ecx)) return SYSCALL_ERROR;
+    return (uint32_t)sys_mkdirat((int)r->ebx, (const char *)r->ecx, r->edx);
+}
+static uint32_t do_unlinkat(registers_t *r) {
+    if (!path_ok(r, r->ecx)) return SYSCALL_ERROR;
+    return (uint32_t)sys_unlinkat((int)r->ebx, (const char *)r->ecx, (int)r->edx);
+}
+static uint32_t do_renameat(registers_t *r) {
+    if (!path_ok(r, r->ecx) || !path_ok(r, r->esi)) return SYSCALL_ERROR;
+    return (uint32_t)sys_renameat((int)r->ebx, (const char *)r->ecx, (int)r->edx, (const char *)r->esi);
+}
+static uint32_t do_renameat2(registers_t *r) {
+    if (!path_ok(r, r->ecx) || !path_ok(r, r->esi)) return SYSCALL_ERROR;
+    return (uint32_t)sys_renameat2((int)r->ebx, (const char *)r->ecx, (int)r->edx,
+                                   (const char *)r->esi, (int)r->edi);
+}
+static uint32_t do_fchdir(registers_t *r) { return (uint32_t)sys_fchdir((int)r->ebx); }
+static uint32_t do_getdents(registers_t *r) {
+    if (!buffer_ok(r, r->ecx, r->edx)) return SYSCALL_ERROR;
+    return (uint32_t)sys_getdents((int)r->ebx, (uint8_t *)r->ecx, r->edx);
+}
+static uint32_t do_getdents64(registers_t *r) {
+    if (!buffer_ok(r, r->ecx, r->edx)) return SYSCALL_ERROR;
+    return (uint32_t)sys_getdents64((int)r->ebx, (uint8_t *)r->ecx, r->edx);
+}
+
+/* filesystem_management: links */
+static uint32_t do_link(registers_t *r) {
+    if (!path_ok(r, r->ebx) || !path_ok(r, r->ecx)) return SYSCALL_ERROR;
+    return (uint32_t)sys_link((const char *)r->ebx, (const char *)r->ecx);
+}
+static uint32_t do_linkat(registers_t *r) {
+    if (!path_ok(r, r->ecx) || !path_ok(r, r->esi)) return SYSCALL_ERROR;
+    return (uint32_t)sys_linkat((int)r->ebx, (const char *)r->ecx, (int)r->edx,
+                                (const char *)r->esi, (int)r->edi);
+}
+static uint32_t do_symlink(registers_t *r) {
+    if (!path_ok(r, r->ebx) || !path_ok(r, r->ecx)) return SYSCALL_ERROR;
+    return (uint32_t)sys_symlink((const char *)r->ebx, (const char *)r->ecx);
+}
+static uint32_t do_symlinkat(registers_t *r) {
+    if (!path_ok(r, r->ebx) || !path_ok(r, r->edx)) return SYSCALL_ERROR;
+    return (uint32_t)sys_symlinkat((const char *)r->ebx, (int)r->ecx, (const char *)r->edx);
+}
+static uint32_t do_readlink(registers_t *r) {
+    if (!path_ok(r, r->ebx) || !buffer_ok(r, r->ecx, r->edx)) return SYSCALL_ERROR;
+    return (uint32_t)sys_readlink((const char *)r->ebx, (char *)r->ecx, r->edx);
+}
+static uint32_t do_readlinkat(registers_t *r) {
+    if (!path_ok(r, r->ecx) || !buffer_ok(r, r->edx, r->esi)) return SYSCALL_ERROR;
+    return (uint32_t)sys_readlinkat((int)r->ebx, (const char *)r->ecx, (char *)r->edx, r->esi);
 }
 
 static uint32_t do_open(registers_t *r) {
@@ -310,19 +517,164 @@ static uint32_t do_getpgrp(registers_t *r) { (void)r; return sys_getpgrp(); }
 static uint32_t do_setsid(registers_t *r)  { (void)r; return (uint32_t)sys_setsid(); }
 static uint32_t do_getsid(registers_t *r)  { return (uint32_t)sys_getsid(r->ebx); }
 /* process_management: signals */
-static uint32_t do_kill(registers_t *r)    { return (uint32_t)sys_kill(r->ebx, (int)r->ecx); }
+static uint32_t do_kill(registers_t *r)    { return (uint32_t)sys_kill((int32_t)r->ebx, (int)r->ecx); }
 static uint32_t do_tkill(registers_t *r)   { return (uint32_t)sys_tkill(r->ebx, (int)r->ecx); }
 static uint32_t do_tgkill(registers_t *r)  { return (uint32_t)sys_tgkill(r->ebx, r->ecx, (int)r->edx); }
 static uint32_t do_pidfd_send_signal(registers_t *r) { return (uint32_t)sys_pidfd_send_signal((int)r->ebx, (int)r->ecx); }
 /* process_management: wait */
 static uint32_t do_wait(registers_t *r)    { (void)r; return (uint32_t)sys_wait(); }
 static uint32_t do_waitpid(registers_t *r) { return (uint32_t)sys_waitpid(r->ebx); }
-static uint32_t do_waitid(registers_t *r)  { return (uint32_t)sys_waitid((int)r->ebx, r->ecx); }
-/* process_management: fork/exec (stubs: need per-process address spaces) */
+static uint32_t do_waitid(registers_t *r) {
+    if (!optional_ok(r, r->edx, sizeof(waitid_info_t))) return SYSCALL_ERROR;
+    return (uint32_t)sys_waitid((int)r->ebx, r->ecx, (waitid_info_t *)r->edx, r->esi);
+}
+/* process_management: fork (-1: one address space), vfork + execve (real) */
 static uint32_t do_fork(registers_t *r)     { (void)r; return (uint32_t)sys_fork(); }
-static uint32_t do_vfork(registers_t *r)    { (void)r; return (uint32_t)sys_vfork(); }
-static uint32_t do_execve(registers_t *r)   { return (uint32_t)sys_execve((const char *)r->ebx, (char *const *)r->ecx, (char *const *)r->edx); }
-static uint32_t do_execveat(registers_t *r) { return (uint32_t)sys_execveat((int)r->ebx, (const char *)r->ecx, (char *const *)r->edx, (char *const *)r->esi, (int)r->edi); }
+static uint32_t do_vfork(registers_t *r)    { return (uint32_t)sys_vfork(r); }
+static uint32_t do_execve(registers_t *r) {
+    if (!path_ok(r, r->ebx)) return SYSCALL_ERROR;      // argv / envp: arg_limits checks them
+    return (uint32_t)sys_execve(r, (const char *)r->ebx, (char *const *)r->ecx, (char *const *)r->edx);
+}
+static uint32_t do_execveat(registers_t *r) {
+    if (!path_ok(r, r->ecx)) return SYSCALL_ERROR;
+    return (uint32_t)sys_execveat(r, (int)r->ebx, (const char *)r->ecx, (char *const *)r->edx,
+                                  (char *const *)r->esi, (int)r->edi);
+}
+
+/* process_management: signals with handlers, masks, queues, alarms */
+static uint32_t sigset_bytes(uint32_t size) { return size == 8 ? 8 : 4; }
+static uint32_t do_rt_sigaction(registers_t *r) {
+    if (!optional_ok(r, r->ecx, sizeof(k_sigaction_t)) ||
+        !optional_ok(r, r->edx, sizeof(k_sigaction_t))) return SYSCALL_ERROR;
+    return (uint32_t)sys_rt_sigaction((int)r->ebx, (const k_sigaction_t *)r->ecx,
+                                      (k_sigaction_t *)r->edx, r->esi);
+}
+static uint32_t do_rt_sigprocmask(registers_t *r) {
+    uint32_t n = sigset_bytes(r->esi);
+    if (!optional_ok(r, r->ecx, n) || !optional_ok(r, r->edx, n)) return SYSCALL_ERROR;
+    return (uint32_t)sys_rt_sigprocmask((int)r->ebx, (const uint32_t *)r->ecx, (uint32_t *)r->edx, r->esi);
+}
+static uint32_t do_rt_sigpending(registers_t *r) {
+    if (!buffer_ok(r, r->ebx, sigset_bytes(r->ecx))) return SYSCALL_ERROR;
+    return (uint32_t)sys_rt_sigpending((uint32_t *)r->ebx, r->ecx);
+}
+static uint32_t do_rt_sigsuspend(registers_t *r) {
+    if (!buffer_ok(r, r->ebx, sigset_bytes(r->ecx))) return SYSCALL_ERROR;
+    return (uint32_t)sys_rt_sigsuspend((const uint32_t *)r->ebx, r->ecx);
+}
+static uint32_t do_rt_sigtimedwait(registers_t *r) {
+    if (!buffer_ok(r, r->ebx, sigset_bytes(r->esi)) ||
+        !optional_ok(r, r->ecx, sizeof(k_siginfo_t)) ||
+        !optional_ok(r, r->edx, sizeof(sigwait_timeout_t))) return SYSCALL_ERROR;
+    return (uint32_t)sys_rt_sigtimedwait((const uint32_t *)r->ebx, (k_siginfo_t *)r->ecx,
+                                         (const sigwait_timeout_t *)r->edx, r->esi);
+}
+static uint32_t do_rt_sigqueueinfo(registers_t *r) {
+    if (!buffer_ok(r, r->edx, sizeof(k_siginfo_t))) return SYSCALL_ERROR;
+    return (uint32_t)sys_rt_sigqueueinfo(r->ebx, (int)r->ecx, (const k_siginfo_t *)r->edx);
+}
+static uint32_t do_rt_tgsigqueueinfo(registers_t *r) {
+    if (!buffer_ok(r, r->esi, sizeof(k_siginfo_t))) return SYSCALL_ERROR;
+    return (uint32_t)sys_rt_tgsigqueueinfo(r->ebx, r->ecx, (int)r->edx, (const k_siginfo_t *)r->esi);
+}
+static uint32_t do_rt_sigreturn(registers_t *r) { return sys_rt_sigreturn(r); }
+static uint32_t do_sigaltstack(registers_t *r) {
+    if (!optional_ok(r, r->ebx, sizeof(k_stack_t)) ||
+        !optional_ok(r, r->ecx, sizeof(k_stack_t))) return SYSCALL_ERROR;
+    return (uint32_t)sys_sigaltstack((const k_stack_t *)r->ebx, (k_stack_t *)r->ecx,
+                                     from_user(r) ? r->useresp : 0);
+}
+static uint32_t do_pause(registers_t *r) { (void)r; return (uint32_t)sys_pause(); }
+static uint32_t do_alarm(registers_t *r) { return sys_alarm(r->ebx); }
+static uint32_t do_prctl(registers_t *r) {
+    int option = (int)r->ebx;
+    if (option == PR_SET_NAME && !path_ok(r, r->ecx)) return SYSCALL_ERROR;
+    if ((option == PR_GET_NAME && !buffer_ok(r, r->ecx, PR_NAME_LEN)) ||
+        ((option == PR_GET_PDEATHSIG || option == PR_GET_CHILD_SUBREAPER) &&
+         !buffer_ok(r, r->ecx, sizeof(int)))) return SYSCALL_ERROR;
+    return (uint32_t)sys_prctl(option, r->ecx);
+}
+/* process_management: wait with status and usage, pidfds */
+static uint32_t do_wait4(registers_t *r) {
+    if (!optional_ok(r, r->ecx, sizeof(int32_t)) ||
+        !optional_ok(r, r->esi, sizeof(wait4_rusage_t))) return SYSCALL_ERROR;
+    return (uint32_t)sys_wait4((int32_t)r->ebx, (int32_t *)r->ecx, r->edx, (wait4_rusage_t *)r->esi);
+}
+static uint32_t do_getrusage(registers_t *r) {
+    if (!buffer_ok(r, r->ecx, sizeof(rusage_t))) return SYSCALL_ERROR;
+    return (uint32_t)sys_getrusage((int)r->ebx, (rusage_t *)r->ecx);
+}
+static uint32_t do_times(registers_t *r) {
+    if (!optional_ok(r, r->ebx, sizeof(tms_t))) return SYSCALL_ERROR;
+    return sys_times((tms_t *)r->ebx);
+}
+static uint32_t do_pidfd_open(registers_t *r)  { return (uint32_t)sys_pidfd_open(r->ebx, r->ecx); }
+static uint32_t do_pidfd_getfd(registers_t *r) { return (uint32_t)sys_pidfd_getfd((int)r->ebx, (int)r->ecx, r->edx); }
+/* process_management: sleeping and interval timers */
+static uint32_t do_nanosleep(registers_t *r) {
+    if (!buffer_ok(r, r->ebx, sizeof(nanosleep_timespec_t)) ||
+        !optional_ok(r, r->ecx, sizeof(nanosleep_timespec_t))) return SYSCALL_ERROR;
+    return (uint32_t)sys_nanosleep((const nanosleep_timespec_t *)r->ebx, (nanosleep_timespec_t *)r->ecx);
+}
+static uint32_t do_clock_nanosleep(registers_t *r) {
+    if (!buffer_ok(r, r->edx, sizeof(clock_timespec_t)) ||
+        !optional_ok(r, r->esi, sizeof(clock_timespec_t))) return CNS_EINVAL;
+    return (uint32_t)sys_clock_nanosleep((int)r->ebx, (int)r->ecx, (const clock_timespec_t *)r->edx,
+                                         (clock_timespec_t *)r->esi);
+}
+static uint32_t do_setitimer(registers_t *r) {
+    if (!optional_ok(r, r->ecx, sizeof(setitimer_val_t)) ||
+        !optional_ok(r, r->edx, sizeof(setitimer_val_t))) return SYSCALL_ERROR;
+    return (uint32_t)sys_setitimer((int)r->ebx, (const setitimer_val_t *)r->ecx, (setitimer_val_t *)r->edx);
+}
+/* process_management: sandboxes */
+static uint32_t do_seccomp(registers_t *r) {
+    uint32_t op = r->ebx;
+    uint32_t size = op == SECCOMP_SET_MODE_FILTER ? sizeof(seccomp_list_t) : sizeof(uint32_t);
+    if (!optional_ok(r, r->edx, size)) return SYSCALL_ERROR;
+    return (uint32_t)sys_seccomp(op, r->ecx, (void *)r->edx);
+}
+static uint32_t do_unshare(registers_t *r) { return (uint32_t)sys_unshare(r->ebx); }
+static uint32_t do_setns(registers_t *r)   { return (uint32_t)sys_setns((int)r->ebx, r->ecx); }
+/* process_management: debugging */
+static uint32_t do_ptrace(registers_t *r) {
+    int req = (int)r->ebx;
+    if ((req == PTRACE_PEEKDATA && !buffer_ok(r, r->esi, 4)) ||
+        (req == PTRACE_GETREGS && !buffer_ok(r, r->esi, sizeof(ptrace_regs_t)))) return SYSCALL_ERROR;
+    return (uint32_t)sys_ptrace(req, r->ecx, r->edx, r->esi);
+}
+// The local side of process_vm_readv / writev: the array and every piece
+// must be the caller's own memory (the remote side is vm_access_check's).
+static int local_iov_ok(registers_t *r, uint32_t iov, uint32_t count) {
+    if (count > VM_IOV_MAX || !buffer_ok(r, iov, count * 8))
+        return 0;
+    for (uint32_t i = 0; i < count; i++) {
+        const uint32_t *piece = (const uint32_t *)(iov + i * 8);
+        if (piece[1] && !buffer_ok(r, piece[0], piece[1]))
+            return 0;
+    }
+    return 1;
+}
+static uint32_t do_process_vm_readv(registers_t *r) {
+    if (!local_iov_ok(r, r->ecx, r->edx) || r->edi > VM_IOV_MAX ||
+        !buffer_ok(r, r->esi, r->edi * 8)) return SYSCALL_ERROR;
+    return (uint32_t)sys_process_vm_readv(r->ebx, (const vm_readv_iovec_t *)r->ecx, r->edx,
+                                          (const vm_readv_iovec_t *)r->esi, r->edi, r->ebp);
+}
+static uint32_t do_process_vm_writev(registers_t *r) {
+    if (!local_iov_ok(r, r->ecx, r->edx) || r->edi > VM_IOV_MAX ||
+        !buffer_ok(r, r->esi, r->edi * 8)) return SYSCALL_ERROR;
+    return (uint32_t)sys_process_vm_writev(r->ebx, (const vm_writev_iovec_t *)r->ecx, r->edx,
+                                           (const vm_writev_iovec_t *)r->esi, r->edi, r->ebp);
+}
+static uint32_t do_kcmp(registers_t *r) {
+    return (uint32_t)sys_kcmp(r->ebx, r->ecx, (int)r->edx, r->esi, r->edi);
+}
+
+static uint32_t do_getitimer(registers_t *r) {
+    if (!buffer_ok(r, r->ecx, sizeof(getitimer_val_t))) return SYSCALL_ERROR;
+    return (uint32_t)sys_getitimer((int)r->ebx, (getitimer_val_t *)r->ecx);
+}
 
 /* ---------- The table ---------- */
 
@@ -345,6 +697,45 @@ static const struct {
     { SYS_GETCWD, "getcwd", do_getcwd },
     { SYS_RENAME, "rename", do_rename },
     { SYS_OPEN,   "open",   do_open   },
+    /* filesystem_management: links */
+    { SYS_LINK,              "link",               do_link },
+    { SYS_LINKAT,            "linkat",             do_linkat },
+    { SYS_SYMLINK,           "symlink",            do_symlink },
+    { SYS_SYMLINKAT,         "symlinkat",          do_symlinkat },
+    { SYS_READLINK,          "readlink",           do_readlink },
+    { SYS_READLINKAT,        "readlinkat",         do_readlinkat },
+    /* filesystem_management: directories */
+    { SYS_RMDIR,             "rmdir",              do_rmdir },
+    { SYS_MKDIRAT,           "mkdirat",            do_mkdirat },
+    { SYS_UNLINKAT,          "unlinkat",           do_unlinkat },
+    { SYS_RENAMEAT,          "renameat",           do_renameat },
+    { SYS_RENAMEAT2,         "renameat2",          do_renameat2 },
+    { SYS_FCHDIR,            "fchdir",             do_fchdir },
+    { SYS_GETDENTS,          "getdents",           do_getdents },
+    { SYS_GETDENTS64,        "getdents64",         do_getdents64 },
+    /* filesystem_management: metadata */
+    { SYS_STAT,              "stat",               do_stat },
+    { SYS_LSTAT,             "lstat",              do_lstat },
+    { SYS_FSTAT,             "fstat",              do_fstat },
+    { SYS_FSTATAT,           "fstatat",            do_fstatat },
+    { SYS_STATX,             "statx",              do_statx },
+    { SYS_ACCESS,            "access",             do_access },
+    { SYS_FACCESSAT,         "faccessat",          do_faccessat },
+    { SYS_FACCESSAT2,        "faccessat2",         do_faccessat2 },
+    { SYS_CHMOD,             "chmod",              do_chmod },
+    { SYS_FCHMOD,            "fchmod",             do_fchmod },
+    { SYS_FCHMODAT,          "fchmodat",           do_fchmodat },
+    { SYS_CHOWN,             "chown",              do_chown },
+    { SYS_FCHOWN,            "fchown",             do_fchown },
+    { SYS_LCHOWN,            "lchown",             do_lchown },
+    { SYS_FCHOWNAT,          "fchownat",           do_fchownat },
+    { SYS_UMASK,             "umask",              do_umask },
+    { SYS_TRUNCATE,          "truncate",           do_truncate },
+    { SYS_FTRUNCATE,         "ftruncate",          do_ftruncate },
+    { SYS_FALLOCATE,         "fallocate",          do_fallocate },
+    { SYS_UTIME,             "utime",              do_utime },
+    { SYS_UTIMES,            "utimes",             do_utimes },
+    { SYS_UTIMENSAT,         "utimensat",          do_utimensat },
     { SYS_READ,   "read",   do_read   },
     { SYS_WRITE,  "write",  do_write  },
     { SYS_CLOSE,  "close",  do_close  },
@@ -398,11 +789,40 @@ static const struct {
     { SYS_WAIT,               "wait",               do_wait               },
     { SYS_WAITPID,            "waitpid",            do_waitpid            },
     { SYS_WAITID,             "waitid",             do_waitid             },
-    /* process_management: fork/exec (stubs) */
+    /* process_management: fork (-1), vfork, execve, execveat */
     { SYS_FORK,               "fork",               do_fork               },
     { SYS_VFORK,              "vfork",              do_vfork              },
     { SYS_EXECVE,             "execve",             do_execve             },
     { SYS_EXECVEAT,           "execveat",           do_execveat           },
+    /* process_management: signals with handlers */
+    { SYS_RT_SIGACTION,       "rt_sigaction",       do_rt_sigaction       },
+    { SYS_RT_SIGPROCMASK,     "rt_sigprocmask",     do_rt_sigprocmask     },
+    { SYS_RT_SIGPENDING,      "rt_sigpending",      do_rt_sigpending      },
+    { SYS_RT_SIGSUSPEND,      "rt_sigsuspend",      do_rt_sigsuspend      },
+    { SYS_RT_SIGTIMEDWAIT,    "rt_sigtimedwait",    do_rt_sigtimedwait    },
+    { SYS_RT_SIGQUEUEINFO,    "rt_sigqueueinfo",    do_rt_sigqueueinfo    },
+    { SYS_RT_TGSIGQUEUEINFO,  "rt_tgsigqueueinfo",  do_rt_tgsigqueueinfo  },
+    { SYS_RT_SIGRETURN,       "rt_sigreturn",       do_rt_sigreturn       },
+    { SYS_SIGALTSTACK,        "sigaltstack",        do_sigaltstack        },
+    { SYS_PAUSE,              "pause",              do_pause              },
+    { SYS_ALARM,              "alarm",              do_alarm              },
+    { SYS_PRCTL,              "prctl",              do_prctl              },
+    { SYS_WAIT4,              "wait4",              do_wait4              },
+    { SYS_GETRUSAGE,          "getrusage",          do_getrusage          },
+    { SYS_TIMES,              "times",              do_times              },
+    { SYS_PIDFD_OPEN,         "pidfd_open",         do_pidfd_open         },
+    { SYS_PIDFD_GETFD,        "pidfd_getfd",        do_pidfd_getfd        },
+    { SYS_NANOSLEEP,          "nanosleep",          do_nanosleep          },
+    { SYS_CLOCK_NANOSLEEP,    "clock_nanosleep",    do_clock_nanosleep    },
+    { SYS_SETITIMER,          "setitimer",          do_setitimer          },
+    { SYS_GETITIMER,          "getitimer",          do_getitimer          },
+    { SYS_SECCOMP,            "seccomp",            do_seccomp            },
+    { SYS_UNSHARE,            "unshare",            do_unshare            },
+    { SYS_SETNS,              "setns",              do_setns              },
+    { SYS_PTRACE,             "ptrace",             do_ptrace             },
+    { SYS_PROCESS_VM_READV,   "process_vm_readv",   do_process_vm_readv   },
+    { SYS_PROCESS_VM_WRITEV,  "process_vm_writev",  do_process_vm_writev  },
+    { SYS_KCMP,               "kcmp",               do_kcmp               },
 };
 #define TABLE_SIZE (sizeof(table) / sizeof(table[0]))
 
@@ -414,13 +834,50 @@ static void trace(const char *name) {
     vga_set_color_byte(color);
 }
 
+// DEFENCE seccomp_filter: a sandboxed program only gets the syscalls it
+// kept. 1 = go on; 0 = refused (the call fails, or the program ends).
+static int sandbox_allows(registers_t *regs) {
+    process_t *self = scheduler_get_current_process();
+    if (!self || !self->seccomp_mode || def_seccomp_allowed(self, regs->eax))
+        return 1;
+    uint32_t action = def_seccomp_action(self);
+    if (action == SECCOMP_RET_KILL_PROCESS || action == SECCOMP_RET_KILL_THREAD) {
+        trace("seccomp: SIGSYS");
+        process_exit_with(SIGSYS | 0x80);       // as Linux: SIGSYS, core dumped
+    }
+    regs->eax = SYSCALL_ERROR;                  // SECCOMP_RET_ERRNO: just fails
+    return 0;
+}
+
+// `strace`: one line per call of a traced process, with its first three
+// arguments and its answer (a call that never returns prints "= ?").
+static void strace_line(const char *name, const registers_t *in, uint32_t result, int returned) {
+    uint8_t color = vga_get_color();
+    ui_color(UI_ACCENT);
+    ui_printf("[strace] %d %s(0x%x, 0x%x, 0x%x)", sys_getpid(), name, in->ebx, in->ecx, in->edx);
+    if (returned)
+        ui_printf(" = %d\n", (int32_t)result);
+    else
+        ui_printf(" = ?\n");
+    vga_set_color_byte(color);
+}
+
 static void syscall_handler(registers_t *regs) {
+    if (!sandbox_allows(regs))
+        return;
+    process_t *self = scheduler_get_current_process();
+    int traced = self && self->strace;
     for (unsigned i = 0; i < TABLE_SIZE; i++) {
         if (table[i].number != regs->eax)
             continue;
-        if (from_user(regs))
+        registers_t in = *regs;             // the arguments, before the call changes them
+        if (traced && (in.eax == SYS_EXIT || in.eax == SYS_EXIT_GROUP))
+            strace_line(table[i].name, &in, 0, 0);
+        else if (from_user(regs) && !traced)
             trace(table[i].name);
         regs->eax = table[i].run(regs);
+        if (traced)
+            strace_line(table[i].name, &in, regs->eax, 1);
         return;
     }
     if (from_user(regs))

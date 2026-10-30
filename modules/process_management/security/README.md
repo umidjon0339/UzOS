@@ -21,12 +21,28 @@ same clean shape as cpu_management and device_management.
 | `malicious_elf` | `elf_validate` | the loader checks an ELF before running it |
 | `signal_abuse` | `signal_permission` | a signal reaches only your own processes |
 | `orphan_process` | `orphan_reaping` | the global reaper frees orphans too |
-
-## Rule shown now, wired when the syscall lands
-
-| Attack | Defence | Note |
-|---|---|---|
-| `ptrace_abuse` | `ptrace_restrict` | the ownership gate a future `ptrace()` would need |
+| `ptrace_abuse` | `ptrace_restrict` | `ptrace` ATTACH / TRACEME, `strace -p`: own, dumpable, a descendant (Yama) |
+| `signal_flood` | `sigqueue_limit` | `sigqueue_add` keeps 16 queued signals per user |
+| `sigreturn_forgery` | `sigframe_check` | `rt_sigreturn` restores only a frame the kernel pushed, never IOPL |
+| `handler_hijack` | `handler_bounds` | `rt_sigaction`: SIGKILL/SIGSTOP stay default, handlers in user space |
+| `process_masquerade` | `name_guard` | `prctl(PR_SET_NAME)`: printable, never a system process's name |
+| `proc_info_leak` | `hidepid` | `procinfo`, `pwdx`, `/proc/<pid>/status`: details for the owner and root only |
+| `kernel_pointer_leak` | `kptr_hide` | `procinfo`: kernel addresses print as 0 for normal users |
+| `pid_reuse_race` | `pidfd_handle` | a pidfd names one live process; `pidfd_getfd` needs ptrace rights |
+| `wait_steal` | `child_only` | only the parent waits for a child and takes its status |
+| `use_after_exit` | `pcb_generation` | a saved process reference is checked: same slot, same pid, same life |
+| `pgid_hijack` | `session_check` | `setpgid` / `setsid` follow POSIX: groups stay in their session |
+| `sleep_overflow` | `sleep_bounds` | every program time becomes ticks in 64 bits, rounded up, capped |
+| `timer_flood` | `timer_limits` | at most 8 periodic interval timers per user |
+| `syscall_abuse` | `seccomp_filter` | the syscall handler: a sandboxed program gets only the calls it kept |
+| `no_new_privs_bypass` | `no_new_privs` | a filter needs the promise; it is sticky and inherited |
+| `memory_peek` | `vm_access_check` | `process_vm_readv` / `writev`, ptrace PEEK/POKE: rights, user memory only |
+| `argv_overflow` | `arg_limits` | `execve`: 32 strings / 2048 bytes, user pointers only |
+| `env_injection` | `env_sanitize` | `execve`: NAME=value, printable, never LD_PRELOAD / IFS / ... |
+| `fd_leak_on_exec` | `close_on_exec` | `execve` closes O_CLOEXEC descriptors and pidfds |
+| `thread_exhaustion` | `thread_quota` | `clone` / `clone3`: a program has at most 4 threads |
+| `stack_clash` | `guard_gap` | `execve`: no segment in the stack area, 32 KiB unmapped below a stack |
+| `core_dump_leak` | `dumpable_flag` | `setuid()` makes a process non-dumpable |
 
 ## Illustrations / concepts (UzOS is a simple single-address-space kernel)
 
@@ -37,6 +53,8 @@ same clean shape as cpu_management and device_management.
 | `process_hijacking` | `control_flow_integrity` | real CFI is a compiler + hardware feature |
 | `container_escape` | `namespace_isolation` | UzOS has no namespaces/containers |
 | `process_dos` | `service_limits` | umbrella; the real caps are slot_quota + CPU quotas |
+| `priority_inversion` | `priority_inheritance` | user programs share no locks (no futex); the rule is tested |
+| `tty_hijack` | `tty_guard` | one console, no input-injection call; the rule is tested |
 
 Registered in
 [security_management/core/catalog/catalog.c](../../security_management/core/catalog/catalog.c).

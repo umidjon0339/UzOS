@@ -2,12 +2,14 @@
  * bga.c - Switch the BGA card between text mode and a graphics mode.
  *
  * Uses: outw/inw (arch/x86/io), FRAMEBUFFER_START (memory_management
- *       layout), which the VMM maps 1:1 at boot.
+ *       layout), which the VMM maps 1:1 at boot, mouse_set_screen
+ *       (mouse/): the pointer must stay on the new screen size.
  */
 
 #include "bga.h"
 #include "io.h"
 #include "memory_layout.h"
+#include "mouse.h"
 #include "def_mode_bounds.h"   // DEFENCE mode_bounds
 
 #define BGA_INDEX_PORT  0x01CE
@@ -39,16 +41,19 @@ int bga_is_available(void) {
     return id >= ID_FIRST && id <= ID_LAST;
 }
 
-void bga_set_video_mode(uint16_t width, uint16_t height, uint16_t bpp) {
+int bga_set_video_mode(uint16_t width, uint16_t height, uint16_t bpp) {
     // DEFENCE mode_bounds: a huge or zero mode overflows framebuffer math.
     if (!def_bga_mode_ok(width, height, bpp))
-        return;
+        return 0;
 
     write_reg(REG_ENABLE, 0);           // registers may only change while off
     write_reg(REG_XRES, width);
     write_reg(REG_YRES, height);
     write_reg(REG_BPP, bpp);
     write_reg(REG_ENABLE, ENABLED | LINEAR_FB);
+
+    mouse_set_screen(width, height);
+    return 1;
 }
 
 void bga_disable(void) {

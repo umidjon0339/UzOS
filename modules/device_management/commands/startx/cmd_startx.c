@@ -1,13 +1,18 @@
 /*
  * cmd_startx.c - `startx`: a small graphical desktop. ESC (or Ctrl+C) goes back.
  *
+ * The desktop starts at the console's size if the console is in graphics
+ * mode, else at 1024x768. Ctrl+Up / Ctrl+Down make it bigger / smaller.
+ *
  * Every frame (about 30 per second):
+ *   0. read the keys: ESC, or a new screen size
  *   1. read the mouse, let the window manager handle clicks and drags
  *   2. once a second, refresh the "System Monitor" window with real data
  *   3. draw everything into the back buffer and show it
  *   4. sleep, so the rest of the system keeps running
  *
- * Uses: screen_* / wm_* / canvas_* (gui/), mouse_get_state (mouse/),
+ * Uses: screen_* / wm_* / canvas_* (gui/), modes_* (vga/modes),
+ *       mouse_get_state (mouse/),
  *       keyboard_pop_key (keyboard/), timer_uptime_ms (timer/),
  *       pmm_* (memory_management), process_count_free_slots, sys_sleep
  *       and signal_interrupted (process_management), ui_* (ui module).
@@ -15,6 +20,8 @@
 
 #include "device_commands.h"
 #include "screen.h"
+#include "modes.h"
+#include "vga.h"
 #include "window_manager.h"
 #include "mouse.h"
 #include "keyboard.h"
@@ -65,24 +72,37 @@ static void draw_monitor(canvas_t *c) {
 static void draw_welcome(canvas_t *c) {
     canvas_draw_string(c, 20, 30, "Welcome to the UzOS desktop!", COLOR_BLUE, COLOR_WHITE);
     canvas_draw_string(c, 20, 60, "Drag a window by its title bar.\n"
-                                  "Click a window to raise it.\n\n"
+                                  "Click a window to raise it.\n"
+                                  "Ctrl+Up/Down: bigger/smaller.\n\n"
                                   "Press ESC to go back to the shell.",
                        COLOR_BLACK, COLOR_WHITE);
 }
 
 // Drain the keyboard queue; 1 if ESC was among the keys.
-static int escape_pressed(void) {
-    char c;
-    while ((c = keyboard_pop_key()))
-        if (c == KEY_ESCAPE)
+// Ctrl+Up / Ctrl+Down switch the desktop to the next graphics size.
+static int read_keys(const display_t **size) {
+    unsigned char key;
+    while ((key = (unsigned char)keyboard_pop_key())) {
+        if (key == KEY_ESCAPE)
             return 1;
+        if (key != KEY_CTRL_UP && key != KEY_CTRL_DOWN)
+            continue;
+
+        const display_t *next = modes_next(*size, key == KEY_CTRL_UP ? 1 : -1, 1);
+        if (next && screen_resize(next->width, next->height)) {
+            *size = next;
+            wm_keep_on_screen(next->width, next->height);
+        }
+    }
     return 0;
 }
 
 void cmd_startx(const char *args) {
     (void)args;
 
-    if (!screen_open()) {
+    // The console's size if it is a graphics size, else 1024x768.
+    const display_t *size = vga_display()->width ? vga_display() : modes_find("1024x768");
+    if (!screen_open(size->width, size->height)) {
         ui_error("startx", "no BGA video card (or no memory for the screen buffer)");
         return;
     }
@@ -95,7 +115,7 @@ void cmd_startx(const char *args) {
 
     uint32_t last_refresh = 0;
     int first = 1;
-    while (!escape_pressed() && !signal_interrupted()) {    // ESC or Ctrl+C
+    while (!read_keys(&size) && !signal_interrupted()) {    // ESC or Ctrl+C
         mouse_state_t mouse;
         mouse_get_state(&mouse);
         wm_handle_mouse(&mouse);

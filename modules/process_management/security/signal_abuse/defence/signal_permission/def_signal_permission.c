@@ -13,10 +13,10 @@
  *         the `kill` command; this is the general rule for every signal.)
  */
 
-#include "def_signal_permission.h"
-#include "registry.h"
-#include "audit.h"
-#include "caps.h"               // caps_has, CAP_KILL
+#include "modules/process_management/security/signal_abuse/defence/signal_permission/def_signal_permission.h"  // this file
+#include "modules/security_management/core/registry/registry.h"                                                // defence_t, registry_add_defence
+#include "modules/security_management/core/audit/audit.h"                                                      // audit_log
+#include "modules/security_management/core/caps/caps.h"                                                        // caps_has, CAP_KILL
 
 static int allowed(uint32_t caller_uid, uint32_t target_uid, int target_is_system) {
     if (target_is_system) return 0;                 // kernel processes: never

@@ -14,16 +14,24 @@
  *     voluntary_ctxt_switches:        12    it slept / gave up the CPU
  *     nonvoluntary_ctxt_switches:     3     it was preempted
  *
- * Linux's file has more lines (memory, signals, capabilities); these
- * are the ones about the CPU, plus who the process is.
+ *     SigPnd / SigBlk / SigIgn / SigCgt   signals pending, blocked,
+ *                                         ignored, caught (hex masks)
+ *
+ * Linux's file has more lines (memory, capabilities); these are the
+ * ones about the CPU and signals, plus who the process is. Only the
+ * first lines (who it is) are shown to other users: the rest is its
+ * owner's business (defence hidepid, process_management).
  *
  * Uses: affinity_get / affinity_list (cpu_management/core/affinity), numa_online_nodes
- *       (cpu_management/core/numa), thread_count (in this file), FS_* fd table size.
+ *       (cpu_management/core/numa), thread_count (in this file), FS_* fd table size,
+ *       process_caller_uid (process_management core/process),
+ *       def_hidepid_visible (process_management security/proc_info_leak/defence/hidepid).
  */
 
-#include "modules/filesystem_management/core/procfs/proc_pid_status.h"
-#include "modules/cpu_management/core/affinity/affinity.h"      // affinity_get, affinity_list
-#include "modules/cpu_management/core/numa/numa.h"              // numa_online_nodes
+#include "modules/filesystem_management/core/procfs/proc_pid_status.h"                       // this file
+#include "modules/cpu_management/core/affinity/affinity.h"                                   // affinity_get, affinity_list
+#include "modules/cpu_management/core/numa/numa.h"                                           // numa_online_nodes
+#include "modules/process_management/security/proc_info_leak/defence/hidepid/def_hidepid.h"  // def_hidepid_visible
 
 // Threads alive in thread group 'tgid' (every clone(CLONE_THREAD) child
 // has its parent's tgid). Only this file needs it, so it lives here.
@@ -43,6 +51,7 @@ static const char *state_text(process_state_t s) {
         case PROCESS_STATE_READY:    return "R (running)";   // Linux: R = running or ready
         case PROCESS_STATE_SLEEPING: return "S (sleeping)";
         case PROCESS_STATE_ZOMBIE:   return "Z (zombie)";
+        case PROCESS_STATE_STOPPED:  return "T (stopped)";
         default:                     return "X (dead)";
     }
 }
@@ -58,6 +67,12 @@ void proc_pid_status(proc_buf_t *buf, const process_t *p) {
     proc_printf(buf, "Pid:\t%u\n", p->pid);
     proc_printf(buf, "PPid:\t%u\n", p->ppid);
     proc_printf(buf, "Uid:\t%u\t%u\t%u\t%u\n", p->uid, p->uid, p->uid, p->uid);
+
+    // DEFENCE hidepid: the rest only for its owner and root.
+    if (!def_hidepid_visible(process_caller_uid(), p)) {
+        proc_printf(buf, "(details hidden: not your process)\n");
+        return;
+    }
     proc_printf(buf, "FDSize:\t%d\n", MAX_FDS);
     proc_printf(buf, "Threads:\t%d\n", thread_count(p->tgid ? p->tgid : p->pid));
     proc_printf(buf, "VmStk:\t%u kB\n", PROCESS_STACK_SIZE / 1024);
@@ -67,4 +82,18 @@ void proc_pid_status(proc_buf_t *buf, const process_t *p) {
     proc_printf(buf, "Mems_allowed_list:\t%s\n", nodes);
     proc_printf(buf, "voluntary_ctxt_switches:\t%u\n", p->nvcsw);
     proc_printf(buf, "nonvoluntary_ctxt_switches:\t%u\n", p->nivcsw);
+
+    uint32_t ignored = 0, caught = 0;
+    for (int sig = 1; sig < SIGNAL_COUNT; sig++) {
+        if (p->sig_handler[sig] == 1)       // SIG_IGN
+            ignored |= 1u << sig;
+        else if (p->sig_handler[sig] > 1)   // a handler
+            caught |= 1u << sig;
+    }
+    proc_printf(buf, "SigPnd:\t%08x\n", p->signals);
+    proc_printf(buf, "SigBlk:\t%08x\n", p->sig_blocked);
+    proc_printf(buf, "SigIgn:\t%08x\n", ignored);
+    proc_printf(buf, "SigCgt:\t%08x\n", caught);
+    proc_printf(buf, "NoNewPrivs:\t%d\n", p->no_new_privs);
+    proc_printf(buf, "Seccomp:\t%d\n", p->seccomp_mode);   // 0 off, 1 strict, 2 filter
 }

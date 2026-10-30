@@ -10,9 +10,9 @@
  *         PIDs is a visible error; a reused PID is a silent one.
  */
 
-#include "def_pid_bounds.h"
-#include "registry.h"
-#include "audit.h"
+#include "modules/process_management/security/pid_wrap/defence/pid_bounds/def_pid_bounds.h"  // this file
+#include "modules/security_management/core/registry/registry.h"                              // defence_t, registry_add_defence
+#include "modules/security_management/core/audit/audit.h"                                    // audit_log
 
 // The whole rule, as a pure function so the selftest can try it.
 static int pid_in_range(uint32_t pid) {

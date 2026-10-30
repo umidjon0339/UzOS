@@ -14,10 +14,10 @@
  * Uses: process_create / process_kill / process_get_table (core/process).
  */
 
-#include "registry.h"
-#include "process.h"
-#include "string.h"
-#include "vga.h"
+#include "modules/security_management/core/registry/registry.h"  // attack_t, registry_add_attack
+#include "modules/process_management/core/process/process.h"     // process_count_free_slots, process_create
+#include "lib/string/string.h"                                   // strcmp
+#include "modules/device_management/vga/vga.h"                   // vga_print_str, vga_print_int
 
 #define ATTACK_BUDGET 16        // most processes one live run may create
 #define ATTACKER_UID  1         // a normal user, so the quota applies

@@ -13,8 +13,8 @@
  *         concept - the lesson is what a complete barrier requires.
  */
 
-#include "def_process_isolation.h"
-#include "registry.h"
+#include "modules/process_management/security/process_injection/defence/process_isolation/def_process_isolation.h"  // this file
+#include "modules/security_management/core/registry/registry.h"                                                     // defence_t, registry_add_defence
 
 int def_ring3_isolated(void) { return 1; }   // ring3 cannot reach the kernel
 

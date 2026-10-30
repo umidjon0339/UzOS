@@ -8,12 +8,12 @@
  *       (syscalls/), sys_getpid to print its own PID, ui_* (ui module).
  */
 
-#include "proc_commands.h"
-#include "process.h"
-#include "sys_sleep.h"
-#include "sys_exit.h"
-#include "sys_getpid.h"
-#include "ui.h"
+#include "modules/process_management/commands/spawn/cmd_spawn.h"  // this file
+#include "modules/process_management/core/process/process.h"      // process_create, process_caller_uid
+#include "modules/process_management/syscalls/sleep/sys_sleep.h"  // sys_sleep
+#include "modules/process_management/syscalls/exit/sys_exit.h"    // sys_exit
+#include "modules/cpu_management/syscalls/getpid/sys_getpid.h"    // sys_getpid
+#include "modules/ui/core/style/ui.h"                             // ui_color, UI_ACCENT, ui_printf
 
 #define HEARTBEATS  3
 #define HEARTBEAT_MS 3000
@@ -27,7 +27,7 @@ static void worker(void) {
         ui_printf("\n" GLYPH_GEAR " [worker %d] heartbeat %d/%d\n", sys_getpid(), i, HEARTBEATS);
         vga_set_color_byte(color);
     }
-    sys_exit();
+    sys_exit(0);
 }
 
 void cmd_spawn(const char *args) {
