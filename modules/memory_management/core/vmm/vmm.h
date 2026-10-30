@@ -24,6 +24,7 @@
 #define PAGE_PRESENT  0x1   // the entry is valid
 #define PAGE_WRITABLE 0x2   // writes allowed (else read-only)
 #define PAGE_USER     0x4   // ring 3 may access (else kernel only)
+#define PAGE_NO_CACHE 0x10  // PCD: never cache (device registers, e.g. the network card)
 #define PAGE_FLAGS    0xFFF // low 12 bits of an entry are flags
 
 #define PAGES_PER_TABLE 1024

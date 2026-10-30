@@ -32,6 +32,9 @@ typedef enum {
     CAP_RESOURCE,       // no process quota, use the reserve     slot_quota
     CAP_SECLAB,         // run live attacks and repair           seclab
     CAP_PTRACE,         // look inside other users' processes    hidepid, kptr_hide, ptrace
+    CAP_NET_ADMIN,      // change interfaces, routes, firewall   ip, ifconfig, iptables
+    CAP_NET_RAW,        // raw sockets, sniffing (promiscuous)   raw_cap, promisc_cap
+    CAP_NET_BIND,       // listen on ports below 1024            port_privilege
     CAP_COUNT
 } cap_t;
 

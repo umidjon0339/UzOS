@@ -86,8 +86,14 @@ $(BUILD)/%.o: %.s
 # -display gtk,zoom-to-fit=on: drag the window to any size and the picture
 #     is stretched to fill it (Ctrl+Alt+'+' / '-' zoom, Ctrl+Alt+0 = 1:1).
 #     For sharp pixels change UzOS's own size: Ctrl+Up / Ctrl+Down.
+# -nic user,model=e1000: an Intel e1000 network card (VirtualBox's default
+#     too) behind QEMU's built-in router: UzOS gets 10.0.2.15 by DHCP, the
+#     gateway is 10.0.2.2, DNS is 10.0.2.3, and the host's internet works.
+#     hostfwd: http://localhost:8080 on the host reaches port 80 in UzOS.
+QEMU_NET := -nic user,model=e1000,hostfwd=tcp::8080-:80
+
 run: $(KERNEL)
-	qemu-system-i386 -kernel $(KERNEL) -rtc base=localtime -display gtk,zoom-to-fit=on
+	qemu-system-i386 -kernel $(KERNEL) -rtc base=localtime -display gtk,zoom-to-fit=on $(QEMU_NET)
 
 check: $(KERNEL)
 	@grub-file --is-x86-multiboot $(KERNEL) && echo "$(KERNEL): valid multiboot kernel"

@@ -54,6 +54,30 @@ Phase 8: Security management (`modules/security_management/`) - **done**:
 the security lab moved and split (registry, catalog, audit, watchdog),
 capabilities, audit log with user/PID, kernel integrity (SHA-256 of
 .text/.rodata), getcaps syscall, two pairs of its own.
+Phase 9: Network management (`modules/network_management/`) - **done**.
+Same clean shape: commands/ syscalls/ security/ core/, full-path
+includes, one folder + header per command/syscall, core/README.md.
+- e1000 driver (PCI scan, MMIO mapped uncached, RX/TX DMA rings in the
+  identity-mapped kernel .bss, IRQ 11 under QEMU), chosen over RTL8139
+  because VirtualBox's default card is an e1000 too
+- netdev (eth0 + lo, one receive backlog: no recursion on lo), packet
+  pool (128 sk_buff-like buffers), Ethernet, ARP, IPv4 + fragments,
+  routing table, ICMP, UDP, TCP (11 states, RTT/RTO, retransmit, window
+  probes, TIME_WAIT 10 s, SYN cookies), DHCP at boot, DNS resolver with
+  /etc/hosts + cache, hostname, firewall (INPUT/OUTPUT), net_tick (timer)
+- sockets as vfs nodes (sockfs): UDP, TCP, raw, AF_UNIX (+ socketpair,
+  SO_PEERCRED); blocking = sleep + socket_wake; errors are -errno
+- syscalls 133-166 (34); `netcalls` = 3 ring 3 groups, 68 of 68 answers
+- 33 commands (ip, ping, curl, wget, httpd, nc, tcpdump, nmap, iptables,
+  dig, ss, netstat, ...); `make run` adds -nic user,model=e1000 with
+  hostfwd 8080 -> 80
+- 47 attack/defence pairs (38 real, 3 illustrations, 6 concepts);
+  attacks inject frames with netdev_inject(); `seclab verify all` =
+  152 of 152; LIVE_BUDGET_TICKS raised to 10 s (network timers)
+- cross-module: CAP_NET_ADMIN / CAP_NET_RAW / CAP_NET_BIND, /proc/net/*
+  (filesystem_management/core/procfs/proc_net.c), keyboard_has_key,
+  outl/inl, PAGE_NO_CACHE, hostname_get in prompt/login/uzfetch,
+  SHELL_MAX_COMMANDS 256, REGISTRY_MAX 200
 
 ## Implemented Modules
 - Multiboot boot (`boot/boot.s`), linker script (`boot/linker.ld`), Makefile
@@ -323,7 +347,24 @@ Fixed in security_management:
 74. `process_management/README.md` said ELF programs run as uid 1; they
     run as the user who started them
 
+75. TCP advanced snd_nxt AFTER sending: on lo the ACK arrived inside the
+    send and was ignored; both ends then traded "unacceptable" ACKs
+    forever with interrupts off (system froze). State is now updated
+    before sending, and challenge ACKs are rate-limited
+76. the shell's command table (128) silently dropped commands past it
+77. arp_request() did not remember asking, so arp_guard refused the
+    real answer (arp_spoofing found it)
+78. TCP kept data sent to a connection its program had closed; now RST
+    (slowloris found it)
+79. TCP ignored ICMP "port unreachable" while connecting: a REJECT rule
+    made connect() wait a minute instead of ECONNREFUSED
+80. /proc's index_of() scanned MAX_PROCESSES entries of any list: a
+    7-entry list (/proc/net) would have been read past its end
+
 Still open:
+- Network: no IPv6, TLS/SSH, TCP SACK/window scaling/timestamps, or
+  out-of-order reassembly; the firewall keeps no connection state;
+  `devices` does not list the e1000's IRQ line.
 - Kernel code pages are writable (identity map with PAGE_WRITABLE, CR0.WP
   off): integrity_check detects a patch but cannot prevent it.
 - Capabilities follow the uid; there is no per-process capability set,

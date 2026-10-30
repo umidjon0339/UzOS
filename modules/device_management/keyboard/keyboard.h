@@ -30,6 +30,9 @@ void init_keyboard(void);
 // Take the oldest typed key from the queue, or 0 if it is empty.
 char keyboard_pop_key(void);
 
+// Is a key waiting? (select/poll on stdin ask this without taking it.)
+int keyboard_has_key(void);
+
 // Ctrl+C is special: it must work even while nobody reads the queue
 // (a command is running). The shell installs a handler; the driver calls
 // it from the interrupt. If it returns 1 it took care of Ctrl+C;

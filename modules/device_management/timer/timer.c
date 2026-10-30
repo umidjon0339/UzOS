@@ -2,13 +2,13 @@
  * timer.c - Program the PIT and count ticks.
  *
  * Every tick: count it, let the security lab's watchdog look at the
- * time, charge the tick to whoever had the CPU, and let the scheduler
- * switch tasks.
+ * time, charge the tick to whoever had the CPU, run the network timers,
+ * and let the scheduler switch tasks.
  *
  * Uses: register_interrupt_handler (arch/x86/isr), pic_unmask (pic/),
  *       scheduler_tick (process_management), watchdog_tick
- *       (security_management), cpu_account_tick (cpu_management), and the
- *       defence timer_frequency.
+ *       (security_management), cpu_account_tick (cpu_management), net_tick
+ *       (network_management), and the defence timer_frequency.
  */
 
 #include "timer.h"
@@ -19,6 +19,7 @@
 #include "watchdog.h"
 #include "cpu_account.h"
 #include "def_timer_frequency.h"
+#include "modules/network_management/core/net_tick/net_tick.h"   // net_tick
 
 #define TIMER_IRQ     0
 #define PIT_CHANNEL0  0x40          // data port of counter 0
@@ -32,6 +33,7 @@ static void timer_callback(registers_t *regs) {
     timer_ticks++;
     watchdog_tick();
     cpu_account_tick(regs);         // before the switch: charge who WAS running
+    net_tick();                     // ARP retries, TCP timers, ...
     scheduler_tick();               // may switch to another task
 }
 

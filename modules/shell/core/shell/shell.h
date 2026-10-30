@@ -9,7 +9,7 @@
  * name that `help` uses to sort them.
  */
 
-#define SHELL_MAX_COMMANDS 128
+#define SHELL_MAX_COMMANDS 256
 
 typedef void (*cmd_func_t)(const char *args);
 

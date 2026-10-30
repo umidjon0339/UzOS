@@ -19,6 +19,7 @@
  */
 
 #include "session.h"
+#include "modules/network_management/core/hostname/hostname.h"   // hostname_get
 #include "scheduler.h"
 #include "vfs.h"
 #include "keyboard.h"
@@ -141,7 +142,7 @@ void session_login_prompt(void) {
     while (1) {
         vga_print_str("\n");
         ui_color(UI_TITLE);
-        vga_print_str("uzos");
+        vga_print_str(hostname_get());
         ui_color(UI_LABEL);
         vga_print_str(" login: ");
         ui_reset();

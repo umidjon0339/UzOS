@@ -12,6 +12,7 @@
  *   /proc/
  *   ├── cpuinfo          the CPU             (proc_cpuinfo.c)
  *   ├── stat             CPU time, counters  (proc_stat.c)
+ *   ├── net/             the network: dev arp route tcp udp unix snmp (proc_net.c)
  *   ├── self/            the process reading it
  *   │   └── status
  *   └── <pid>/           one directory per process, made up on lookup
@@ -30,7 +31,7 @@
 #include "modules/filesystem_management/core/vfs/vfs.h"       // vfs_node_t
 #include "modules/process_management/core/process/process.h"  // process_t
 
-#define PROC_TEXT_MAX 2048      // the longest file /proc makes
+#define PROC_TEXT_MAX 4096      // the longest file /proc makes
 
 // Where a generator writes its text.
 typedef struct {

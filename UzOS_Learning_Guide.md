@@ -44,7 +44,7 @@ UzOS is structured modularly. Here is what every folder does:
 * `boot/`: The initial assembly boot sequence, the multiboot info struct, and the linker script.
 * `lib/`: A tiny C library for the kernel (`memset`, `strcmp`, `format` - a small snprintf, ...), since a kernel has no standard library. See [lib/README.md](lib/README.md).
 * `userland/`: Contains user-space programs (like `hello.c`). These are compiled into `.elf` executables that the OS can load and run.
-* `modules/`: **The core of the OS.** Every major feature is isolated into its own module folder.
+* `modules/`: **The core of the OS.** Every major feature is isolated into its own module folder: device, io, memory, process, cpu, user, security, filesystem and network management, the shell and the ui.
 
 ---
 
@@ -169,6 +169,18 @@ See [modules/ui/README.md](modules/ui/README.md).
 * **Frames and bars (`core/box/`)**: `┌─ Title ─┐` panels, table cells that cannot be broken by a strange name, `███░░` bars. `meminfo`, `heapinfo`, `ps`, `devices` and `ioinfo` use them.
 * **Boot log, logo, status bar**: the `[  OK  ]` lines, the banner and flag, and the top bar kept fresh by the `statusd` daemon.
 * **Commands**: `uzfetch` (a system summary next to the flag), `statusbar [on|off]`.
+
+### K. Network Management (`modules/network_management/`)
+See [modules/network_management/README.md](modules/network_management/README.md) for the full map and the life of a packet.
+* **The card (`core/pci/`, `core/e1000/`)**: the PCI bus is scanned at boot; the Intel e1000 (QEMU's and VirtualBox's default) gets its registers mapped, two rings of DMA descriptors, and an interrupt. `ethtool -t` makes it send a frame to itself.
+* **Interfaces and packets (`core/netdev/`, `core/loopback/`, `core/packet/`)**: `eth0` and `lo`; a packet buffer has room in front, so each layer pushes its header on the way down and pulls it off on the way up (Linux's sk_buff idea).
+* **The protocols (`core/ethernet/`, `arp/`, `ipv4/`, `route/`, `icmp/`, `udp/`, `tcp/`)**: Ethernet frames, ARP (IP -> MAC), IPv4 with fragments and a routing table, ICMP (ping, errors), UDP ports, and TCP: the three-way handshake, sequence numbers, retransmission with measured round-trip times, FIN and TIME_WAIT.
+* **Sockets (`core/socket/`, `core/unix/`, `core/poll/`, `core/epoll/`)**: a socket is a file descriptor (`read`/`write`/`close` work on it); UDP, TCP, raw and AF_UNIX sockets; a blocked call sleeps until the network wakes it; `select`, `poll` and `epoll` wait on many at once.
+* **Getting on the network (`core/dhcp/`, `core/dns/`, `core/hostname/`)**: DHCP at boot gives 10.0.2.15 under QEMU; the resolver reads `/etc/hosts`, keeps a cache and asks the DNS server; `ping example.com` reaches the real internet.
+* **The firewall (`core/firewall/`)**: INPUT and OUTPUT chains of rules (`iptables`), checked after fragments are put together.
+* **Commands** (33): `ip`, `ifconfig`, `route`, `arp`, `dhclient`, `ping`, `traceroute`, `tracepath`, `mtr`, `arping`, `host`, `nslookup`, `dig`, `hostname`, `nc`, `telnet`, `curl`, `wget`, `httpd` (open http://localhost:8080 on the host), `echod`, `netstat`, `ss`, `tcpdump`, `iftop`, `nload`, `nstat`, `iptables`, `nmap`, `lspci`, `ethtool`, `ifup`, `ifdown`, and `netcalls` (68 syscall answers from ring 3).
+* **System calls** (numbers 133-166): `socket`, `bind`, `connect`, `listen`, `accept4`, `sendto`, `recvfrom`, `sendmsg`, `recvmsg`, `setsockopt`, `socketpair`, `socketcall`, `select`, `poll`, `epoll_*`, `ioctl`, `sendfile`, `uname`, `sethostname`, ...; errors are Linux's `-errno`.
+* **Security**: 47 attack/defence pairs, from `arp_spoofing` and `ping_of_death` to `syn_flood` (SYN cookies), `rst_injection` (RFC 5961) and `dns_spoofing`. The attacks inject crafted frames as if they came off the wire (`netdev_inject`), so every defence is met in the real packet path.
 
 ---
 

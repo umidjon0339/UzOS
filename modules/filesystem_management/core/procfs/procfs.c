@@ -22,6 +22,7 @@
 #include "modules/filesystem_management/core/procfs/procfs.h"           // this part
 #include "modules/filesystem_management/core/procfs/proc_cpuinfo.h"     // proc_cpuinfo
 #include "modules/filesystem_management/core/procfs/proc_stat.h"        // proc_stat
+#include "modules/filesystem_management/core/procfs/proc_net.h"         // proc_net, proc_net_name
 #include "modules/filesystem_management/core/procfs/proc_pid_status.h"  // proc_pid_status
 #include "modules/memory_management/core/kheap/kheap.h"                 // kmalloc
 #include "modules/process_management/core/scheduler/scheduler.h"        // the current process
@@ -32,7 +33,8 @@
 #define MODE_READ_ONLY 044      // owner r, others r (user_management/core/perm)
 #define SELF_SLOT MAX_PROCESSES // the "self" directory sits after the process slots
 
-static vfs_node_t *proc_dir, *cpuinfo_file, *stat_file;
+static vfs_node_t *proc_dir, *cpuinfo_file, *stat_file, *net_dir;
+static vfs_node_t *net_files[PROC_NET_FILES];       // /proc/net/dev, arp, ...
 static vfs_node_t *pid_dirs[MAX_PROCESSES + 1];     // [slot] = /proc/<pid>, [SELF_SLOT] = self
 static vfs_node_t *status_files[MAX_PROCESSES + 1]; // [slot] = /proc/<pid>/status
 static uint32_t    dir_pid[MAX_PROCESSES + 1];      // which pid each directory shows now
@@ -57,6 +59,14 @@ static int index_of(vfs_node_t *node, vfs_node_t **list) {
     return -1;
 }
 
+// Which /proc/net file 'node' is, or -1.
+static int net_index(vfs_node_t *node) {
+    for (int i = 0; i < PROC_NET_FILES; i++)
+        if (net_files[i] == node)
+            return i;
+    return -1;
+}
+
 // The process a /proc/<pid> (or self) directory shows: NULL if it is gone.
 static process_t *process_of_dir(int index) {
     if (index == SELF_SLOT)
@@ -72,6 +82,8 @@ static void generate(vfs_node_t *file) {
         proc_cpuinfo(&buf);
     } else if (file == stat_file) {
         proc_stat(&buf);
+    } else if (net_index(file) >= 0) {
+        proc_net(&buf, (proc_net_file_t)net_index(file));
     } else {
         int index = index_of(file, status_files);
         process_t *p = index >= 0 ? process_of_dir(index) : 0;
@@ -108,11 +120,12 @@ static vfs_node_t *proc_root_readdir(vfs_node_t *dir, uint32_t index) {
     (void)dir;
     if (index == 0) return cpuinfo_file;
     if (index == 1) return stat_file;
-    if (index == 2) return pid_dirs[SELF_SLOT];
+    if (index == 2) return net_dir;
+    if (index == 3) return pid_dirs[SELF_SLOT];
 
-    // Then the (index - 3)-th process that exists.
+    // Then the (index - 4)-th process that exists.
     process_t *table = process_get_table();
-    uint32_t n = 3;
+    uint32_t n = 4;
     for (int slot = 0; slot < MAX_PROCESSES; slot++) {
         if (table[slot].state == PROCESS_STATE_FREE)
             continue;
@@ -127,6 +140,7 @@ static vfs_node_t *proc_root_finddir(vfs_node_t *dir, const char *name) {
     if (strcmp(name, "cpuinfo") == 0) return cpuinfo_file;
     if (strcmp(name, "stat") == 0)    return stat_file;
     if (strcmp(name, "self") == 0)    return pid_dirs[SELF_SLOT];
+    if (strcmp(name, "net") == 0)     return net_dir;
 
     // A number: is there such a process?
     uint32_t pid = 0;
@@ -149,6 +163,19 @@ static vfs_node_t *pid_dir_finddir(vfs_node_t *dir, const char *name) {
     if (i < 0 || strcmp(name, "status") != 0 || !process_of_dir(i))
         return 0;
     return status_files[i];
+}
+
+static vfs_node_t *net_readdir(vfs_node_t *dir, uint32_t index) {
+    (void)dir;
+    return index < PROC_NET_FILES ? net_files[index] : 0;
+}
+
+static vfs_node_t *net_finddir(vfs_node_t *dir, const char *name) {
+    (void)dir;
+    for (int i = 0; i < PROC_NET_FILES; i++)
+        if (strcmp(name, proc_net_name((proc_net_file_t)i)) == 0)
+            return net_files[i];
+    return 0;
 }
 
 /* ---------- Making the nodes ---------- */
@@ -184,6 +211,14 @@ void procfs_init(void) {
 
     cpuinfo_file = new_node("cpuinfo", FS_FILE, proc_dir);
     stat_file    = new_node("stat", FS_FILE, proc_dir);
+
+    net_dir = new_node("net", FS_DIRECTORY, proc_dir);
+    if (!net_dir)
+        return;
+    net_dir->readdir = net_readdir;
+    net_dir->finddir = net_finddir;
+    for (int i = 0; i < PROC_NET_FILES; i++)
+        net_files[i] = new_node(proc_net_name((proc_net_file_t)i), FS_FILE, net_dir);
 
     for (int i = 0; i <= MAX_PROCESSES; i++) {
         pid_dirs[i] = new_node(i == SELF_SLOT ? "self" : "?", FS_DIRECTORY, proc_dir);

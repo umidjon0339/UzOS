@@ -152,6 +152,59 @@ void atk_output_spoof_register(void);           void def_safe_text_register(void
 void atk_kernel_patch_register(void);           void def_integrity_check_register(void);
 void atk_log_flood_register(void);              void def_audit_limit_register(void);
 
+/* ---------- network_management ---------- */
+/* network_management - link layer */
+void atk_arp_spoofing_register(void);           void def_arp_guard_register(void);
+void atk_arp_flood_register(void);              void def_arp_table_limit_register(void);
+void atk_mac_spoofing_register(void);           void def_mac_lock_register(void);
+void atk_promiscuous_sniffing_register(void);   void def_promisc_cap_register(void);
+void atk_malformed_frame_register(void);        void def_frame_validate_register(void);
+void atk_rx_ring_overflow_register(void);       void def_rx_desc_check_register(void);
+void atk_mac_flooding_register(void);           void def_port_security_register(void);
+void atk_vlan_hopping_register(void);           void def_vlan_pruning_register(void);
+void atk_dma_attack_register(void);             void def_iommu_register(void);
+/* network_management - IPv4 and ICMP */
+void atk_ip_spoofing_register(void);            void def_rp_filter_register(void);
+void atk_land_attack_register(void);            void def_martian_filter_register(void);
+void atk_malformed_ip_header_register(void);    void def_ip_header_validate_register(void);
+void atk_ping_of_death_register(void);          void def_reassembly_bounds_register(void);
+void atk_teardrop_register(void);               void def_fragment_overlap_check_register(void);
+void atk_fragment_flood_register(void);         void def_frag_mem_limit_register(void);
+void atk_icmp_flood_register(void);             void def_icmp_ratelimit_register(void);
+void atk_smurf_attack_register(void);           void def_icmp_ignore_broadcast_register(void);
+void atk_icmp_redirect_register(void);          void def_no_accept_redirects_register(void);
+void atk_source_routing_register(void);         void def_drop_ip_options_register(void);
+void atk_ip_id_prediction_register(void);       void def_random_ip_id_register(void);
+void atk_ttl_recon_register(void);              void def_ttl_normalize_register(void);
+/* network_management - TCP */
+void atk_syn_flood_register(void);              void def_syn_cookies_register(void);
+void atk_tcp_seq_prediction_register(void);     void def_random_isn_register(void);
+void atk_rst_injection_register(void);          void def_rst_window_check_register(void);
+void atk_tcp_session_hijack_register(void);     void def_seq_window_check_register(void);
+void atk_xmas_null_scan_register(void);         void def_tcp_flag_sanity_register(void);
+void atk_port_scan_register(void);              void def_scan_detect_register(void);
+void atk_slowloris_register(void);              void def_idle_timeout_register(void);
+void atk_zero_window_register(void);            void def_persist_timeout_register(void);
+void atk_sack_panic_register(void);             void def_mss_min_register(void);
+void atk_connection_exhaustion_register(void);  void def_conn_quota_register(void);
+void atk_time_wait_assassination_register(void);void def_rfc1337_register(void);
+/* network_management - UDP, services, sockets */
+void atk_udp_flood_register(void);              void def_udp_ratelimit_register(void);
+void atk_dns_spoofing_register(void);           void def_dns_txid_port_random_register(void);
+void atk_dhcp_spoofing_register(void);          void def_dhcp_validate_register(void);
+void atk_dhcp_starvation_register(void);        void def_dhcp_snooping_register(void);
+void atk_amplification_reflection_register(void);void def_response_limit_register(void);
+void atk_plaintext_sniffing_register(void);     void def_encryption_register(void);
+void atk_privileged_port_bind_register(void);   void def_port_privilege_register(void);
+void atk_raw_socket_abuse_register(void);       void def_raw_cap_register(void);
+void atk_port_hijack_register(void);            void def_reuseport_owner_register(void);
+void atk_sockbuf_exhaustion_register(void);     void def_rmem_limit_register(void);
+void atk_sockopt_overflow_register(void);       void def_optlen_check_register(void);
+void atk_sockaddr_leak_register(void);          void def_sockaddr_zero_register(void);
+void atk_unix_impersonation_register(void);     void def_peercred_check_register(void);
+void atk_firewall_bypass_fragments_register(void);void def_reassemble_before_filter_register(void);
+void atk_netns_escape_register(void);           void def_namespaces_register(void);
+
 void catalog_init(void) {
     // process_management
     atk_fork_bomb_register();               def_slot_quota_register();
@@ -283,4 +336,56 @@ void catalog_init(void) {
     // security_management
     atk_kernel_patch_register();            def_integrity_check_register();
     atk_log_flood_register();               def_audit_limit_register();
+
+    // network_management - link layer
+    atk_arp_spoofing_register();            def_arp_guard_register();
+    atk_arp_flood_register();               def_arp_table_limit_register();
+    atk_mac_spoofing_register();            def_mac_lock_register();
+    atk_promiscuous_sniffing_register();    def_promisc_cap_register();
+    atk_malformed_frame_register();         def_frame_validate_register();
+    atk_rx_ring_overflow_register();        def_rx_desc_check_register();
+    atk_mac_flooding_register();            def_port_security_register();
+    atk_vlan_hopping_register();            def_vlan_pruning_register();
+    atk_dma_attack_register();              def_iommu_register();
+    // network_management - IPv4 and ICMP
+    atk_ip_spoofing_register();             def_rp_filter_register();
+    atk_land_attack_register();             def_martian_filter_register();
+    atk_malformed_ip_header_register();     def_ip_header_validate_register();
+    atk_ping_of_death_register();           def_reassembly_bounds_register();
+    atk_teardrop_register();                def_fragment_overlap_check_register();
+    atk_fragment_flood_register();          def_frag_mem_limit_register();
+    atk_icmp_flood_register();              def_icmp_ratelimit_register();
+    atk_smurf_attack_register();            def_icmp_ignore_broadcast_register();
+    atk_icmp_redirect_register();           def_no_accept_redirects_register();
+    atk_source_routing_register();          def_drop_ip_options_register();
+    atk_ip_id_prediction_register();        def_random_ip_id_register();
+    atk_ttl_recon_register();               def_ttl_normalize_register();
+    // network_management - TCP
+    atk_syn_flood_register();               def_syn_cookies_register();
+    atk_tcp_seq_prediction_register();      def_random_isn_register();
+    atk_rst_injection_register();           def_rst_window_check_register();
+    atk_tcp_session_hijack_register();      def_seq_window_check_register();
+    atk_xmas_null_scan_register();          def_tcp_flag_sanity_register();
+    atk_port_scan_register();               def_scan_detect_register();
+    atk_slowloris_register();               def_idle_timeout_register();
+    atk_zero_window_register();             def_persist_timeout_register();
+    atk_sack_panic_register();              def_mss_min_register();
+    atk_connection_exhaustion_register();   def_conn_quota_register();
+    atk_time_wait_assassination_register(); def_rfc1337_register();
+    // network_management - UDP, services, sockets
+    atk_udp_flood_register();               def_udp_ratelimit_register();
+    atk_dns_spoofing_register();            def_dns_txid_port_random_register();
+    atk_dhcp_spoofing_register();           def_dhcp_validate_register();
+    atk_dhcp_starvation_register();         def_dhcp_snooping_register();
+    atk_amplification_reflection_register();def_response_limit_register();
+    atk_plaintext_sniffing_register();      def_encryption_register();
+    atk_privileged_port_bind_register();    def_port_privilege_register();
+    atk_raw_socket_abuse_register();        def_raw_cap_register();
+    atk_port_hijack_register();             def_reuseport_owner_register();
+    atk_sockbuf_exhaustion_register();      def_rmem_limit_register();
+    atk_sockopt_overflow_register();        def_optlen_check_register();
+    atk_sockaddr_leak_register();           def_sockaddr_zero_register();
+    atk_unix_impersonation_register();      def_peercred_check_register();
+    atk_firewall_bypass_fragments_register();def_reassemble_before_filter_register();
+    atk_netns_escape_register();            def_namespaces_register();
 }

@@ -35,6 +35,9 @@ static const struct {
     [CAP_RESOURCE] = { "CAP_RESOURCE", "no process quota, use the reserve", "refused: needs CAP_RESOURCE" },
     [CAP_SECLAB]   = { "CAP_SECLAB",   "run live attacks and repair",      "refused: needs CAP_SECLAB"   },
     [CAP_PTRACE]   = { "CAP_PTRACE",   "look inside other users' processes", "refused: needs CAP_PTRACE" },
+    [CAP_NET_ADMIN] = { "CAP_NET_ADMIN", "change interfaces, routes, firewall", "refused: needs CAP_NET_ADMIN" },
+    [CAP_NET_RAW]  = { "CAP_NET_RAW",  "raw sockets and sniffing",         "refused: needs CAP_NET_RAW"  },
+    [CAP_NET_BIND] = { "CAP_NET_BIND", "listen on ports below 1024",       "refused: needs CAP_NET_BIND" },
 };
 
 static int valid(cap_t cap) {

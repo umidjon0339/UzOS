@@ -32,8 +32,8 @@
 #include "def_reaper.h"
 #include "caps.h"
 
-// Time budget for a live attack: 200 ticks at 100 Hz = 2 seconds.
-#define LIVE_BUDGET_TICKS 200
+// Time budget for a live attack: 1000 ticks at 100 Hz = 10 seconds.
+#define LIVE_BUDGET_TICKS 1000         // 10 s: network attacks wait for real protocol timers
 
 /* ---------- Small helpers ---------- */
 

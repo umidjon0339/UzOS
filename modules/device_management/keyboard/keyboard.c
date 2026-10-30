@@ -78,6 +78,10 @@ static void enqueue(char c) {
     last_key = c;
 }
 
+int keyboard_has_key(void) {
+    return head != tail;
+}
+
 char keyboard_pop_key(void) {
     if (head == tail)
         return 0;

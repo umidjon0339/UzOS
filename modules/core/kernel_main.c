@@ -47,6 +47,14 @@
 #include "ramdisk.h"        // filesystem
 #include "modules/filesystem_management/core/procfs/procfs.h"     // /proc (procfs_init)
 
+#include "modules/network_management/core/pci/pci.h"       // network: pci_init
+#include "modules/network_management/core/e1000/e1000.h"   // e1000_init, e1000_register_eth0
+#include "modules/network_management/core/loopback/loopback.h"   // loopback_init
+#include "modules/network_management/core/dhcp/dhcp.h"           // dhcp_start, dhcp_lease
+#include "modules/network_management/core/netdev/netdev.h"       // netdev_by_name
+#include "modules/network_management/core/inet/inet.h"           // inet_format, inet_prefix
+#include "modules/network_management/core/dns/dns.h"             // dns_init, dns_set_nameserver
+
 #include "users.h"          // users
 #include "session.h"
 
@@ -67,8 +75,10 @@
 #include "device_commands.h"
 #include "ui_commands.h"
 #include "security_commands.h"
+#include "modules/network_management/commands/net_commands.h"   // register_net_commands
 
 #define KEY_POLL_MS 10          // the shell looks for a key every timer tick
+#define DHCP_BOOT_WAIT_MS 3000  // how long boot waits for a DHCP answer
 
 static char detail[64];     // the text after a boot log line
 
@@ -193,6 +203,7 @@ static void setup_shell(void) {
     register_device_commands();     // date, devices, theme, mode, ...
     register_ui_commands();         // uzfetch, statusbar
     register_security_commands();   // seclab
+    register_net_commands();        // lspci, ...
     format(detail, sizeof(detail), "%d commands", shell_command_count());
     boot_ok(detail);
 }
@@ -235,6 +246,54 @@ static void setup_syscalls(void) {
     boot_ok("int 0x80");
 }
 
+/* ---------- 9. Network ---------- */
+
+static void setup_network(void) {
+    boot_begin("PCI bus");          // find the network card (network_management/core/pci)
+    format(detail, sizeof(detail), "%d devices", pci_init());
+    boot_ok(detail);
+
+    boot_begin("Network card");     // the e1000 driver (network_management/core/e1000)
+    if (e1000_init()) {
+        uint8_t mac[6];
+        e1000_mac(mac);
+        format(detail, sizeof(detail), "e1000, IRQ %u, MAC %02x:%02x:%02x:%02x:%02x:%02x",
+               e1000_irq(), mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+        boot_ok(detail);
+    } else {
+        boot_skip("no e1000 card: only the loopback network works");
+    }
+
+    boot_begin("Interfaces");       // lo always, eth0 if the card works (core/netdev)
+    loopback_init();
+    boot_ok(e1000_register_eth0() ? "lo 127.0.0.1, eth0" : "lo 127.0.0.1");
+
+    dns_init();                     // /etc/hosts, /etc/resolv.conf
+}
+
+// Needs interrupts and the timer: the answers arrive by IRQ.
+static void setup_dhcp(void) {
+    netdev_t *eth0 = netdev_by_name("eth0");
+    if (!eth0)
+        return;
+    boot_begin("DHCP");                 // ask the network for an address (core/dhcp)
+    dhcp_start(eth0);
+    const dhcp_lease_t *lease = dhcp_lease();
+    for (int ms = 0; ms < DHCP_BOOT_WAIT_MS && lease->state != DHCP_BOUND; ms += 10)
+        sys_sleep(10);
+    if (lease->state == DHCP_BOUND) {
+        char ip[INET_ADDR_TEXT], router[INET_ADDR_TEXT];
+        inet_format(lease->ip, ip);
+        inet_format(lease->router, router);
+        format(detail, sizeof(detail), "eth0 %s/%d, gateway %s", ip, inet_prefix(lease->netmask), router);
+        boot_ok(detail);
+        if (lease->dns)
+            dns_set_nameserver(lease->dns);     // /etc/resolv.conf
+    } else {
+        boot_skip("no answer yet: try 'dhclient' later");
+    }
+}
+
 /* ---------- Entry point ---------- */
 
 void kernel_main(uint32_t multiboot_magic, multiboot_info_t *mb_info) {
@@ -249,6 +308,7 @@ void kernel_main(uint32_t multiboot_magic, multiboot_info_t *mb_info) {
     setup_filesystem();
     setup_processes();
     setup_syscalls();
+    setup_network();
 
     // Everything is ready: let hardware interrupts in.
     boot_begin("Interrupts");
@@ -264,6 +324,8 @@ void kernel_main(uint32_t multiboot_magic, multiboot_info_t *mb_info) {
     } else {
         boot_skip("no TSC: clock speed unknown");
     }
+
+    setup_dhcp();
 
     // The status bar's daemon is a process, so it comes last.
     boot_begin("Status bar");

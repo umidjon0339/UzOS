@@ -173,6 +173,44 @@
 // security_management
 #include "modules/security_management/syscalls/getcaps/sys_getcaps.h"                        // sys_getcaps, SYS_GETCAPS
 
+// network_management: sockets and names
+#include "modules/network_management/syscalls/socket/sys_socket.h"
+#include "modules/network_management/syscalls/bind/sys_bind.h"
+#include "modules/network_management/syscalls/connect/sys_connect.h"
+#include "modules/network_management/syscalls/listen/sys_listen.h"
+#include "modules/network_management/syscalls/accept/sys_accept.h"
+#include "modules/network_management/syscalls/accept4/sys_accept4.h"
+#include "modules/network_management/syscalls/getsockname/sys_getsockname.h"
+#include "modules/network_management/syscalls/getpeername/sys_getpeername.h"
+#include "modules/network_management/syscalls/sendto/sys_sendto.h"
+#include "modules/network_management/syscalls/recvfrom/sys_recvfrom.h"
+#include "modules/network_management/syscalls/shutdown/sys_shutdown.h"
+#include "modules/network_management/syscalls/setsockopt/sys_setsockopt.h"
+#include "modules/network_management/syscalls/getsockopt/sys_getsockopt.h"
+#include "modules/network_management/syscalls/socketcall/sys_socketcall.h"
+#include "modules/network_management/syscalls/uname/sys_uname.h"
+#include "modules/network_management/syscalls/sethostname/sys_sethostname.h"
+#include "modules/network_management/syscalls/setdomainname/sys_setdomainname.h"
+#include "modules/network_management/syscalls/gethostname/sys_gethostname.h"
+#include "modules/network_management/syscalls/socketpair/sys_socketpair.h"
+#include "modules/network_management/syscalls/sendmsg/sys_sendmsg.h"
+#include "modules/network_management/syscalls/recvmsg/sys_recvmsg.h"
+#include "modules/network_management/syscalls/sendmmsg/sys_sendmmsg.h"
+#include "modules/network_management/syscalls/recvmmsg/sys_recvmmsg.h"
+#include "modules/network_management/syscalls/select/sys_select.h"
+#include "modules/network_management/syscalls/pselect6/sys_pselect6.h"
+#include "modules/network_management/syscalls/poll/sys_poll.h"
+#include "modules/network_management/syscalls/ppoll/sys_ppoll.h"
+#include "modules/network_management/syscalls/epoll_create/sys_epoll_create.h"
+#include "modules/network_management/syscalls/epoll_create1/sys_epoll_create1.h"
+#include "modules/network_management/syscalls/epoll_ctl/sys_epoll_ctl.h"
+#include "modules/network_management/syscalls/epoll_wait/sys_epoll_wait.h"
+#include "modules/network_management/syscalls/epoll_pwait/sys_epoll_pwait.h"
+#include "modules/network_management/syscalls/ioctl/sys_ioctl.h"
+#include "modules/network_management/syscalls/sendfile/sys_sendfile.h"
+#include "modules/network_management/core/inet/inet.h"                                       // NET_EFAULT, NET_EINVAL
+#include "lib/string/string.h"                                                               // memcpy
+
 #define SYSCALL_ERROR ((uint32_t)-1)
 
 /* ---------- Checking pointers from ring 3 ---------- */
@@ -676,6 +714,244 @@ static uint32_t do_getitimer(registers_t *r) {
     return (uint32_t)sys_getitimer((int)r->ebx, (getitimer_val_t *)r->ecx);
 }
 
+/* network_management: sockets. Errors are -errno (Linux's numbers), and
+ * a bad pointer is -EFAULT. An address is copied into the kernel before
+ * it is used, so the program cannot change it half-way. */
+
+#define NET_FAULT ((uint32_t)-NET_EFAULT)
+
+// Copy a sockaddr from the caller (len bytes, at most sizeof(sockaddr_t)).
+static int copy_addr(registers_t *r, uint32_t addr, uint32_t len, sockaddr_t *out) {
+    if (len > sizeof(sockaddr_t) || !buffer_ok(r, addr, len))
+        return 0;
+    memcpy(out, (const void *)addr, len);
+    return 1;
+}
+
+// An (addr, &len) pair to be filled in: both optional, both checked.
+static int out_addr_ok(registers_t *r, uint32_t addr, uint32_t len_ptr) {
+    if (!addr)
+        return 1;
+    return buffer_ok(r, len_ptr, sizeof(uint32_t)) && len_ptr &&
+           buffer_ok(r, addr, *(uint32_t *)len_ptr);
+}
+
+static uint32_t do_socket(registers_t *r) {
+    return (uint32_t)sys_socket((int)r->ebx, (int)r->ecx, (int)r->edx);
+}
+static uint32_t do_bind(registers_t *r) {
+    sockaddr_t a;
+    if (!copy_addr(r, r->ecx, r->edx, &a)) return NET_FAULT;
+    return (uint32_t)sys_bind((int)r->ebx, &a, r->edx);
+}
+static uint32_t do_connect(registers_t *r) {
+    sockaddr_t a;
+    if (!copy_addr(r, r->ecx, r->edx, &a)) return NET_FAULT;
+    return (uint32_t)sys_connect((int)r->ebx, &a, r->edx);
+}
+static uint32_t do_listen(registers_t *r) {
+    return (uint32_t)sys_listen((int)r->ebx, (int)r->ecx);
+}
+static uint32_t do_accept(registers_t *r) {
+    if (!out_addr_ok(r, r->ecx, r->edx)) return NET_FAULT;
+    return (uint32_t)sys_accept((int)r->ebx, (sockaddr_t *)r->ecx, (uint32_t *)r->edx);
+}
+static uint32_t do_accept4(registers_t *r) {
+    if (!out_addr_ok(r, r->ecx, r->edx)) return NET_FAULT;
+    return (uint32_t)sys_accept4((int)r->ebx, (sockaddr_t *)r->ecx, (uint32_t *)r->edx, (int)r->esi);
+}
+static uint32_t do_getsockname(registers_t *r) {
+    if (!r->ecx || !out_addr_ok(r, r->ecx, r->edx)) return NET_FAULT;
+    return (uint32_t)sys_getsockname((int)r->ebx, (sockaddr_t *)r->ecx, (uint32_t *)r->edx);
+}
+static uint32_t do_getpeername(registers_t *r) {
+    if (!r->ecx || !out_addr_ok(r, r->ecx, r->edx)) return NET_FAULT;
+    return (uint32_t)sys_getpeername((int)r->ebx, (sockaddr_t *)r->ecx, (uint32_t *)r->edx);
+}
+static uint32_t do_sendto(registers_t *r) {
+    sockaddr_t a;
+    if (!buffer_ok(r, r->ecx, r->edx)) return NET_FAULT;
+    if (r->edi && !copy_addr(r, r->edi, r->ebp, &a)) return NET_FAULT;
+    return (uint32_t)sys_sendto((int)r->ebx, (const void *)r->ecx, r->edx, (int)r->esi,
+                                r->edi ? &a : 0, r->ebp);
+}
+static uint32_t do_recvfrom(registers_t *r) {
+    if (!buffer_ok(r, r->ecx, r->edx) || !out_addr_ok(r, r->edi, r->ebp)) return NET_FAULT;
+    return (uint32_t)sys_recvfrom((int)r->ebx, (void *)r->ecx, r->edx, (int)r->esi,
+                                  (sockaddr_t *)r->edi, (uint32_t *)r->ebp);
+}
+static uint32_t do_shutdown(registers_t *r) {
+    return (uint32_t)sys_shutdown((int)r->ebx, (int)r->ecx);
+}
+static uint32_t do_setsockopt(registers_t *r) {
+    if (!buffer_ok(r, r->esi, r->edi)) return NET_FAULT;
+    return (uint32_t)sys_setsockopt((int)r->ebx, (int)r->ecx, (int)r->edx, (const void *)r->esi, r->edi);
+}
+static uint32_t do_getsockopt(registers_t *r) {
+    if (!r->esi || !out_addr_ok(r, r->esi, r->edi)) return NET_FAULT;
+    return (uint32_t)sys_getsockopt((int)r->ebx, (int)r->ecx, (int)r->edx, (void *)r->esi, (uint32_t *)r->edi);
+}
+static uint32_t do_uname(registers_t *r) {
+    if (!buffer_ok(r, r->ebx, sizeof(utsname_t))) return NET_FAULT;
+    return (uint32_t)sys_uname((utsname_t *)r->ebx);
+}
+static uint32_t do_sethostname(registers_t *r) {
+    if (!buffer_ok(r, r->ebx, r->ecx)) return NET_FAULT;
+    return (uint32_t)sys_sethostname((const char *)r->ebx, r->ecx);
+}
+static uint32_t do_setdomainname(registers_t *r) {
+    if (!buffer_ok(r, r->ebx, r->ecx)) return NET_FAULT;
+    return (uint32_t)sys_setdomainname((const char *)r->ebx, r->ecx);
+}
+static uint32_t do_gethostname(registers_t *r) {
+    if (!buffer_ok(r, r->ebx, r->ecx)) return NET_FAULT;
+    return (uint32_t)sys_gethostname((char *)r->ebx, r->ecx);
+}
+
+static uint32_t do_socketpair(registers_t *r) {
+    if (!buffer_ok(r, r->esi, 2 * sizeof(int))) return NET_FAULT;
+    return (uint32_t)sys_socketpair((int)r->ebx, (int)r->ecx, (int)r->edx, (int *)r->esi);
+}
+
+// A msghdr and everything it points at: the iovec, each buffer, the name.
+static int msg_ok(registers_t *r, uint32_t msg) {
+    if (!buffer_ok(r, msg, sizeof(msghdr_t)))
+        return 0;
+    const msghdr_t *m = (const msghdr_t *)msg;
+    if (m->iovlen > MSG_IOV_MAX || !buffer_ok(r, (uint32_t)m->iov, m->iovlen * sizeof(iovec_t)))
+        return 0;
+    for (uint32_t i = 0; i < m->iovlen; i++)
+        if (!buffer_ok(r, (uint32_t)m->iov[i].base, m->iov[i].len))
+            return 0;
+    return !m->name || (m->namelen <= sizeof(sockaddr_t) && buffer_ok(r, (uint32_t)m->name, m->namelen));
+}
+
+// An array of mmsghdr: the array, then each message.
+static int mmsg_ok(registers_t *r, uint32_t msgs, uint32_t count) {
+    if (count > MMSG_MAX || !buffer_ok(r, msgs, count * sizeof(mmsghdr_t)))
+        return 0;
+    for (uint32_t i = 0; i < count; i++)
+        if (!msg_ok(r, (uint32_t)&((mmsghdr_t *)msgs)[i].hdr))
+            return 0;
+    return 1;
+}
+
+static uint32_t do_sendmsg(registers_t *r) {
+    if (!msg_ok(r, r->ecx)) return NET_FAULT;
+    return (uint32_t)sys_sendmsg((int)r->ebx, (const msghdr_t *)r->ecx, (int)r->edx);
+}
+static uint32_t do_recvmsg(registers_t *r) {
+    if (!msg_ok(r, r->ecx)) return NET_FAULT;
+    return (uint32_t)sys_recvmsg((int)r->ebx, (msghdr_t *)r->ecx, (int)r->edx);
+}
+static uint32_t do_sendmmsg(registers_t *r) {
+    if (!mmsg_ok(r, r->ecx, r->edx)) return NET_FAULT;
+    return (uint32_t)sys_sendmmsg((int)r->ebx, (mmsghdr_t *)r->ecx, r->edx, (int)r->esi);
+}
+static uint32_t do_recvmmsg(registers_t *r) {
+    if (!mmsg_ok(r, r->ecx, r->edx)) return NET_FAULT;
+    return (uint32_t)sys_recvmmsg((int)r->ebx, (mmsghdr_t *)r->ecx, r->edx, (int)r->esi);
+}
+
+// select's three sets and the timeout: each may be 0.
+static int sets_ok(registers_t *r) {
+    return optional_ok(r, r->ecx, sizeof(select_set_t)) && optional_ok(r, r->edx, sizeof(select_set_t)) &&
+           optional_ok(r, r->esi, sizeof(select_set_t));
+}
+static uint32_t do_select(registers_t *r) {
+    if (!sets_ok(r) || !optional_ok(r, r->edi, sizeof(select_timeval_t))) return NET_FAULT;
+    return (uint32_t)sys_select((int)r->ebx, (select_set_t *)r->ecx, (select_set_t *)r->edx,
+                                (select_set_t *)r->esi, (const select_timeval_t *)r->edi);
+}
+static uint32_t do_pselect6(registers_t *r) {
+    if (!sets_ok(r) || !optional_ok(r, r->edi, sizeof(pselect_timespec_t)) ||
+        !optional_ok(r, r->ebp, sizeof(pselect_sigdata_t))) return NET_FAULT;
+    const pselect_sigdata_t *sig = (const pselect_sigdata_t *)r->ebp;
+    if (sig && !optional_ok(r, (uint32_t)sig->mask, sizeof(uint32_t))) return NET_FAULT;
+    return (uint32_t)sys_pselect6((int)r->ebx, (select_set_t *)r->ecx, (select_set_t *)r->edx,
+                                  (select_set_t *)r->esi, (const pselect_timespec_t *)r->edi, sig);
+}
+static uint32_t do_poll(registers_t *r) {
+    if (r->ecx > POLL_MAX) return (uint32_t)-NET_EINVAL;
+    if (!buffer_ok(r, r->ebx, r->ecx * sizeof(pollfd_t))) return NET_FAULT;
+    return (uint32_t)sys_poll((pollfd_t *)r->ebx, r->ecx, (int)r->edx);
+}
+static uint32_t do_ppoll(registers_t *r) {
+    if (r->ecx > POLL_MAX) return (uint32_t)-NET_EINVAL;
+    if (!buffer_ok(r, r->ebx, r->ecx * sizeof(pollfd_t)) || !optional_ok(r, r->edx, sizeof(ppoll_timespec_t)) ||
+        !optional_ok(r, r->esi, sizeof(uint32_t))) return NET_FAULT;
+    return (uint32_t)sys_ppoll((pollfd_t *)r->ebx, r->ecx, (const ppoll_timespec_t *)r->edx,
+                               (const uint32_t *)r->esi, r->edi);
+}
+static uint32_t do_epoll_create(registers_t *r)  { return (uint32_t)sys_epoll_create((int)r->ebx); }
+static uint32_t do_epoll_create1(registers_t *r) { return (uint32_t)sys_epoll_create1((int)r->ebx); }
+static uint32_t do_epoll_ctl(registers_t *r) {
+    if (!optional_ok(r, r->esi, sizeof(epoll_event_t))) return NET_FAULT;
+    return (uint32_t)sys_epoll_ctl((int)r->ebx, (int)r->ecx, (int)r->edx, (const epoll_event_t *)r->esi);
+}
+static uint32_t do_epoll_wait(registers_t *r) {
+    if ((int)r->edx <= 0 || r->edx > EPOLL_INTERESTS) return (uint32_t)-NET_EINVAL;
+    if (!buffer_ok(r, r->ecx, r->edx * sizeof(epoll_event_t))) return NET_FAULT;
+    return (uint32_t)sys_epoll_wait((int)r->ebx, (epoll_event_t *)r->ecx, (int)r->edx, (int)r->esi);
+}
+static uint32_t do_epoll_pwait(registers_t *r) {
+    if ((int)r->edx <= 0 || r->edx > EPOLL_INTERESTS) return (uint32_t)-NET_EINVAL;
+    if (!buffer_ok(r, r->ecx, r->edx * sizeof(epoll_event_t)) || !optional_ok(r, r->edi, sizeof(uint32_t)))
+        return NET_FAULT;
+    return (uint32_t)sys_epoll_pwait((int)r->ebx, (epoll_event_t *)r->ecx, (int)r->edx, (int)r->esi,
+                                     (const uint32_t *)r->edi, r->ebp);
+}
+static uint32_t do_ioctl(registers_t *r) {
+    // How big 'arg' is depends on the command: an int, or an ifreq.
+    uint32_t size = (r->ecx == FIONREAD || r->ecx == FIONBIO) ? sizeof(int) : sizeof(ifreq_t);
+    if (!buffer_ok(r, r->edx, size)) return NET_FAULT;
+    return (uint32_t)sys_ioctl((int)r->ebx, r->ecx, (void *)r->edx);
+}
+static uint32_t do_sendfile(registers_t *r) {
+    if (!optional_ok(r, r->edx, sizeof(uint32_t))) return NET_FAULT;
+    return (uint32_t)sys_sendfile((int)r->ebx, (int)r->ecx, (uint32_t *)r->edx, r->esi);
+}
+
+// socketcall(call, args): put the array's values into the registers the
+// direct syscall reads, and run its wrapper (which checks the pointers).
+static uint32_t do_socketcall(registers_t *r) {
+    int count = socketcall_arg_count((int)r->ebx);
+    if (!count)
+        return (uint32_t)-NET_EINVAL;
+    if (!buffer_ok(r, r->ecx, count * sizeof(uint32_t))) return NET_FAULT;
+    const uint32_t *a = (const uint32_t *)r->ecx;
+    registers_t inner = *r;                 // same ring: same checks
+    inner.ebx = a[0];
+    inner.ecx = count > 1 ? a[1] : 0;
+    inner.edx = count > 2 ? a[2] : 0;
+    inner.esi = count > 3 ? a[3] : 0;
+    inner.edi = count > 4 ? a[4] : 0;
+    inner.ebp = count > 5 ? a[5] : 0;
+    switch (r->ebx) {
+    case SOCKETCALL_SOCKET:      return do_socket(&inner);
+    case SOCKETCALL_BIND:        return do_bind(&inner);
+    case SOCKETCALL_CONNECT:     return do_connect(&inner);
+    case SOCKETCALL_LISTEN:      return do_listen(&inner);
+    case SOCKETCALL_ACCEPT:      return do_accept(&inner);
+    case SOCKETCALL_GETSOCKNAME: return do_getsockname(&inner);
+    case SOCKETCALL_GETPEERNAME: return do_getpeername(&inner);
+    case SOCKETCALL_SEND:        inner.edi = inner.ebp = 0; return do_sendto(&inner);   // send = sendto, no address
+    case SOCKETCALL_RECV:        inner.edi = inner.ebp = 0; return do_recvfrom(&inner);
+    case SOCKETCALL_SENDTO:      return do_sendto(&inner);
+    case SOCKETCALL_RECVFROM:    return do_recvfrom(&inner);
+    case SOCKETCALL_SHUTDOWN:    return do_shutdown(&inner);
+    case SOCKETCALL_SETSOCKOPT:  return do_setsockopt(&inner);
+    case SOCKETCALL_GETSOCKOPT:  return do_getsockopt(&inner);
+    case SOCKETCALL_ACCEPT4:     return do_accept4(&inner);
+    case SOCKETCALL_SOCKETPAIR:  return do_socketpair(&inner);
+    case SOCKETCALL_SENDMSG:     return do_sendmsg(&inner);
+    case SOCKETCALL_RECVMSG:     return do_recvmsg(&inner);
+    case SOCKETCALL_SENDMMSG:    return do_sendmmsg(&inner);
+    case SOCKETCALL_RECVMMSG:    return do_recvmmsg(&inner);
+    default:                     return (uint32_t)-NET_EINVAL;
+    }
+}
+
 /* ---------- The table ---------- */
 
 static const struct {
@@ -823,6 +1099,41 @@ static const struct {
     { SYS_PROCESS_VM_READV,   "process_vm_readv",   do_process_vm_readv   },
     { SYS_PROCESS_VM_WRITEV,  "process_vm_writev",  do_process_vm_writev  },
     { SYS_KCMP,               "kcmp",               do_kcmp               },
+    /* network_management: sockets and names */
+    { SYS_SOCKET,             "socket",             do_socket             },
+    { SYS_BIND,               "bind",               do_bind               },
+    { SYS_CONNECT,            "connect",            do_connect            },
+    { SYS_LISTEN,             "listen",             do_listen             },
+    { SYS_ACCEPT,             "accept",             do_accept             },
+    { SYS_ACCEPT4,            "accept4",            do_accept4            },
+    { SYS_GETSOCKNAME,        "getsockname",        do_getsockname        },
+    { SYS_GETPEERNAME,        "getpeername",        do_getpeername        },
+    { SYS_SENDTO,             "sendto",             do_sendto             },
+    { SYS_RECVFROM,           "recvfrom",           do_recvfrom           },
+    { SYS_SHUTDOWN,           "shutdown",           do_shutdown           },
+    { SYS_SETSOCKOPT,         "setsockopt",         do_setsockopt         },
+    { SYS_GETSOCKOPT,         "getsockopt",         do_getsockopt         },
+    { SYS_SOCKETCALL,         "socketcall",         do_socketcall         },
+    { SYS_UNAME,              "uname",              do_uname              },
+    { SYS_SETHOSTNAME,        "sethostname",        do_sethostname        },
+    { SYS_SETDOMAINNAME,      "setdomainname",      do_setdomainname      },
+    { SYS_GETHOSTNAME,        "gethostname",        do_gethostname        },
+    { SYS_SOCKETPAIR,         "socketpair",         do_socketpair         },
+    { SYS_SENDMSG,            "sendmsg",            do_sendmsg            },
+    { SYS_RECVMSG,            "recvmsg",            do_recvmsg            },
+    { SYS_SENDMMSG,           "sendmmsg",           do_sendmmsg           },
+    { SYS_RECVMMSG,           "recvmmsg",           do_recvmmsg           },
+    { SYS_SELECT,             "select",             do_select             },
+    { SYS_PSELECT6,           "pselect6",           do_pselect6           },
+    { SYS_POLL,               "poll",               do_poll               },
+    { SYS_PPOLL,              "ppoll",              do_ppoll              },
+    { SYS_EPOLL_CREATE,       "epoll_create",       do_epoll_create       },
+    { SYS_EPOLL_CREATE1,      "epoll_create1",      do_epoll_create1      },
+    { SYS_EPOLL_CTL,          "epoll_ctl",          do_epoll_ctl          },
+    { SYS_EPOLL_WAIT,         "epoll_wait",         do_epoll_wait         },
+    { SYS_EPOLL_PWAIT,        "epoll_pwait",        do_epoll_pwait        },
+    { SYS_IOCTL,              "ioctl",              do_ioctl              },
+    { SYS_SENDFILE,           "sendfile",           do_sendfile           },
 };
 #define TABLE_SIZE (sizeof(table) / sizeof(table[0]))
 

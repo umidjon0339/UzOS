@@ -22,6 +22,7 @@
  */
 
 #include "shell.h"
+#include "modules/network_management/core/hostname/hostname.h"   // hostname_get
 #include "line.h"
 #include "history.h"
 #include "complete.h"
@@ -96,7 +97,7 @@ void shell_print_prompt(void) {
     ui_color(UI_LABEL);
     vga_print_str("@");
     ui_color(UI_TITLE);
-    vga_print_str("uzos");
+    vga_print_str(hostname_get());
     ui_color(UI_LABEL);
     vga_print_str(":");
     ui_color(UI_LINK);

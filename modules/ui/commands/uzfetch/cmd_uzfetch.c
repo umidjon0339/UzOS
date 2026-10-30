@@ -16,6 +16,7 @@
  */
 
 #include "ui_commands.h"
+#include "modules/network_management/core/hostname/hostname.h"   // hostname_get
 #include "ui.h"
 #include "box.h"
 #include "logo.h"
@@ -125,7 +126,7 @@ static void print_info(int i) {
         ui_reset();
         vga_print_str("@");
         ui_color(UI_TITLE);
-        vga_print_str("uzos");
+        vga_print_str(hostname_get());
     } else if (i == 1) {
         ui_color(UI_DIM);
         vga_print_str("\xC4\xC4\xC4\xC4\xC4\xC4\xC4\xC4\xC4");     // ─────────

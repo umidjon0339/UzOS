@@ -35,6 +35,18 @@ static inline uint16_t inw(uint16_t port) {
     return ret;
 }
 
+// Write a 32-bit dword to a port (PCI configuration space uses these).
+static inline void outl(uint16_t port, uint32_t val) {
+    asm volatile ("outl %0, %1" : : "a"(val), "Nd"(port));
+}
+
+// Read a 32-bit dword from a port.
+static inline uint32_t inl(uint16_t port) {
+    uint32_t ret;
+    asm volatile ("inl %1, %0" : "=a"(ret) : "Nd"(port));
+    return ret;
+}
+
 // Wait ~1-4 microseconds by writing to unused port 0x80.
 // Old devices (like the PIC) need a pause between commands.
 static inline void io_wait(void) {
